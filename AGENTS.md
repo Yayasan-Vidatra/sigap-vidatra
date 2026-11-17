@@ -45,3 +45,9 @@ php artisan boost:install
 
 Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
 </laravel-boost-guidelines>
+
+<!-- Bagian proyek SIGAP Vidatra, di luar blok Laravel Boost. -->
+
+# SIGAP Vidatra
+
+Aturan proyek lengkap ada di `CLAUDE.md` (bagian "SIGAP Vidatra — aturan proyek"). Dokumen acuan ada di `prd/`: baca `prd/README.md` dulu, lalu `prd/01-rancangan-sistem-r1.md`, `prd/02-tor.md`, dan `prd/03-prd.md`. Setiap pekerjaan mengacu pada kode US-xx di PRD, dan setiap perbedaan dari rancangan dicatat di `prd/log-deviasi.md` sebelum dikerjakan.
