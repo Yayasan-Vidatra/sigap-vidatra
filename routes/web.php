@@ -4,6 +4,7 @@ use App\Http\Controllers\AltchaController;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\BuktiLaporController;
 use App\Http\Controllers\PengaduanController;
+use App\Http\Controllers\UnggahLampiranController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -18,6 +19,17 @@ Route::post('/pengaduan', [PengaduanController::class, 'store'])
     ->middleware('throttle:kirim-pengaduan')
     ->name('pengaduan.store');
 Route::get('/selesai', BuktiLaporController::class)->name('bukti-lapor');
+
+// Unggah lampiran bertahap (US-04). Id unggahan acak menjadi satu-satunya pegangan sampai formulir dikirim.
+Route::prefix('lampiran/unggah')->name('lampiran.unggah.')->group(function (): void {
+    Route::post('/', [UnggahLampiranController::class, 'mulai'])->middleware('throttle:unggah-lampiran')->name('mulai');
+    Route::post('/{id}/potongan/{indeks}', [UnggahLampiranController::class, 'potongan'])
+        ->whereNumber('indeks')
+        ->middleware('throttle:potongan-lampiran')
+        ->name('potongan');
+    Route::post('/{id}/selesai', [UnggahLampiranController::class, 'selesai'])->middleware('throttle:unggah-lampiran')->name('selesai');
+    Route::delete('/{id}', [UnggahLampiranController::class, 'batal'])->name('batal');
+});
 
 // Halaman sementara; isinya dikerjakan sesuai jadwal TOR (H-06 Hari 8, H-08 Hari 13).
 Route::inertia('/lacak', 'Sementara', [

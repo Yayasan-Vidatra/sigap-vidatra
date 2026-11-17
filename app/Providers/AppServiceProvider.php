@@ -50,5 +50,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('tantangan-altcha', fn (Request $request): Limit => Limit::perMinute(
             (int) config('sigap.altcha.batas_tantangan_per_menit'),
         )->by($request->ip()));
+
+        // Unggah lampiran: memulai/menyelesaikan unggahan, dan potongan (100 MB = 20 potongan 5 MB).
+        RateLimiter::for('unggah-lampiran', fn (Request $request): Limit => Limit::perMinute(20)->by($request->ip()));
+        RateLimiter::for('potongan-lampiran', fn (Request $request): Limit => Limit::perMinute(120)->by($request->ip()));
     }
 }
