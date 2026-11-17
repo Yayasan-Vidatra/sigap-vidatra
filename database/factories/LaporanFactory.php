@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * Bawaan: pengaduan dari laman berstatus Diterima. Pakai state wbs() untuk laporan WBS.
+ * Kategori bawaan dibuat mengikuti jenis, sehingga for($kategori) tidak tertimpa state wbs().
  *
  * Kode lacak di sini hanya data contoh; pembuatan kode lacak yang sebenarnya dikerjakan di US-07.
  *
@@ -30,7 +31,7 @@ class LaporanFactory extends Factory
             'jenis' => JenisLaporan::Pengaduan,
             'sumber' => SumberLaporan::Laman,
             'unit_id' => Unit::factory(),
-            'kategori_id' => Kategori::factory(),
+            'kategori_id' => fn (array $attributes) => Kategori::factory()->state(['jenis' => $attributes['jenis']]),
             'judul' => fake()->sentence(),
             'kronologi' => fake()->paragraph(),
             'waktu_kejadian' => fake()->dateTimeBetween('-1 month'),
@@ -44,7 +45,6 @@ class LaporanFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'kode_lacak' => 'WBS-'.strtoupper(fake()->unique()->bothify('?#?#-#?#?')),
             'jenis' => JenisLaporan::Wbs,
-            'kategori_id' => Kategori::factory()->wbs(),
             'kedudukan_terlapor' => KedudukanTerlapor::GuruPegawai,
             'pin_hash' => fake()->numerify('######'),
         ]);
