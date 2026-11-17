@@ -159,4 +159,19 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Akun uji lokal (AkunUjiSeeder)
+    |--------------------------------------------------------------------------
+    |
+    | Kata sandi bersama untuk akun uji @sigap.test yang dibuat AkunUjiSeeder.
+    | Seeder hanya berjalan di environment local dan berhenti bila nilai ini
+    | kosong. Jangan diisi di server.
+    |
+    */
+
+    'akun_uji' => [
+        'password' => env('AKUN_UJI_PASSWORD'),
+    ],
+
 ];
