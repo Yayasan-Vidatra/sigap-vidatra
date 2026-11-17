@@ -8,6 +8,7 @@ return new class extends Migration
 {
     /**
      * Metadata lampiran; berkasnya di disk privat dengan nama acak (Rancangan r1 Bagian 8 dan 10).
+     * nama_asli bertipe text karena dienkripsi untuk semua baris.
      */
     public function up(): void
     {
@@ -15,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('laporan_id')->constrained('laporan')->cascadeOnDelete();
             $table->foreignId('pesan_id')->nullable()->constrained('pesan')->cascadeOnDelete();
-            $table->string('nama_asli');
+            $table->text('nama_asli');
             $table->string('path_acak')->unique();
             $table->string('mime', 127);
             $table->unsignedBigInteger('ukuran');

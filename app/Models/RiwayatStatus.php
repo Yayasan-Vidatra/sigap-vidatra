@@ -32,6 +32,7 @@ class RiwayatStatus extends Model
         return [
             'status_lama' => StatusLaporan::class,
             'status_baru' => StatusLaporan::class,
+            'catatan' => 'encrypted',
         ];
     }
 

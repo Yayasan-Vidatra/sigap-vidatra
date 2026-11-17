@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Riwayat perpindahan status laporan (Rancangan r1 Bagian 10).
+     * Riwayat perpindahan status laporan (Rancangan r1 Bagian 10). catatan dienkripsi untuk semua baris.
      */
     public function up(): void
     {
