@@ -11,6 +11,7 @@ use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
+use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -71,6 +72,17 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public function canAccessPanel(Panel $panel): bool
     {
         return $panel->getId() === 'panel' && $this->peran !== null && ! $this->terkunci();
+    }
+
+    /**
+     * Boleh masuk lewat SSO Google Workspace: akun SSO, peran Admin Pengaduan atau PIC Unit, dan boleh
+     * membuka panel (punya peran, tidak terkunci). Rancangan r1 Bagian 9 dan 11.
+     */
+    public function bolehLoginSso(): bool
+    {
+        return $this->jenis_akun === JenisAkun::Sso
+            && ($this->peran?->bolehSso() ?? false)
+            && $this->canAccessPanel(Filament::getPanel('panel'));
     }
 
     public function terkunci(): bool

@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Auth;
 
 use App\Enums\JenisAkun;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Auth\Pages\Login as BaseLogin;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Validation\ValidationException;
@@ -30,5 +31,19 @@ class Login extends BaseLogin
             'data.email' => 'Surel atau kata sandi salah, atau akun ini tidak dapat login dengan kata sandi. '
                 .'Akun terkunci setelah 5 kali gagal; hubungi Super Admin untuk membukanya.',
         ]);
+    }
+
+    /**
+     * @return array<Action>
+     */
+    protected function getFormActions(): array
+    {
+        return [
+            ...parent::getFormActions(),
+            Action::make('loginGoogle')
+                ->label('Masuk dengan Google Workspace (Admin dan PIC)')
+                ->url(fn (): string => route('filament.panel.sso.google.redirect'))
+                ->color('gray'),
+        ];
     }
 }

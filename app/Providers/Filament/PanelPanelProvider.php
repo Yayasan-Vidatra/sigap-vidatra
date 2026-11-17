@@ -3,6 +3,8 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\VerifikasiSso;
+use App\Http\Controllers\Auth\LoginGoogleController;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -19,6 +21,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class PanelPanelProvider extends PanelProvider
@@ -33,6 +36,11 @@ class PanelPanelProvider extends PanelProvider
             ->multiFactorAuthentication([
                 AppAuthentication::make()->recoverable(),
             ], isRequired: true)
+            ->routes(function (): void {
+                Route::get('sso/google', [LoginGoogleController::class, 'redirect'])->name('sso.google.redirect');
+                Route::get('sso/google/callback', [LoginGoogleController::class, 'callback'])->name('sso.google.callback');
+                Route::get('sso/google/verifikasi', VerifikasiSso::class)->name('sso.google.verifikasi');
+            })
             ->colors([
                 'primary' => Color::Amber,
             ])
