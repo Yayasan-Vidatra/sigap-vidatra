@@ -36,7 +36,7 @@ class PanelAccessTest extends TestCase
 
     public function test_user_without_peran_is_forbidden_from_panel(): void
     {
-        $tanpaPeran = User::factory()->create();
+        $tanpaPeran = User::factory()->denganMfa()->create();
 
         $response = $this->actingAs($tanpaPeran)->get('/panel');
 
@@ -45,7 +45,7 @@ class PanelAccessTest extends TestCase
 
     public function test_user_with_peran_can_open_panel(): void
     {
-        $admin = User::factory()->peran(Peran::AdminPengaduan)->create();
+        $admin = User::factory()->peran(Peran::AdminPengaduan)->denganMfa()->create();
 
         $response = $this->actingAs($admin)->get('/panel');
 
