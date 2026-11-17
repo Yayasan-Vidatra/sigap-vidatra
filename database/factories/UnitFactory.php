@@ -1,0 +1,31 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\Unit;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Unit>
+ */
+class UnitFactory extends Factory
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'nama' => 'Unit '.fake()->unique()->bothify('??-###'),
+            'aktif' => true,
+            'kontak_darurat' => fake()->numerify('08##########'),
+        ];
+    }
+
+    public function nonaktif(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'aktif' => false,
+        ]);
+    }
+}

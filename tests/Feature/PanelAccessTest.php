@@ -2,11 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Peran;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class PanelAccessTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_beranda_renders_the_inertia_page(): void
     {
         $response = $this->get('/');
@@ -25,6 +30,24 @@ class PanelAccessTest extends TestCase
     public function test_panel_login_page_is_accessible(): void
     {
         $response = $this->get('/panel/login');
+
+        $response->assertOk();
+    }
+
+    public function test_user_without_peran_is_forbidden_from_panel(): void
+    {
+        $tanpaPeran = User::factory()->create();
+
+        $response = $this->actingAs($tanpaPeran)->get('/panel');
+
+        $response->assertForbidden();
+    }
+
+    public function test_user_with_peran_can_open_panel(): void
+    {
+        $admin = User::factory()->peran(Peran::AdminPengaduan)->create();
+
+        $response = $this->actingAs($admin)->get('/panel');
 
         $response->assertOk();
     }
