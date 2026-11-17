@@ -64,6 +64,65 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Lampiran (US-04, UC-03, UC-17, Rancangan r1 Bagian 8)
+    |--------------------------------------------------------------------------
+    |
+    | Format diperiksa dari isi berkas (MIME), bukan ekstensi. Audio hanya
+    | untuk WBS. Berkas diunggah bertahap per potongan, disimpan di disk
+    | privat "lampiran" dengan nama acak, lalu dipindai dan dibersihkan
+    | metadatanya lewat queue.
+    |
+    | Driver "lokal" untuk Windows/Laragon tanpa ClamAV/ExifTool: tidak
+    | memindai dan tidak membersihkan metadata, dan statusnya tercatat
+    | "tidak_dipindai" serta di log aplikasi. Driver "alat" untuk VPS.
+    |
+    */
+
+    'lampiran' => [
+        'maks_berkas' => 5,
+        'maks_total_mb' => 200,
+        'ukuran_potongan_mb' => 5,
+        'masa_unggahan_jam' => 24,
+        'jenis' => [
+            'dokumen' => [
+                'maks_mb' => 10,
+                'kanal' => ['pengaduan', 'wbs'],
+                'mime' => [
+                    'application/pdf',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'text/plain',
+                ],
+            ],
+            'foto' => [
+                'maks_mb' => 10,
+                'kanal' => ['pengaduan', 'wbs'],
+                'mime' => ['image/jpeg', 'image/png', 'image/heic', 'image/heif'],
+            ],
+            'video' => [
+                'maks_mb' => 100,
+                'kanal' => ['pengaduan', 'wbs'],
+                'mime' => ['video/mp4', 'video/quicktime'],
+            ],
+            'audio' => [
+                'maks_mb' => 20,
+                'kanal' => ['wbs'],
+                'mime' => ['audio/mpeg', 'audio/mp4', 'audio/x-m4a'],
+            ],
+        ],
+        // Kunci enkripsi isi lampiran WBS: 32 byte, base64. Wajib bila ada lampiran WBS yang disimpan.
+        'kunci_enkripsi' => env('LAMPIRAN_KUNCI_ENKRIPSI'),
+        'pemindai' => env('LAMPIRAN_PEMINDAI', 'lokal'),
+        'pembersih_metadata' => env('LAMPIRAN_PEMBERSIH_METADATA', 'lokal'),
+        'alat' => [
+            'clamscan' => env('LAMPIRAN_CLAMSCAN', 'clamscan'),
+            'exiftool' => env('LAMPIRAN_EXIFTOOL', 'exiftool'),
+            'ffmpeg' => env('LAMPIRAN_FFMPEG', 'ffmpeg'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Formulir Pengaduan (US-02, UC-01)
     |--------------------------------------------------------------------------
     |
@@ -72,6 +131,23 @@ return [
     | hanya anjuran dan tidak menghalangi pengiriman.
     |
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bukti Lapor (H-05, US-07)
+    |--------------------------------------------------------------------------
+    |
+    | PDF bukti lapor dibuat saat diunduh dari halaman Bukti Lapor dan tidak
+    | disimpan. Kode lacak diambil dari sesi (bukan URL) dan hanya berlaku
+    | sekian menit setelah laporan dikirim. Waktu ditampilkan dalam WIB.
+    |
+    */
+
+    'bukti_lapor' => [
+        'masa_unduh_pdf_menit' => 10,
+        'zona_waktu' => 'Asia/Jakarta',
+        'label_zona_waktu' => 'WIB',
+    ],
 
     'pengaduan' => [
         'batas_kirim_per_menit' => 5,

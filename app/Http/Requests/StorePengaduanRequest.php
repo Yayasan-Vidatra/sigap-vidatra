@@ -5,10 +5,13 @@ namespace App\Http\Requests;
 use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
 use App\Rules\AltchaSah;
+use App\Services\Lampiran\UnggahanBertahap;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Validator;
 
 /**
  * Validasi Formulir Pengaduan H-02 (US-02, US-03, UC-01, F-02).
@@ -46,8 +49,43 @@ class StorePengaduanRequest extends FormRequest
             'jabatan_pihak_dikeluhkan' => ['nullable', 'string', 'max:150'],
             'setuju_ketentuan' => ['accepted'],
             'situs_web' => ['prohibited'],
+            'lampiran' => ['nullable', 'array', 'max:'.config('sigap.lampiran.maks_berkas')],
+            'lampiran.*' => ['string', 'distinct'],
             'altcha' => ['bail', 'required', 'string', new AltchaSah],
         ];
+    }
+
+    /**
+     * Setiap id lampiran harus unggahan pengaduan yang sudah selesai diperiksa, dan totalnya paling
+     * besar 200 MB (Rancangan r1 Bagian 8).
+     *
+     * @return array<int, Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->has('lampiran') || ! is_array($this->input('lampiran'))) {
+                return;
+            }
+
+            $total = 0;
+
+            foreach ($this->input('lampiran') as $id) {
+                $siap = app(UnggahanBertahap::class)->ambilSiap((string) $id, JenisLaporan::Pengaduan);
+
+                if ($siap === null) {
+                    $validator->errors()->add('lampiran', 'Ada lampiran yang belum selesai diunggah atau sudah kedaluwarsa. Hapus lalu unggah ulang.');
+
+                    return;
+                }
+
+                $total += $siap['ukuran'];
+            }
+
+            if ($total > (int) config('sigap.lampiran.maks_total_mb') * 1024 * 1024) {
+                $validator->errors()->add('lampiran', 'Total ukuran lampiran paling besar '.config('sigap.lampiran.maks_total_mb').' MB.');
+            }
+        }];
     }
 
     /**
@@ -85,6 +123,8 @@ class StorePengaduanRequest extends FormRequest
             'before_or_equal' => ':attribute tidak boleh di masa depan.',
             'situs_web.prohibited' => 'Pengiriman tidak dapat diproses.',
             'altcha.required' => 'Selesaikan verifikasi "Saya bukan robot" terlebih dahulu.',
+            'lampiran.max' => 'Lampiran paling banyak :max berkas.',
+            'lampiran.*.distinct' => 'Lampiran yang sama terkirim dua kali.',
         ];
     }
 

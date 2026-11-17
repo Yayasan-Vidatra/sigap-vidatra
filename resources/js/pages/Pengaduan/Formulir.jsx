@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Altcha from '../../components/Altcha';
+import UnggahLampiran from '../../components/UnggahLampiran';
 import PublicLayout from '../../layouts/PublicLayout';
 
 /*
@@ -8,7 +9,7 @@ import PublicLayout from '../../layouts/PublicLayout';
  * meninggalkan jejak laporan di perangkat pelapor.
  */
 const KUNCI_DRAF = 'sigap.draf-pengaduan.v1';
-const KOLOM_TANPA_DRAF = ['situs_web', 'setuju_ketentuan', 'persetujuan_orang_tua', 'altcha'];
+const KOLOM_TANPA_DRAF = ['situs_web', 'setuju_ketentuan', 'persetujuan_orang_tua', 'altcha', 'lampiran'];
 
 function bacaDraf() {
     try {
@@ -22,7 +23,7 @@ function bacaDraf() {
 function simpanDraf(data) {
     try {
         const isian = Object.fromEntries(Object.entries(data).filter(([kolom]) => !KOLOM_TANPA_DRAF.includes(kolom)));
-        const kosong = Object.values(isian).every((nilai) => nilai === '' || nilai === false);
+        const kosong = Object.values(isian).every((nilai) => nilai === '' || nilai === false || (Array.isArray(nilai) && nilai.length === 0));
 
         if (kosong) {
             window.localStorage.removeItem(KUNCI_DRAF);
@@ -70,6 +71,7 @@ const isianAwal = {
     setuju_ketentuan: false,
     situs_web: '',
     altcha: '',
+    lampiran: [],
 };
 
 const gayaIsian =
@@ -106,7 +108,8 @@ function Bagian({ judul, children }) {
     );
 }
 
-export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs }) {
+export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, aturanLampiran }) {
+    const [sedangMengunggah, setSedangMengunggah] = useState(false);
     const form = useForm(isianAwal);
     const { data, setData, errors, processing } = form;
     const siswa = data.jenis_pelapor === 'siswa';
@@ -348,6 +351,18 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs })
                     </Kolom>
                 </Bagian>
 
+                <Bagian judul="Lampiran (boleh dikosongkan)">
+                    <UnggahLampiran
+                        kanal="pengaduan"
+                        aturan={aturanLampiran}
+                        onChange={(id, berjalan) => {
+                            setData('lampiran', id);
+                            setSedangMengunggah(berjalan);
+                        }}
+                        galat={errors.lampiran}
+                    />
+                </Bagian>
+
                 {/* Honeypot: tidak terlihat oleh manusia, biasanya diisi bot. */}
                 <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
                     <label htmlFor="situs_web">Situs web</label>
@@ -380,10 +395,10 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs })
 
                 <button
                     type="submit"
-                    disabled={processing}
+                    disabled={processing || sedangMengunggah}
                     className="rounded-lg bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-60"
                 >
-                    {processing ? 'Mengirim…' : 'Kirim Pengaduan'}
+                    {processing ? 'Mengirim…' : sedangMengunggah ? 'Menunggu unggahan selesai…' : 'Kirim Pengaduan'}
                 </button>
             </form>
         </PublicLayout>
