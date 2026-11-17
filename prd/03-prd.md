@@ -137,7 +137,7 @@ Kebutuhan ditulis sebagai user story dengan kriteria penerimaan yang bisa diuji.
 | NF-05 | Kegunaan | Responsif di HP; bahasa Indonesia sederhana; formulir selesai < 5 menit |
 | NF-06 | Retensi | Laporan disimpan 5 tahun setelah ditutup, lalu dimusnahkan dengan berita acara |
 | NF-07 | Audit | Log audit hanya bisa ditambah, tidak bisa diubah atau dihapus |
-| NF-08 | Pemeliharaan | Stack Laravel 11, React + Vite (Inertia.js), Filament, MySQL; kode di repositori GitHub organisasi Yayasan dengan panduan instalasi |
+| NF-08 | Pemeliharaan | Stack Laravel 13, React 19 + Vite (Inertia.js), Filament 5, Tailwind 4, MySQL; kode di repositori Yayasan-Vidatra/sigap-vidatra dengan panduan instalasi |
 
 ## 6. Rilis dan Tahapan
 

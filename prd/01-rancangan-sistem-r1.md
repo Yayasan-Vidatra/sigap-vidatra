@@ -122,7 +122,7 @@ Delapan use case berikut menjadi inti sistem: lima dari rancangan awal yang diub
 
 **Alur utama:**
 
-1. Pelapor memilih unit (SD/SMP/SMA/Kantor Yayasan), kategori, dan jenis pelapor (orang tua, siswa, alumni, masyarakat).
+1. Pelapor memilih unit (SD YPVDP, SMP YPVDP, SMA YPVDP, Pelaksana Harian), kategori, dan jenis pelapor (orang tua, siswa, alumni, masyarakat).
 2. Pelapor mengisi nama, kontak, judul, kronologi, waktu dan lokasi kejadian, serta jabatan pihak yang dikeluhkan.
 3. Pelapor melampirkan berkas (UC-03), maksimal 5 berkas.
 4. Pelapor menyelesaikan CAPTCHA lalu menekan "Kirim".

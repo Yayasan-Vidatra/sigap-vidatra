@@ -175,3 +175,53 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - IMPORTANT: Activate `inertia-react-development` when working with Inertia React client-side patterns.
 
 </laravel-boost-guidelines>
+
+<!-- Bagian di bawah ini milik proyek SIGAP Vidatra dan berada di luar blok Laravel Boost agar tidak tertimpa saat `boost:install` atau `boost:update`. -->
+
+# SIGAP Vidatra — aturan proyek
+
+SIGAP Vidatra (sigap.vidatra.sch.id) adalah website Pengaduan dan Pelaporan Pelanggaran (WBS) Yayasan Vidatra.
+
+## Dokumen acuan
+
+Sebelum menulis atau mengubah kode, baca bagian yang relevan dari dokumen di `prd/` (indeks dan urutan prioritas ada di `prd/README.md`):
+
+- `prd/01-rancangan-sistem-r1.md` — aturan bisnis, aktor, matriks penerima (Bagian 3.1), use case UC-xx, status laporan (Bagian 6), kebutuhan F-xx, lampiran (Bagian 8), keamanan (Bagian 9), rancangan data (Bagian 10).
+- `prd/02-tor.md` — halaman H-01 sampai H-20 dan fiturnya, cakupan Tahap 1/2, infrastruktur, timeline 15 hari, kriteria penerimaan.
+- `prd/03-prd.md` — user story US-xx dengan kriteria penerimaan, NF-xx, rilis, matriks keterlacakan.
+
+Setiap pekerjaan dimulai dengan menyebut kode US yang dikerjakan beserta UC/F/H terkait. Pekerjaan selesai bila kriteria penerimaan US itu terpenuhi dan bisa ditunjukkan, bukan hanya kodenya ada.
+
+Bila ada perbedaan antar dokumen, ikuti urutan: Rancangan r1 > PRD > TOR. Bila dokumen tidak menjawab atau saling bertentangan, berhenti dan tanya, jangan menebak.
+
+## Stack dan struktur
+
+- Laravel 13, PHP 8.3, MySQL. Tailwind 4, Vite 8. Paket utama: Inertia v3, Filament 5, Laravel Socialite (driver google), Laravel Boost (dev).
+- **Halaman publik H-01 sampai H-08**: React 19 lewat Inertia v3. Halaman di `resources/js/pages/`, layout publik `resources/js/layouts/PublicLayout.jsx`, route di `routes/web.php` dengan `Route::inertia()` atau controller yang mengembalikan `Inertia::render()`. Tidak memakai React Router.
+- **Panel petugas H-09 sampai H-20**: Filament 5, panel ID `panel` di `/panel`.
+- Nama tabel dan kolom mengikuti Rancangan r1 Bagian 10 (`laporan`, `lampiran`, `identitas_pelapor`, `disposisi`, `pengalihan`, dst.).
+- Teks antarmuka berbahasa Indonesia yang sederhana.
+
+## Aturan yang tidak boleh dilanggar
+
+1. **Hak akses ditegakkan di server** (policy/gate Laravel dan query scope), tidak cukup dengan menyembunyikan tombol di React atau Filament.
+2. **Matriks penerima WBS** (Rancangan Bagian 3.1): laporan dengan kedudukan terlapor SPI/anggota Tim WBS, Pengawas, atau Pembina tidak boleh bisa dibuka Ketua Tim WBS.
+3. **Super Admin tidak dapat membaca isi WBS.** PIC Unit hanya melihat pengaduan unitnya. Kepala Sekolah tidak melihat laporan yang menyangkut dirinya.
+4. **Data WBS terenkripsi**: identitas pelapor, terlapor, catatan internal, dan lampiran WBS dienkripsi saat disimpan.
+5. **Tanpa jejak pelapor WBS**: jalur `/wbs*` tidak mencatat IP, tidak memasang cookie pelacak, dan tidak memuat analitik pihak ketiga.
+6. **Log audit hanya bisa ditambah**: tidak ada fitur atau query untuk mengubah atau menghapus baris log audit.
+7. **Data jabatan tidak ditanam di kode**: nama dan surel Admin, PIC, Kepala Sekolah, Komite Etik, serta kontak darurat disimpan di basis data dan dikelola lewat Pengaturan (H-19). Unit: SD YPVDP, SMP YPVDP, SMA YPVDP, Pelaksana Harian.
+8. **Lampiran** disimpan di disk privat dengan nama acak, diunduh lewat tautan sementara, dan dibatasi sesuai Rancangan Bagian 8.
+9. **Jangan mengerjakan fitur Tahap 2** (US-28 sampai US-31, H-15) atau fitur di luar cakupan kecuali diminta secara eksplisit.
+
+## Deviasi dari rancangan
+
+Bila implementasi harus berbeda dari dokumen acuan (teknis tidak memungkinkan, ada cara yang jelas lebih baik, atau dokumen keliru), **jangan langsung mengubahnya**. Jelaskan perbedaannya, tambahkan baris berstatus `Diusulkan` di `prd/log-deviasi.md`, lalu tunggu persetujuan. Jangan mengubah isi `prd/01`–`03` kecuali diminta.
+
+## Alur kerja
+
+- Branch: `feat/US-xx-ringkasan` (contoh `feat/US-02-formulir-pengaduan`); untuk persiapan atau perbaikan: `setup/...`, `fix/...`, `docs/...`.
+- Pesan commit menyebut kode, contoh `feat(US-02): formulir pengaduan dengan draf otomatis`.
+- Deskripsi pull request memuat: kode US/UC/F/H yang dikerjakan, cara menguji kriteria penerimaannya, dan butir daftar periksa PRD Bagian 7 yang relevan.
+- Di akhir setiap tugas, laporkan US yang tersentuh dan usulan statusnya (`Dikerjakan`, `Selesai, belum dicek`, atau `Ada deviasi`) agar matriks keterlacakan di PRD online bisa diperbarui.
+- Jangan mengubah `.env` dan jangan meng-commit rahasia (kunci, kata sandi, token).

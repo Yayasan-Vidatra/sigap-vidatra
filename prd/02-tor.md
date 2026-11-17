@@ -245,7 +245,7 @@ SIGAP berjalan di VPS tersendiri, terpisah dari shared hosting website Yayasan, 
 | Server | VPS min. 2 vCPU, 4 GB RAM, 80 GB SSD, Ubuntu LTS, lokasi data center di Indonesia |
 | Domain | Subdomain sigap.vidatra.sch.id: record A di DNS vidatra.sch.id diarahkan ke IP VPS |
 | SSL | Let's Encrypt, perpanjangan otomatis; HTTPS wajib, HTTP dialihkan |
-| Aplikasi | Laravel 11 sebagai backend; React + Vite lewat Inertia.js untuk halaman publik (H-01 sampai H-08); Filament untuk panel petugas; MySQL/MariaDB; antrean (queue) dan cron untuk notifikasi dan pengingat |
+| Aplikasi | Laravel 13 sebagai backend, dari repo Yayasan-Vidatra/sigap-vidatra (fork laravel-react-starter); React + Vite lewat Inertia.js untuk halaman publik (H-01 sampai H-08); Filament 5 untuk panel petugas; Tailwind 4; MySQL/MariaDB; antrean (queue) dan cron untuk notifikasi dan pengingat |
 | Berkas | Penyimpanan privat di luar folder publik, nama acak, unduhan lewat tautan sementara 10 menit; lampiran WBS terenkripsi |
 | Pemindaian | ClamAV untuk virus; ExifTool dan FFmpeg untuk menghapus metadata foto/video; konversi HEIC ke JPG |
 | Unggah | Unggah bertahap (chunked) untuk video hingga 100 MB; batas total 200 MB per laporan |
