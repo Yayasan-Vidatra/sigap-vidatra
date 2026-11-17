@@ -1,5 +1,56 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PublicLayout from '../../layouts/PublicLayout';
+
+/*
+ * Draf otomatis khusus Formulir Pengaduan (US-02). Jangan dipakai di formulir WBS: draf di browser
+ * meninggalkan jejak laporan di perangkat pelapor.
+ */
+const KUNCI_DRAF = 'sigap.draf-pengaduan.v1';
+const KOLOM_TANPA_DRAF = ['situs_web', 'setuju_ketentuan', 'persetujuan_orang_tua'];
+
+function bacaDraf() {
+    try {
+        const teks = window.localStorage.getItem(KUNCI_DRAF);
+        return teks ? JSON.parse(teks) : null;
+    } catch {
+        return null;
+    }
+}
+
+function simpanDraf(data) {
+    try {
+        const isian = Object.fromEntries(Object.entries(data).filter(([kolom]) => !KOLOM_TANPA_DRAF.includes(kolom)));
+        const kosong = Object.values(isian).every((nilai) => nilai === '' || nilai === false);
+
+        if (kosong) {
+            window.localStorage.removeItem(KUNCI_DRAF);
+        } else {
+            window.localStorage.setItem(KUNCI_DRAF, JSON.stringify(isian));
+        }
+    } catch {
+        // Penyimpanan browser tidak tersedia (mode privat atau diblokir); formulir tetap bisa dipakai.
+    }
+}
+
+function hapusDraf() {
+    try {
+        window.localStorage.removeItem(KUNCI_DRAF);
+    } catch {
+        // Abaikan; tidak ada draf yang bisa dihapus.
+    }
+}
+
+function polaKataKunci(kataKunci) {
+    if (kataKunci.length === 0) {
+        return null;
+    }
+
+    const daftar = kataKunci.map((kata) => kata.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+
+    // Kata utuh, boleh diikuti partikel -nya/-lah/-kah/-pun (mis. "kekerasannya"), tetapi "suapan" tidak cocok.
+    return new RegExp(`(^|[^\\p{L}\\p{N}])(${daftar})(?:nya|lah|kah|pun)?(?=$|[^\\p{L}\\p{N}])`, 'iu');
+}
 
 const isianAwal = {
     unit_id: '',
@@ -53,10 +104,47 @@ function Bagian({ judul, children }) {
     );
 }
 
-export default function Formulir({ unit, kategori, jenisPelapor }) {
+export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs }) {
     const form = useForm(isianAwal);
     const { data, setData, errors, processing } = form;
     const siswa = data.jenis_pelapor === 'siswa';
+    const [drafDipulihkan, setDrafDipulihkan] = useState(false);
+    const drafSiap = useRef(false);
+
+    useEffect(() => {
+        const draf = bacaDraf();
+
+        if (draf) {
+            const kolomDikenal = Object.keys(isianAwal).filter((kolom) => !KOLOM_TANPA_DRAF.includes(kolom));
+            setData({
+                ...isianAwal,
+                ...Object.fromEntries(kolomDikenal.filter((kolom) => kolom in draf).map((kolom) => [kolom, draf[kolom]])),
+            });
+            setDrafDipulihkan(true);
+        }
+
+        drafSiap.current = true;
+    }, []);
+
+    useEffect(() => {
+        if (!drafSiap.current) {
+            return undefined;
+        }
+
+        const jeda = setTimeout(() => simpanDraf(data), 600);
+
+        return () => clearTimeout(jeda);
+    }, [data]);
+
+    const pola = useMemo(() => polaKataKunci(kataKunciWbs), [kataKunciWbs]);
+    const sarankanWbs = pola !== null && pola.test(`${data.judul} ${data.kronologi}`);
+
+    function buangDraf() {
+        hapusDraf();
+        form.setData(isianAwal);
+        form.clearErrors();
+        setDrafDipulihkan(false);
+    }
 
     function atur(nama) {
         return (e) => setData(nama, e.target.type === 'checkbox' ? e.target.checked : e.target.value);
@@ -75,7 +163,10 @@ export default function Formulir({ unit, kategori, jenisPelapor }) {
 
     function kirim(e) {
         e.preventDefault();
-        form.post('/pengaduan', { preserveScroll: true });
+        form.post('/pengaduan', {
+            preserveScroll: true,
+            onSuccess: () => hapusDraf(),
+        });
     }
 
     return (
@@ -95,6 +186,22 @@ export default function Formulir({ unit, kategori, jenisPelapor }) {
             </div>
 
             <form onSubmit={kirim} noValidate className="mt-6 flex flex-col gap-5">
+                {drafDipulihkan && (
+                    <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+                        <p>
+                            Isian sebelumnya dipulihkan dari draf di perangkat ini. Hapus draf bila Anda memakai
+                            perangkat bersama.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={buangDraf}
+                            className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 font-semibold text-slate-800 hover:bg-slate-100"
+                        >
+                            Hapus draf
+                        </button>
+                    </div>
+                )}
+
                 {Object.keys(errors).length > 0 && (
                     <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
                         {errors.kirim ?? 'Ada isian yang perlu diperbaiki. Isian lain tidak hilang.'}
@@ -203,6 +310,24 @@ export default function Formulir({ unit, kategori, jenisPelapor }) {
                     >
                         <textarea rows={6} {...properti('kronologi')} className={gayaIsian} />
                     </Kolom>
+                    {sarankanWbs && (
+                        <div role="status" className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                            <p className="font-semibold">Apakah ini dugaan pelanggaran serius atau kekerasan?</p>
+                            <p>
+                                Laporan seperti ini sebaiknya dikirim lewat{' '}
+                                <Link href="/wbs" className="font-semibold text-indigo-800 underline">
+                                    Pelaporan Pelanggaran (WBS)
+                                </Link>
+                                , yang lebih rahasia dan boleh anonim. Isian di formulir ini tidak dibawa ke formulir
+                                WBS. Bila menyangkut keselamatan siswa, segera hubungi kontak darurat sekolah di{' '}
+                                <Link href="/" className="font-semibold underline">
+                                    Beranda
+                                </Link>
+                                .
+                            </p>
+                            <p>Bila memang keluhan layanan, Anda tetap bisa melanjutkan pengaduan ini.</p>
+                        </div>
+                    )}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Kolom id="waktu_kejadian" label="Waktu kejadian" galat={errors.waktu_kejadian}>
                             <input type="datetime-local" {...properti('waktu_kejadian')} className={gayaIsian} />
