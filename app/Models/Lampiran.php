@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Metadata lampiran laporan atau pesan (Rancangan r1 Bagian 8). Nama asli berkas terenkripsi karena
@@ -45,6 +46,21 @@ class Lampiran extends Model
     {
         return $this->laporan->isWbs();
     }
+
+    /**
+     * Tautan unduhan untuk petugas, berlaku 10 menit (Rancangan r1 Bagian 8). Hak akses tetap diperiksa
+     * saat tautan dibuka, dan setiap pembukaan tercatat di log audit.
+     */
+    public function tautanUnduhSementara(): string
+    {
+        return URL::temporarySignedRoute(
+            'filament.panel.lampiran.unduh',
+            now()->addMinutes(self::MASA_TAUTAN_MENIT),
+            ['lampiran' => $this->getKey()],
+        );
+    }
+
+    public const MASA_TAUTAN_MENIT = 10;
 
     /**
      * @return BelongsTo<Laporan, $this>

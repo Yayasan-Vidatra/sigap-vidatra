@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\VerifikasiSso;
 use App\Http\Controllers\Auth\LoginGoogleController;
+use App\Http\Controllers\UnduhLampiranController;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsEnabled;
 use Filament\Http\Middleware\Authenticate;
@@ -46,6 +47,11 @@ class PanelPanelProvider extends PanelProvider
                 Route::get('sso/google', [LoginGoogleController::class, 'redirect'])->name('sso.google.redirect');
                 Route::get('sso/google/callback', [LoginGoogleController::class, 'callback'])->name('sso.google.callback');
                 Route::get('sso/google/verifikasi', VerifikasiSso::class)->name('sso.google.verifikasi');
+            })
+            ->authenticatedRoutes(function (): void {
+                Route::get('lampiran/{lampiran}/unduh', UnduhLampiranController::class)
+                    ->middleware(['signed', EnsureMultiFactorAuthenticationIsEnabled::class])
+                    ->name('lampiran.unduh');
             })
             ->colors([
                 'primary' => Color::Amber,
