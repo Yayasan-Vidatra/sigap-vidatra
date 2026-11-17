@@ -7,6 +7,8 @@ use App\Enums\JenisAkun;
 use App\Enums\Peran;
 use App\Exceptions\PelanggaranIntegritasData;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +19,7 @@ use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'peran', 'unit_id', 'jenis_akun'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -50,6 +52,15 @@ class User extends Authenticatable
             'peran' => Peran::class,
             'jenis_akun' => JenisAkun::class,
         ];
+    }
+
+    /**
+     * Hanya pengguna yang memiliki peran yang dapat membuka panel petugas (syarat persetujuan
+     * users.peran nullable di prd/log-deviasi.md). Pembatasan menu per peran menyusul di Hari 3.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $panel->getId() === 'panel' && $this->peran !== null;
     }
 
     /**
