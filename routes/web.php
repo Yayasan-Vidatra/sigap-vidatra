@@ -19,6 +19,7 @@ Route::post('/pengaduan', [PengaduanController::class, 'store'])
     ->middleware('throttle:kirim-pengaduan')
     ->name('pengaduan.store');
 Route::get('/selesai', BuktiLaporController::class)->name('bukti-lapor');
+Route::get('/selesai/pdf', [BuktiLaporController::class, 'pdf'])->name('bukti-lapor.pdf');
 
 // Unggah lampiran bertahap (US-04). Id unggahan acak menjadi satu-satunya pegangan sampai formulir dikirim.
 Route::prefix('lampiran/unggah')->name('lampiran.unggah.')->group(function (): void {

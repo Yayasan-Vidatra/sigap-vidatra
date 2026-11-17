@@ -132,6 +132,23 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Bukti Lapor (H-05, US-07)
+    |--------------------------------------------------------------------------
+    |
+    | PDF bukti lapor dibuat saat diunduh dari halaman Bukti Lapor dan tidak
+    | disimpan. Kode lacak diambil dari sesi (bukan URL) dan hanya berlaku
+    | sekian menit setelah laporan dikirim. Waktu ditampilkan dalam WIB.
+    |
+    */
+
+    'bukti_lapor' => [
+        'masa_unduh_pdf_menit' => 10,
+        'zona_waktu' => 'Asia/Jakarta',
+        'label_zona_waktu' => 'WIB',
+    ],
+
     'pengaduan' => [
         'batas_kirim_per_menit' => 5,
         'kata_kunci_wbs' => [

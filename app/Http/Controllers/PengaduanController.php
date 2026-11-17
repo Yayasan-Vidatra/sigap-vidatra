@@ -90,6 +90,8 @@ class PengaduanController extends Controller
             return $laporan;
         });
 
+        BuktiLaporController::izinkanUnduhPdf($request, $laporan);
+
         return redirect()->route('bukti-lapor')->with('bukti_lapor', [
             'kode_lacak' => $laporan->kode_lacak,
             'judul' => $laporan->judul,
