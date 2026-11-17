@@ -5,21 +5,29 @@ namespace Tests\Feature\Http\Controllers;
 use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
 use App\Enums\StatusLaporan;
+use App\Enums\StatusPindai;
 use App\Enums\SumberLaporan;
+use App\Jobs\ProsesLampiran;
 use App\Models\Kategori;
 use App\Models\Laporan;
 use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\MembuatBerkasUji;
 use Tests\Concerns\MemecahkanAltcha;
+use Tests\Concerns\MengunggahLampiran;
 use Tests\TestCase;
 
 class PengaduanControllerTest extends TestCase
 {
+    use MembuatBerkasUji;
     use MemecahkanAltcha;
+    use MengunggahLampiran;
     use RefreshDatabase;
 
     public function test_form_offers_only_active_units_and_pengaduan_categories(): void
@@ -198,6 +206,80 @@ class PengaduanControllerTest extends TestCase
 
         $response->assertRedirect(route('bukti-lapor'));
         $this->assertDatabaseCount('laporan', 6);
+    }
+
+    public function test_attachments_are_stored_under_random_names_and_queued_for_scanning(): void
+    {
+        Storage::fake('lampiran');
+        Queue::fake([ProsesLampiran::class]);
+        $idPdf = $this->idUnggahanSiap($this->pdfUji(), 'surat_kepala_sekolah.pdf');
+        $idFoto = $this->idUnggahanSiap($this->jpgUji(), 'toilet.jpg');
+
+        $response = $this->post('/pengaduan', $this->isianSah(['lampiran' => [$idPdf, $idFoto]]));
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('bukti_lapor.lampiran', ['surat_kepala_sekolah.pdf', 'toilet.jpg']);
+        $lampiran = Laporan::query()->sole()->lampiran()->orderBy('id')->get();
+        $this->assertSame(['application/pdf', 'image/jpeg'], $lampiran->pluck('mime')->all());
+        $this->assertSame([StatusPindai::Menunggu, StatusPindai::Menunggu], $lampiran->pluck('status_pindai')->all());
+        foreach ($lampiran as $item) {
+            $this->assertMatchesRegularExpression('#^berkas/[A-Za-z0-9]{40}$#', $item->path_acak);
+            Storage::disk('lampiran')->assertExists($item->path_acak);
+            Queue::assertPushed(ProsesLampiran::class, fn (ProsesLampiran $job): bool => $job->lampiran->is($item));
+        }
+        $namaMentah = DB::table('lampiran')->orderBy('id')->value('nama_asli');
+        $this->assertSame('surat_kepala_sekolah.pdf', Crypt::decryptString($namaMentah));
+        $this->assertSame([], Storage::disk('lampiran')->directories('unggahan'));
+    }
+
+    public function test_more_than_five_attachments_are_rejected(): void
+    {
+        Storage::fake('lampiran');
+        $id = collect(range(1, 6))->map(fn (int $i): string => $this->idUnggahanSiap($this->txtUji("catatan-{$i}.txt"), "catatan-{$i}.txt"));
+
+        $response = $this->post('/pengaduan', $this->isianSah(['lampiran' => $id->all()]));
+
+        $response->assertSessionHasErrors(['lampiran' => 'Lampiran paling banyak 5 berkas.']);
+        $this->assertDatabaseCount('laporan', 0);
+    }
+
+    public function test_attachments_over_the_total_size_limit_are_rejected(): void
+    {
+        Storage::fake('lampiran');
+        config(['sigap.lampiran.maks_total_mb' => 1]);
+        $idA = $this->idUnggahanSiap($this->pdfUji('a.pdf', ukuran: 600_000), 'a.pdf');
+        $idB = $this->idUnggahanSiap($this->pdfUji('b.pdf', ukuran: 600_000), 'b.pdf');
+
+        $response = $this->post('/pengaduan', $this->isianSah(['lampiran' => [$idA, $idB]]));
+
+        $response->assertSessionHasErrors(['lampiran' => 'Total ukuran lampiran paling besar 1 MB.']);
+        $this->assertDatabaseCount('laporan', 0);
+    }
+
+    public function test_unknown_or_wbs_upload_ids_are_rejected(): void
+    {
+        Storage::fake('lampiran');
+        $idWbs = $this->unggahBertahap($this->pdfUji(), 'bukti.pdf', kanal: 'wbs')->json('id');
+
+        foreach ([str_repeat('x', 40), $idWbs] as $id) {
+            $response = $this->post('/pengaduan', $this->isianSah(['lampiran' => [$id]]));
+
+            $response->assertSessionHasErrors(['lampiran']);
+        }
+        $this->assertDatabaseCount('laporan', 0);
+    }
+
+    public function test_an_upload_cannot_be_attached_to_a_second_complaint(): void
+    {
+        Storage::fake('lampiran');
+        Queue::fake([ProsesLampiran::class]);
+        $id = $this->idUnggahanSiap($this->pdfUji(), 'bukti.pdf');
+        $this->post('/pengaduan', $this->isianSah(['lampiran' => [$id]]))->assertSessionHasNoErrors();
+
+        $response = $this->post('/pengaduan', $this->isianSah(['lampiran' => [$id]]));
+
+        $response->assertSessionHasErrors(['lampiran']);
+        $this->assertDatabaseCount('lampiran', 1);
     }
 
     public function test_receipt_page_shows_the_code_right_after_submission(): void

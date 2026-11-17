@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\JenisBerkas;
 use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
 use App\Enums\StatusLaporan;
 use App\Enums\SumberLaporan;
 use App\Http\Requests\StorePengaduanRequest;
 use App\Models\Kategori;
+use App\Models\Lampiran;
 use App\Models\Laporan;
 use App\Models\Unit;
+use App\Services\Lampiran\PelampirUnggahan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -33,15 +36,27 @@ class PengaduanController extends Controller
                 ->map(fn (JenisPelapor $jenis): array => ['value' => $jenis->value, 'label' => $jenis->getLabel()])
                 ->all(),
             'kataKunciWbs' => config('sigap.pengaduan.kata_kunci_wbs'),
+            'aturanLampiran' => [
+                'maks_berkas' => (int) config('sigap.lampiran.maks_berkas'),
+                'maks_total_mb' => (int) config('sigap.lampiran.maks_total_mb'),
+                'jenis' => collect(JenisBerkas::cases())
+                    ->filter(fn (JenisBerkas $jenis): bool => $jenis->bolehUntuk(JenisLaporan::Pengaduan))
+                    ->map(fn (JenisBerkas $jenis): array => [
+                        'label' => $jenis->getLabel(),
+                        'maks_mb' => intdiv($jenis->maksByte(), 1024 * 1024),
+                    ])
+                    ->values()
+                    ->all(),
+            ],
         ]);
     }
 
-    public function store(StorePengaduanRequest $request): RedirectResponse
+    public function store(StorePengaduanRequest $request, PelampirUnggahan $pelampir): RedirectResponse
     {
         $data = $request->validated();
         $siswa = $request->enum('jenis_pelapor', JenisPelapor::class) === JenisPelapor::Siswa;
 
-        $laporan = DB::transaction(function () use ($data, $siswa): Laporan {
+        $laporan = DB::transaction(function () use ($data, $siswa, $pelampir): Laporan {
             $laporan = Laporan::create([
                 'kode_lacak' => Laporan::buatKodeLacak(JenisLaporan::Pengaduan),
                 'jenis' => JenisLaporan::Pengaduan,
@@ -70,12 +85,15 @@ class PengaduanController extends Controller
                 'status_baru' => StatusLaporan::Diterima,
             ]);
 
+            $pelampir->lampirkan($laporan, array_values($data['lampiran'] ?? []));
+
             return $laporan;
         });
 
         return redirect()->route('bukti-lapor')->with('bukti_lapor', [
             'kode_lacak' => $laporan->kode_lacak,
             'judul' => $laporan->judul,
+            'lampiran' => $laporan->lampiran()->get()->map(fn (Lampiran $lampiran): string => $lampiran->nama_asli)->all(),
         ]);
     }
 }

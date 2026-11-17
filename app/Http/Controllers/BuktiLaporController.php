@@ -24,6 +24,7 @@ class BuktiLaporController extends Controller
         return Inertia::render('BuktiLapor', [
             'kodeLacak' => $bukti['kode_lacak'],
             'judul' => $bukti['judul'] ?? null,
+            'lampiran' => $bukti['lampiran'] ?? [],
         ]);
     }
 }

@@ -91,9 +91,24 @@ class PenyimpananLampiran
 
         $enkripsi ? $this->enkripsiKe($pathSumber, $baru) : copy($pathSumber, $baru);
 
-        if (! rename($baru, $tujuan)) {
+        self::timpa($baru, $tujuan);
+    }
+
+    /**
+     * Mengganti berkas tujuan dengan berkas baru. rename() atomik di Linux; di Windows rename ke berkas
+     * yang sedang dikunci (mis. dipindai antivirus) bisa gagal sesaat, sehingga jatuh ke salin lalu hapus.
+     */
+    public static function timpa(string $baru, string $tujuan): void
+    {
+        if (@rename($baru, $tujuan)) {
+            return;
+        }
+
+        if (! copy($baru, $tujuan)) {
             throw new RuntimeException('Isi lampiran tidak dapat diganti.');
         }
+
+        @unlink($baru);
     }
 
     /**

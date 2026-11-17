@@ -39,9 +39,7 @@ class PembersihMetadataAlat implements PembersihMetadata
                 '-map', '0', '-map_metadata', '-1', '-map_chapters', '-1', '-c', 'copy', $keluaran,
             ]);
 
-            if (! rename($keluaran, $path)) {
-                throw new RuntimeException('Hasil pembersihan metadata tidak dapat menggantikan berkas asli.');
-            }
+            PenyimpananLampiran::timpa($keluaran, $path);
 
             return true;
         }

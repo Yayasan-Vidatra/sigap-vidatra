@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import PublicLayout from '../layouts/PublicLayout';
 
-export default function BuktiLapor({ kodeLacak, judul }) {
+export default function BuktiLapor({ kodeLacak, judul, lampiran = [] }) {
     const [tersalin, setTersalin] = useState(false);
 
     async function salin() {
@@ -33,6 +33,20 @@ export default function BuktiLapor({ kodeLacak, judul }) {
                         {tersalin ? 'Kode tersalin' : 'Salin kode'}
                     </button>
                 </div>
+                {lampiran.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                        <h2 className="font-semibold">Lampiran terkirim</h2>
+                        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-slate-700">
+                            {lampiran.map((nama) => (
+                                <li key={nama}>{nama}</li>
+                            ))}
+                        </ul>
+                        <p className="text-sm text-slate-600">
+                            Lampiran sedang diperiksa keamanannya. Bila ada berkas yang tidak dapat diterima, Anda akan
+                            diberi tahu di halaman Lacak Laporan.
+                        </p>
+                    </div>
+                )}
                 <p className="text-sm text-slate-700">
                     Simpan kode ini. Kode lacak dipakai untuk memantau status pengaduan di halaman{' '}
                     <Link href="/lacak" className="font-medium text-teal-700 hover:underline">
