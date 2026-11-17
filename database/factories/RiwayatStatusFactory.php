@@ -23,6 +23,7 @@ class RiwayatStatusFactory extends Factory
             'status_baru' => StatusLaporan::Diterima,
             'oleh_user_id' => null,
             'catatan' => null,
+            'tampil_ke_pelapor' => false,
         ];
     }
 }

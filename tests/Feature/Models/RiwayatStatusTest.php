@@ -30,6 +30,18 @@ class RiwayatStatusTest extends TestCase
         $this->assertSame('Ditolak karena pelapor Pak Hendra tidak bisa dihubungi.', Crypt::decryptString($mentah));
     }
 
+    public function test_catatan_is_hidden_from_the_reporter_unless_marked(): void
+    {
+        $laporan = Laporan::factory()->create();
+
+        $riwayat = $laporan->riwayatStatus()->create([
+            'status_baru' => StatusLaporan::Diterima,
+            'catatan' => 'Catatan internal petugas.',
+        ]);
+
+        $this->assertFalse($riwayat->fresh()->tampil_ke_pelapor);
+    }
+
     public function test_riwayat_belongs_to_laporan_and_officer(): void
     {
         $laporan = Laporan::factory()->create();
