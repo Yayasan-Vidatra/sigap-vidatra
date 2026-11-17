@@ -100,12 +100,15 @@ class PengaduanInfolist
                     ->schema([
                         RepeatableEntry::make('riwayatStatus')
                             ->hiddenLabel()
-                            ->columns(4)
+                            ->columns(5)
                             ->schema([
                                 TextEntry::make('waktu')->label('Waktu')->dateTime('d M Y H:i'),
                                 TextEntry::make('status_baru')->label('Status')->badge(),
                                 TextEntry::make('oleh.name')->label('Oleh')->placeholder('Sistem / pelapor'),
                                 TextEntry::make('catatan')->label('Catatan')->placeholder('-'),
+                                TextEntry::make('tampil_ke_pelapor')
+                                    ->label('Catatan terlihat pelapor')
+                                    ->formatStateUsing(fn (bool $state): string => $state ? 'Ya' : 'Tidak, hanya petugas'),
                             ]),
                     ]),
             ]);

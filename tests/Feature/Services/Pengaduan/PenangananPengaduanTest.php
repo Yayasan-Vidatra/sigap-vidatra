@@ -9,6 +9,7 @@ use App\Enums\StatusLaporan;
 use App\Events\PengaduanDidisposisikan;
 use App\Events\StatusLaporanBerubah;
 use App\Exceptions\AksiPengaduanTidakSah;
+use App\Models\Disposisi;
 use App\Models\Kategori;
 use App\Models\Laporan;
 use App\Models\Unit;
@@ -57,6 +58,7 @@ class PenangananPengaduanTest extends TestCase
             'status_lama' => StatusLaporan::Diterima->value,
             'status_baru' => StatusLaporan::Terverifikasi->value,
             'oleh_user_id' => $this->admin->id,
+            'tampil_ke_pelapor' => false,
         ]);
         $this->assertDatabaseHas('log_audit', [
             'user_id' => $this->admin->id,
@@ -90,6 +92,7 @@ class PenangananPengaduanTest extends TestCase
         $riwayat = $laporan->riwayatStatus()->latest('id')->first();
         $this->assertSame(StatusLaporan::Ditolak, $riwayat->status_baru);
         $this->assertSame('Bukan wewenang yayasan.', $riwayat->catatan);
+        $this->assertTrue($riwayat->tampil_ke_pelapor);
         $this->assertDatabaseHas('log_audit', [
             'aksi' => AksiAudit::MenolakPengaduan->value,
             'objek' => "laporan:{$laporan->id}",
@@ -120,6 +123,56 @@ class PenangananPengaduanTest extends TestCase
         $this->penanganan->tolak($laporan, $this->admin, 'Laporan ganda.');
 
         $this->assertSame(StatusLaporan::Ditolak, $laporan->fresh()->status);
+    }
+
+    public function test_a_verified_complaint_that_already_has_a_disposition_cannot_be_rejected(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Terverifikasi)->create();
+        Disposisi::factory()->for($laporan)->create(['unit_id' => $laporan->unit_id]);
+
+        $this->assertFalse(PenangananPengaduan::bisa('tolak', $laporan));
+
+        try {
+            $this->penanganan->tolak($laporan, $this->admin, 'Laporan ganda.');
+            $this->fail('Pengaduan yang sudah didisposisikan seharusnya tidak bisa ditolak.');
+        } catch (AksiPengaduanTidakSah $galat) {
+            $this->assertSame(AksiPengaduanTidakSah::sudahDidisposisikan()->getMessage(), $galat->getMessage());
+        }
+
+        $this->assertSame(StatusLaporan::Terverifikasi, $laporan->fresh()->status);
+        $this->assertDatabaseCount('riwayat_status', 0);
+    }
+
+    public function test_changing_the_unit_on_disposition_records_old_and_new_unit_for_officers_only(): void
+    {
+        $unitLama = Unit::factory()->create(['nama' => 'SD YPVDP']);
+        $unitBaru = Unit::factory()->create(['nama' => 'SMP YPVDP']);
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Terverifikasi)->for($unitLama)->create();
+        $pic = User::factory()->peran(Peran::PicUnit)->for($unitBaru)->create();
+
+        $this->penanganan->disposisi($laporan, $this->admin, $unitBaru, $pic, Prioritas::Sedang, null);
+
+        $riwayat = $laporan->riwayatStatus()->latest('id')->first();
+        $this->assertSame(StatusLaporan::Diproses, $riwayat->status_baru);
+        $this->assertSame('Unit diubah dari SD YPVDP ke SMP YPVDP', $riwayat->catatan);
+        $this->assertFalse($riwayat->tampil_ke_pelapor);
+        $this->assertSame($unitBaru->id, $laporan->fresh()->unit_id);
+        $this->assertDatabaseHas('log_audit', [
+            'user_id' => $this->admin->id,
+            'aksi' => AksiAudit::MengubahUnitPengaduan->value,
+            'objek' => "laporan:{$laporan->id}",
+        ]);
+    }
+
+    public function test_disposition_to_the_same_unit_records_no_unit_change(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Terverifikasi)->create();
+        $pic = User::factory()->peran(Peran::PicUnit)->create(['unit_id' => $laporan->unit_id]);
+
+        $this->penanganan->disposisi($laporan, $this->admin, $laporan->unit, $pic, Prioritas::Sedang, null);
+
+        $this->assertNull($laporan->riwayatStatus()->latest('id')->first()->catatan);
+        $this->assertDatabaseMissing('log_audit', ['aksi' => AksiAudit::MengubahUnitPengaduan->value]);
     }
 
     public function test_disposition_sets_unit_pic_priority_and_a_working_day_deadline_from_the_category_sla(): void

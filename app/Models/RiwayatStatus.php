@@ -12,9 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Riwayat perpindahan status laporan; oleh_user_id kosong bila diubah sistem atau pelapor.
+ * Catatan hanya boleh tampil ke pelapor (H-07) bila tampil_ke_pelapor bernilai true, misalnya alasan
+ * penolakan; catatan lain hanya untuk petugas.
  */
 #[Table('riwayat_status')]
-#[Fillable(['laporan_id', 'status_lama', 'status_baru', 'oleh_user_id', 'catatan'])]
+#[Fillable(['laporan_id', 'status_lama', 'status_baru', 'oleh_user_id', 'catatan', 'tampil_ke_pelapor'])]
 class RiwayatStatus extends Model
 {
     /** @use HasFactory<RiwayatStatusFactory> */
@@ -33,6 +35,7 @@ class RiwayatStatus extends Model
             'status_lama' => StatusLaporan::class,
             'status_baru' => StatusLaporan::class,
             'catatan' => 'encrypted',
+            'tampil_ke_pelapor' => 'boolean',
         ];
     }
 

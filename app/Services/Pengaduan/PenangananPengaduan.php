@@ -23,9 +23,14 @@ use Illuminate\Support\Facades\Gate;
 /**
  * Alur Admin Pengaduan di Kotak Masuk (H-11) menurut Rancangan r1 Bagian 6:
  * - verifikasi dan kategorisasi (UC-08): Diterima → Terverifikasi;
- * - tolak dengan alasan wajib (UC-11): Diterima atau Terverifikasi → Ditolak;
+ * - tolak dengan alasan wajib (UC-11): Diterima atau Terverifikasi → Ditolak, selama belum ada disposisi;
+ *   alasannya boleh dibaca pelapor (riwayat_status.tampil_ke_pelapor);
  * - disposisi ke unit, PIC, prioritas, dan instruksi (UC-09): Terverifikasi → Diproses, dengan batas
- *   waktu dari SLA kategori dalam hari kerja.
+ *   waktu dari SLA kategori dalam hari kerja. Bila unit berganti, unit lama dan baru dicatat di
+ *   riwayat_status (hanya untuk petugas) dan log audit.
+ *
+ * Tidak ada aksi "tutup" langsung ke Selesai: UC-11 dipenuhi lewat Ditolak, sedangkan Selesai diubah
+ * pelapor atau sistem (Bagian 6; klarifikasi di prd/log-deviasi.md).
  *
  * Hak akses diperiksa di sini, bukan hanya di tombol. Setiap aksi mengunci baris laporan, memeriksa
  * status terbaru, mencatat riwayat_status dan log audit, lalu mengirim event setelah transaksi tersimpan.
@@ -45,8 +50,30 @@ class PenangananPengaduan
 
     public static function bisa(string $aksi, Laporan $laporan): bool
     {
-        return in_array($laporan->status, self::STATUS_ASAL[$aksi], true);
+        return self::alasanTidakBisa($aksi, $laporan) === null;
     }
+
+    private static function alasanTidakBisa(string $aksi, Laporan $laporan): ?AksiPengaduanTidakSah
+    {
+        if (! in_array($laporan->status, self::STATUS_ASAL[$aksi], true)) {
+            return AksiPengaduanTidakSah::statusTidakSesuai(self::KATA_KERJA[$aksi], $laporan->status);
+        }
+
+        if ($aksi === 'tolak' && $laporan->disposisi()->exists()) {
+            return AksiPengaduanTidakSah::sudahDidisposisikan();
+        }
+
+        return null;
+    }
+
+    /**
+     * @var array<string, string>
+     */
+    private const KATA_KERJA = [
+        'verifikasi' => 'diverifikasi',
+        'tolak' => 'ditolak',
+        'disposisi' => 'didisposisikan',
+    ];
 
     public function verifikasi(Laporan $laporan, User $oleh, Kategori $kategori): Laporan
     {
@@ -54,9 +81,11 @@ class PenangananPengaduan
             throw AksiPengaduanTidakSah::kategoriBukanPengaduan();
         }
 
-        return $this->ubahStatus($laporan, $oleh, 'verifikasi', 'diverifikasi', StatusLaporan::Terverifikasi,
-            AksiAudit::MemverifikasiPengaduan, function (Laporan $terkunci) use ($kategori): void {
+        return $this->ubahStatus($laporan, $oleh, 'verifikasi', StatusLaporan::Terverifikasi,
+            AksiAudit::MemverifikasiPengaduan, function (Laporan $terkunci) use ($kategori): ?string {
                 $terkunci->kategori()->associate($kategori);
+
+                return null;
             });
     }
 
@@ -68,8 +97,8 @@ class PenangananPengaduan
             throw AksiPengaduanTidakSah::alasanWajib();
         }
 
-        return $this->ubahStatus($laporan, $oleh, 'tolak', 'ditolak', StatusLaporan::Ditolak,
-            AksiAudit::MenolakPengaduan, catatan: $alasan);
+        return $this->ubahStatus($laporan, $oleh, 'tolak', StatusLaporan::Ditolak,
+            AksiAudit::MenolakPengaduan, catatanPelapor: $alasan);
     }
 
     public function disposisi(
@@ -90,10 +119,17 @@ class PenangananPengaduan
 
         $disposisi = null;
 
-        $laporan = $this->ubahStatus($laporan, $oleh, 'disposisi', 'didisposisikan', StatusLaporan::Diproses,
+        $laporan = $this->ubahStatus($laporan, $oleh, 'disposisi', StatusLaporan::Diproses,
             AksiAudit::MendisposisikanPengaduan,
-            function (Laporan $terkunci) use ($unit, $pic, $prioritas, $instruksi, &$disposisi): void {
+            function (Laporan $terkunci) use ($oleh, $unit, $pic, $prioritas, $instruksi, &$disposisi): ?string {
                 $kategori = $terkunci->kategori ?? throw AksiPengaduanTidakSah::kategoriBelumDitetapkan();
+                $unitLama = $terkunci->unit;
+                $catatanUnit = null;
+
+                if ($unitLama?->isNot($unit)) {
+                    $catatanUnit = "Unit diubah dari {$unitLama->nama} ke {$unit->nama}";
+                    LogAudit::catat($oleh, AksiAudit::MengubahUnitPengaduan, $terkunci);
+                }
 
                 $terkunci->unit()->associate($unit);
                 $terkunci->prioritas = $prioritas;
@@ -104,6 +140,8 @@ class PenangananPengaduan
                     'pic_user_id' => $pic->getKey(),
                     'instruksi' => filled($instruksi) ? trim($instruksi) : null,
                 ]);
+
+                return $catatanUnit;
             });
 
         PengaduanDidisposisikan::dispatch($disposisi);
@@ -125,32 +163,30 @@ class PenangananPengaduan
     }
 
     /**
-     * @param  (callable(Laporan): void)|null  $ubah  perubahan tambahan pada laporan yang sudah terkunci
+     * @param  (callable(Laporan): ?string)|null  $ubah  perubahan tambahan pada laporan yang sudah terkunci;
+     *                                                   teks yang dikembalikan menjadi catatan khusus petugas
+     * @param  string|null  $catatanPelapor  catatan yang boleh dibaca pelapor di halaman Lacak (H-07)
      */
     private function ubahStatus(
         Laporan $laporan,
         User $oleh,
         string $aksi,
-        string $kataKerja,
         StatusLaporan $statusBaru,
         AksiAudit $aksiAudit,
         ?callable $ubah = null,
-        ?string $catatan = null,
+        ?string $catatanPelapor = null,
     ): Laporan {
         Gate::forUser($oleh)->authorize('kelolaPengaduan', $laporan);
 
-        return DB::transaction(function () use ($laporan, $oleh, $aksi, $kataKerja, $statusBaru, $aksiAudit, $ubah, $catatan): Laporan {
+        return DB::transaction(function () use ($laporan, $oleh, $aksi, $statusBaru, $aksiAudit, $ubah, $catatanPelapor): Laporan {
             $terkunci = Laporan::query()->lockForUpdate()->findOrFail($laporan->getKey());
 
-            if (! self::bisa($aksi, $terkunci)) {
-                throw AksiPengaduanTidakSah::statusTidakSesuai($kataKerja, $terkunci->status);
+            if ($galat = self::alasanTidakBisa($aksi, $terkunci)) {
+                throw $galat;
             }
 
             $statusLama = $terkunci->status;
-
-            if ($ubah !== null) {
-                $ubah($terkunci);
-            }
+            $catatanPetugas = $ubah !== null ? $ubah($terkunci) : null;
 
             $terkunci->status = $statusBaru;
             $terkunci->save();
@@ -160,7 +196,8 @@ class PenangananPengaduan
                 'status_lama' => $statusLama,
                 'status_baru' => $statusBaru,
                 'oleh_user_id' => $oleh->getKey(),
-                'catatan' => $catatan,
+                'catatan' => $catatanPelapor ?? $catatanPetugas,
+                'tampil_ke_pelapor' => $catatanPelapor !== null,
             ]);
 
             LogAudit::catat($oleh, $aksiAudit, $terkunci);

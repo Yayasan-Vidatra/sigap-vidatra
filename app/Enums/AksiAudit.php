@@ -22,6 +22,7 @@ enum AksiAudit: string implements HasLabel
     case MemverifikasiPengaduan = 'memverifikasi_pengaduan';
     case MenolakPengaduan = 'menolak_pengaduan';
     case MendisposisikanPengaduan = 'mendisposisikan_pengaduan';
+    case MengubahUnitPengaduan = 'mengubah_unit_pengaduan';
 
     public function getLabel(): string
     {
@@ -39,6 +40,7 @@ enum AksiAudit: string implements HasLabel
             self::MemverifikasiPengaduan => 'Memverifikasi pengaduan',
             self::MenolakPengaduan => 'Menolak pengaduan',
             self::MendisposisikanPengaduan => 'Mendisposisikan pengaduan',
+            self::MengubahUnitPengaduan => 'Mengubah unit pengaduan',
         };
     }
 }

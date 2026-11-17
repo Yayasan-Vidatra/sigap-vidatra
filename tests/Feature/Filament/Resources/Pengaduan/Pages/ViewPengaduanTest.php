@@ -8,6 +8,7 @@ use App\Enums\Prioritas;
 use App\Enums\StatusLaporan;
 use App\Enums\StatusPindai;
 use App\Filament\Resources\Pengaduan\Pages\ViewPengaduan;
+use App\Models\Disposisi;
 use App\Models\IdentitasPelapor;
 use App\Models\Kategori;
 use App\Models\Lampiran;
@@ -126,6 +127,17 @@ class ViewPengaduanTest extends TestCase
 
         $this->assertSame(StatusLaporan::Ditolak, $laporan->fresh()->status);
         $this->assertSame('Bukan wewenang yayasan.', $laporan->riwayatStatus()->latest('id')->first()->catatan);
+    }
+
+    public function test_reject_is_not_offered_once_a_verified_complaint_has_a_disposition(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Terverifikasi)->create();
+        Disposisi::factory()->for($laporan)->create(['unit_id' => $laporan->unit_id]);
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->assertActionHidden('tolak');
     }
 
     public function test_admin_disposes_a_verified_complaint_to_a_unit_pic(): void

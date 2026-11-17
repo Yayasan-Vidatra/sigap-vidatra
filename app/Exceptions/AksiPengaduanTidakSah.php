@@ -17,6 +17,11 @@ class AksiPengaduanTidakSah extends RuntimeException
         return new self("Pengaduan berstatus \"{$status->getLabel()}\" tidak dapat {$aksi}. Muat ulang halaman untuk melihat status terbaru.");
     }
 
+    public static function sudahDidisposisikan(): self
+    {
+        return new self('Pengaduan yang sudah didisposisikan ke unit tidak dapat ditolak.');
+    }
+
     public static function kategoriBukanPengaduan(): self
     {
         return new self('Kategori yang dipilih bukan kategori pengaduan.');
