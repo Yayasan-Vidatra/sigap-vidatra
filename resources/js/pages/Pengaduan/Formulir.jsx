@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Altcha from '../../components/Altcha';
 import PublicLayout from '../../layouts/PublicLayout';
 
 /*
@@ -7,7 +8,7 @@ import PublicLayout from '../../layouts/PublicLayout';
  * meninggalkan jejak laporan di perangkat pelapor.
  */
 const KUNCI_DRAF = 'sigap.draf-pengaduan.v1';
-const KOLOM_TANPA_DRAF = ['situs_web', 'setuju_ketentuan', 'persetujuan_orang_tua'];
+const KOLOM_TANPA_DRAF = ['situs_web', 'setuju_ketentuan', 'persetujuan_orang_tua', 'altcha'];
 
 function bacaDraf() {
     try {
@@ -68,6 +69,7 @@ const isianAwal = {
     jabatan_pihak_dikeluhkan: '',
     setuju_ketentuan: false,
     situs_web: '',
+    altcha: '',
 };
 
 const gayaIsian =
@@ -373,6 +375,8 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs })
                     </label>
                     {errors.setuju_ketentuan && <p className="text-sm text-rose-700">{errors.setuju_ketentuan}</p>}
                 </div>
+
+                <Altcha onChange={(payload) => setData('altcha', payload)} galat={errors.altcha} />
 
                 <button
                     type="submit"

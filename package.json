@@ -19,6 +19,7 @@
     },
     "dependencies": {
         "@inertiajs/react": "^3.11.0",
+        "altcha": "3.6.0",
         "react": "^19.2.8",
         "react-dom": "^19.2.8"
     }

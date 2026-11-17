@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use AltchaOrg\Altcha\Altcha;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +16,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(Altcha::class, function (): Altcha {
+            $kunci = (string) config('sigap.altcha.hmac_key');
+
+            if ($kunci === '') {
+                throw new RuntimeException('ALTCHA_HMAC_KEY belum diisi di .env; CAPTCHA tidak dapat dibuat atau diverifikasi.');
+            }
+
+            return new Altcha(hmacSignatureSecret: $kunci);
+        });
     }
 
     /**
@@ -36,5 +46,9 @@ class AppServiceProvider extends ServiceProvider
         )->by($request->ip())->response(fn () => back()->withErrors([
             'kirim' => 'Terlalu banyak pengiriman dalam waktu singkat. Silakan coba lagi dalam satu menit.',
         ])));
+
+        RateLimiter::for('tantangan-altcha', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('sigap.altcha.batas_tantangan_per_menit'),
+        )->by($request->ip()));
     }
 }

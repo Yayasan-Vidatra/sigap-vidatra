@@ -42,6 +42,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | CAPTCHA ALTCHA (proof-of-work, self-hosted)
+    |--------------------------------------------------------------------------
+    |
+    | Tantangan dibuat dan diverifikasi di server ini; tidak ada skrip atau
+    | layanan pihak ketiga, sehingga bisa dipakai juga di /wbs. Kunci HMAC
+    | wajib diisi lewat ALTCHA_HMAC_KEY. Setiap solusi hanya berlaku sekali
+    | dan kedaluwarsa setelah masa_berlaku_detik. cost dan rentang counter
+    | menentukan lama hitung di perangkat pelapor (beberapa detik).
+    |
+    */
+
+    'altcha' => [
+        'hmac_key' => env('ALTCHA_HMAC_KEY'),
+        'masa_berlaku_detik' => 600,
+        'cost' => 5000,
+        'counter_min' => 5000,
+        'counter_maks' => 10000,
+        'batas_tantangan_per_menit' => 30,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Formulir Pengaduan (US-02, UC-01)
     |--------------------------------------------------------------------------
     |

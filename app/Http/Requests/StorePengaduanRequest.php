@@ -4,9 +4,11 @@ namespace App\Http\Requests;
 
 use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
+use App\Rules\AltchaSah;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Validasi Formulir Pengaduan H-02 (US-02, US-03, UC-01, F-02).
@@ -44,7 +46,21 @@ class StorePengaduanRequest extends FormRequest
             'jabatan_pihak_dikeluhkan' => ['nullable', 'string', 'max:150'],
             'setuju_ketentuan' => ['accepted'],
             'situs_web' => ['prohibited'],
+            'altcha' => ['bail', 'required', 'string', new AltchaSah],
         ];
+    }
+
+    /**
+     * Solusi CAPTCHA baru ditandai terpakai setelah seluruh isian sah, sehingga pelapor yang salah
+     * mengisi kolom lain bisa mengirim ulang tanpa memecahkan CAPTCHA lagi.
+     */
+    protected function passedValidation(): void
+    {
+        if (! AltchaSah::tandaiDipakai((string) $this->input('altcha'))) {
+            throw ValidationException::withMessages([
+                'altcha' => 'Verifikasi "Saya bukan robot" sudah dipakai. Silakan ulangi.',
+            ]);
+        }
     }
 
     /**
@@ -68,6 +84,7 @@ class StorePengaduanRequest extends FormRequest
             'date' => ':attribute tidak valid.',
             'before_or_equal' => ':attribute tidak boleh di masa depan.',
             'situs_web.prohibited' => 'Pengiriman tidak dapat diproses.',
+            'altcha.required' => 'Selesaikan verifikasi "Saya bukan robot" terlebih dahulu.',
         ];
     }
 
