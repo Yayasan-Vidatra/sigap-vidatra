@@ -19,15 +19,20 @@ class KategoriFactory extends Factory
         return [
             'jenis' => JenisLaporan::Pengaduan,
             'nama' => ucfirst(fake()->unique()->words(3, true)),
+            'sla_tanggapan_hari' => 2,
             'sla_hari' => 14,
         ];
     }
 
+    /**
+     * Jenis pelanggaran WBS; tanpa SLA karena tenggat WBS mengikuti tahap.
+     */
     public function wbs(): static
     {
         return $this->state(fn (array $attributes) => [
             'jenis' => JenisLaporan::Wbs,
-            'sla_hari' => 30,
+            'sla_tanggapan_hari' => null,
+            'sla_hari' => null,
         ]);
     }
 }

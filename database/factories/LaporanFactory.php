@@ -32,7 +32,9 @@ class LaporanFactory extends Factory
             'jenis' => JenisLaporan::Pengaduan,
             'sumber' => SumberLaporan::Laman,
             'unit_id' => Unit::factory(),
-            'kategori_id' => fn (array $attributes) => Kategori::factory()->state(['jenis' => $attributes['jenis']]),
+            'kategori_id' => fn (array $attributes) => JenisLaporan::from(
+                $attributes['jenis'] instanceof JenisLaporan ? $attributes['jenis']->value : $attributes['jenis'],
+            ) === JenisLaporan::Wbs ? Kategori::factory()->wbs() : Kategori::factory(),
             'judul' => fake()->sentence(),
             'kronologi' => fake()->paragraph(),
             'waktu_kejadian' => fake()->dateTimeBetween('-1 month'),

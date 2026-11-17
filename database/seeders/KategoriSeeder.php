@@ -10,8 +10,8 @@ use Illuminate\Database\Seeder;
  * Kategori contoh dari contoh isi di Rancangan r1 Bagian 2. Kategori final menunggu Yayasan
  * (PRD Bagian 8, pertanyaan terbuka). Aman dijalankan ulang; SLA yang sudah diubah tidak ditimpa.
  *
- * SLA pengaduan 14 hari (target selesai, Bagian 2). SLA WBS 30 hari mengikuti target investigasi;
- * nilai ini contoh dan perlu dikonfirmasi.
+ * Kategori pengaduan: tanggapan awal 2 dan selesai 14 hari kerja (Bagian 2), bisa diubah di Pengaturan.
+ * Kategori WBS tanpa SLA, karena tenggatnya per tahap di config/sigap.php.
  */
 class KategoriSeeder extends Seeder
 {
@@ -37,11 +37,11 @@ class KategoriSeeder extends Seeder
     ];
 
     /**
-     * @var array<string, int>
+     * @var array<string, array{sla_tanggapan_hari: int|null, sla_hari: int|null}>
      */
-    private const SLA_HARI = [
-        'pengaduan' => 14,
-        'wbs' => 30,
+    private const SLA = [
+        'pengaduan' => ['sla_tanggapan_hari' => 2, 'sla_hari' => 14],
+        'wbs' => ['sla_tanggapan_hari' => null, 'sla_hari' => null],
     ];
 
     public function run(): void
@@ -50,7 +50,7 @@ class KategoriSeeder extends Seeder
             foreach ($daftarNama as $nama) {
                 Kategori::firstOrCreate(
                     ['jenis' => JenisLaporan::from($jenis), 'nama' => $nama],
-                    ['sla_hari' => self::SLA_HARI[$jenis]],
+                    self::SLA[$jenis],
                 );
             }
         }

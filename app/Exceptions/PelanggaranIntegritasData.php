@@ -46,6 +46,13 @@ class PelanggaranIntegritasData extends LogicException
         return new self('Pengalihan ke Kepala Sekolah wajib menyebut unit tujuan (UC-19).');
     }
 
+    public static function slaKategoriTidakSesuai(JenisLaporan $jenis): self
+    {
+        return $jenis === JenisLaporan::Pengaduan
+            ? new self('Kategori pengaduan wajib memiliki SLA tanggapan awal dan selesai (hari kerja).')
+            : new self('Kategori WBS tidak memiliki SLA; tenggat WBS diatur per tahap di config/sigap.php.');
+    }
+
     public static function logAuditHanyaBisaDitambah(): self
     {
         return new self('Log audit hanya bisa ditambah, tidak bisa diubah atau dihapus (NF-07).');

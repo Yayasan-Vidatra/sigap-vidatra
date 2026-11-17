@@ -18,8 +18,12 @@ class KategoriSeederTest extends TestCase
 
         $this->assertSame(5, Kategori::query()->where('jenis', JenisLaporan::Pengaduan)->count());
         $this->assertSame(6, Kategori::query()->where('jenis', JenisLaporan::Wbs)->count());
-        $this->assertDatabaseHas('kategori', ['jenis' => 'pengaduan', 'nama' => 'Kebersihan', 'sla_hari' => 14]);
-        $this->assertDatabaseHas('kategori', ['jenis' => 'wbs', 'nama' => 'Suap atau gratifikasi', 'sla_hari' => 30]);
+        $this->assertDatabaseHas('kategori', [
+            'jenis' => 'pengaduan', 'nama' => 'Kebersihan', 'sla_tanggapan_hari' => 2, 'sla_hari' => 14,
+        ]);
+        $this->assertDatabaseHas('kategori', [
+            'jenis' => 'wbs', 'nama' => 'Suap atau gratifikasi', 'sla_tanggapan_hari' => null, 'sla_hari' => null,
+        ]);
     }
 
     public function test_reseeding_keeps_changed_sla_and_adds_no_duplicates(): void
