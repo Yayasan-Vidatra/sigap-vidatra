@@ -35,4 +35,15 @@ enum KedudukanTerlapor: string implements HasLabel
     {
         return in_array($this, [self::SpiTimWbs, self::Pengawas, self::Pembina], true);
     }
+
+    /**
+     * @return list<string>
+     */
+    public static function nilaiTertutupBagiKetuaTimWbs(): array
+    {
+        return array_values(array_map(
+            fn (self $kedudukan): string => $kedudukan->value,
+            array_filter(self::cases(), fn (self $kedudukan): bool => $kedudukan->tertutupBagiKetuaTimWbs()),
+        ));
+    }
 }

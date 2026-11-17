@@ -21,4 +21,23 @@ return [
         'perpanjangan_hari_kerja' => 30,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Login petugas (US-26, Rancangan r1 Bagian 9)
+    |--------------------------------------------------------------------------
+    |
+    | Akun terkunci setelah sekian kali gagal login berturut-turut dan baru
+    | terbuka bila dibuka Super Admin. SSO Google Workspace hanya menerima
+    | akun dari domain ini, dan hanya untuk Admin Pengaduan serta PIC Unit.
+    |
+    */
+
+    'login' => [
+        'maks_gagal' => 5,
+    ],
+
+    'sso' => [
+        'domain' => 'vidatra.sch.id',
+    ],
+
 ];

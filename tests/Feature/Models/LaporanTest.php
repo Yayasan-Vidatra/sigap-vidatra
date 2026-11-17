@@ -4,6 +4,7 @@ namespace Tests\Feature\Models;
 
 use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
+use App\Enums\KedudukanTerlapor;
 use App\Enums\KesimpulanWbs;
 use App\Enums\Peran;
 use App\Enums\StatusLaporan;
@@ -254,6 +255,39 @@ class LaporanTest extends TestCase
         $disposisi = Disposisi::factory()->for($laporan)->create();
 
         $this->assertSame([$disposisi->id], $laporan->disposisi->modelKeys());
+    }
+
+    /**
+     * Matriks Rancangan r1 Bagian 3.1, kolom penelaah.
+     *
+     * @return array<string, array{KedudukanTerlapor|null, bool}>
+     */
+    public static function kedudukanUntukKetua(): array
+    {
+        return [
+            'guru, pegawai, kepala sekolah' => [KedudukanTerlapor::GuruPegawai, true],
+            'pengurus' => [KedudukanTerlapor::Pengurus, true],
+            'tidak tahu' => [KedudukanTerlapor::TidakTahu, true],
+            'kosong' => [null, true],
+            'spi atau tim wbs' => [KedudukanTerlapor::SpiTimWbs, false],
+            'pengawas' => [KedudukanTerlapor::Pengawas, false],
+            'pembina' => [KedudukanTerlapor::Pembina, false],
+        ];
+    }
+
+    #[DataProvider('kedudukanUntukKetua')]
+    public function test_wbs_report_is_open_to_ketua_tim_wbs_per_matriks(?KedudukanTerlapor $kedudukan, bool $terbuka): void
+    {
+        $laporan = Laporan::factory()->wbs()->create(['kedudukan_terlapor' => $kedudukan]);
+
+        $this->assertSame($terbuka, Laporan::query()->terbukaBagiKetuaTimWbs()->whereKey($laporan->id)->exists());
+    }
+
+    public function test_pengaduan_is_never_in_the_ketua_tim_wbs_scope(): void
+    {
+        $pengaduan = Laporan::factory()->create();
+
+        $this->assertFalse(Laporan::query()->terbukaBagiKetuaTimWbs()->whereKey($pengaduan->id)->exists());
     }
 
     public function test_anonymous_wbs_laporan_has_no_identitas_pelapor(): void

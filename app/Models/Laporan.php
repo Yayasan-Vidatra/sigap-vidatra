@@ -15,7 +15,9 @@ use App\Exceptions\PelanggaranIntegritasData;
 use Database\Factories\LaporanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -130,6 +132,21 @@ class Laporan extends Model
     public function isWbs(): bool
     {
         return $this->jenis === JenisLaporan::Wbs;
+    }
+
+    /**
+     * Laporan WBS yang boleh dibuka Ketua Tim WBS menurut matriks Bagian 3.1 (aturan proyek no. 2).
+     * Kedudukan kosong diperlakukan seperti "Tidak tahu", yang ditelaah Tim WBS.
+     *
+     * @param  Builder<Laporan>  $query
+     */
+    #[Scope]
+    protected function terbukaBagiKetuaTimWbs(Builder $query): void
+    {
+        $query->where('jenis', JenisLaporan::Wbs->value)
+            ->where(fn (Builder $kedudukan) => $kedudukan
+                ->whereNull('kedudukan_terlapor')
+                ->orWhereNotIn('kedudukan_terlapor', KedudukanTerlapor::nilaiTertutupBagiKetuaTimWbs()));
     }
 
     /**
