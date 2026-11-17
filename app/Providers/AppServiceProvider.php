@@ -3,6 +3,12 @@
 namespace App\Providers;
 
 use AltchaOrg\Altcha\Altcha;
+use App\Services\Lampiran\PembersihMetadata;
+use App\Services\Lampiran\PembersihMetadataAlat;
+use App\Services\Lampiran\PembersihMetadataLokal;
+use App\Services\Lampiran\PemindaiClamav;
+use App\Services\Lampiran\PemindaiLokal;
+use App\Services\Lampiran\PemindaiVirus;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,6 +30,18 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new Altcha(hmacSignatureSecret: $kunci);
+        });
+
+        $this->app->bind(PemindaiVirus::class, fn (): PemindaiVirus => match (config('sigap.lampiran.pemindai')) {
+            'alat' => new PemindaiClamav,
+            'lokal' => new PemindaiLokal,
+            default => throw new RuntimeException('LAMPIRAN_PEMINDAI harus "alat" atau "lokal".'),
+        });
+
+        $this->app->bind(PembersihMetadata::class, fn (): PembersihMetadata => match (config('sigap.lampiran.pembersih_metadata')) {
+            'alat' => new PembersihMetadataAlat,
+            'lokal' => new PembersihMetadataLokal,
+            default => throw new RuntimeException('LAMPIRAN_PEMBERSIH_METADATA harus "alat" atau "lokal".'),
         });
     }
 

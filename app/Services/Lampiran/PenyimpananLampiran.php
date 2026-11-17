@@ -18,6 +18,8 @@ class PenyimpananLampiran
 {
     public const FOLDER_BERKAS = 'berkas';
 
+    public const FOLDER_KARANTINA = 'karantina';
+
     private const PENANDA = 'SIGAPENC1';
 
     private const POTONGAN = 65536;
@@ -62,11 +64,48 @@ class PenyimpananLampiran
     }
 
     /**
-     * Path lokal berkas tersimpan, untuk pemindaian dan penghapusan metadata.
+     * Menyalin isi asli (didekripsi bila perlu) ke berkas sementara untuk pemindaian dan penghapusan
+     * metadata. Pemanggil wajib menghapus berkas sementara itu.
      */
-    public function pathLokal(string $pathAcak): string
+    public function keBerkasSementara(string $pathAcak, bool $terenkripsi): string
     {
-        return $this->disk()->path($pathAcak);
+        $sementara = (string) tempnam(sys_get_temp_dir(), 'sigap-lampiran-');
+        $keluaran = fopen($sementara, 'wb');
+
+        try {
+            $this->salinIsiKe($pathAcak, $terenkripsi, $keluaran);
+        } finally {
+            fclose($keluaran);
+        }
+
+        return $sementara;
+    }
+
+    /**
+     * Mengganti isi berkas tersimpan dengan isi baru (mis. setelah metadata dibersihkan), dengan path yang sama.
+     */
+    public function gantiIsi(string $pathAcak, string $pathSumber, bool $enkripsi): void
+    {
+        $tujuan = $this->disk()->path($pathAcak);
+        $baru = $tujuan.'.baru';
+
+        $enkripsi ? $this->enkripsiKe($pathSumber, $baru) : copy($pathSumber, $baru);
+
+        if (! rename($baru, $tujuan)) {
+            throw new RuntimeException('Isi lampiran tidak dapat diganti.');
+        }
+    }
+
+    /**
+     * Memindahkan berkas berbahaya ke folder karantina dan mengembalikan path barunya. Isinya tidak diubah,
+     * sehingga lampiran WBS tetap terenkripsi.
+     */
+    public function pindahKeKarantina(string $pathAcak): string
+    {
+        $pathKarantina = self::FOLDER_KARANTINA.'/'.basename($pathAcak);
+        $this->disk()->move($pathAcak, $pathKarantina);
+
+        return $pathKarantina;
     }
 
     public function hapus(string $pathAcak): void

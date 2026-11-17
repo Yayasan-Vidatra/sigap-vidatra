@@ -16,6 +16,8 @@ enum AksiAudit: string implements HasLabel
     case KunciAkunDibuka = 'kunci_akun_dibuka';
     case LoginSsoDitolak = 'login_sso_ditolak';
     case MembukaLaporan = 'membuka_laporan';
+    case MembukaLampiran = 'membuka_lampiran';
+    case LampiranDikarantina = 'lampiran_dikarantina';
 
     public function getLabel(): string
     {
@@ -27,6 +29,8 @@ enum AksiAudit: string implements HasLabel
             self::KunciAkunDibuka => 'Kunci akun dibuka',
             self::LoginSsoDitolak => 'Login SSO ditolak',
             self::MembukaLaporan => 'Membuka laporan',
+            self::MembukaLampiran => 'Membuka lampiran',
+            self::LampiranDikarantina => 'Lampiran dikarantina',
         };
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services\Lampiran;
 
 use App\Enums\JenisBerkas;
 use App\Enums\JenisLaporan;
+use DateTimeInterface;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -229,7 +230,7 @@ class UnggahanBertahap
         return ['id' => $id, 'nama_asli' => $data['nama_asli'], 'ukuran' => $data['ukuran'], 'jenis' => $data['jenis']];
     }
 
-    private function masaBerlaku(): \DateTimeInterface
+    private function masaBerlaku(): DateTimeInterface
     {
         return now()->addHours((int) config('sigap.lampiran.masa_unggahan_jam'));
     }
