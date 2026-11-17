@@ -6,6 +6,7 @@ use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\VerifikasiSso;
 use App\Http\Controllers\Auth\LoginGoogleController;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsEnabled;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -36,6 +37,11 @@ class PanelPanelProvider extends PanelProvider
             ->multiFactorAuthentication([
                 AppAuthentication::make()->recoverable(),
             ], isRequired: true)
+            // Filament memasang middleware 2FA wajib pada route halaman. Didaftarkan juga sebagai persistent
+            // agar permintaan Livewire lanjutan di halaman yang sudah terbuka ikut dialihkan bila 2FA hilang.
+            ->persistentMiddleware([
+                EnsureMultiFactorAuthenticationIsEnabled::class,
+            ])
             ->routes(function (): void {
                 Route::get('sso/google', [LoginGoogleController::class, 'redirect'])->name('sso.google.redirect');
                 Route::get('sso/google/callback', [LoginGoogleController::class, 'callback'])->name('sso.google.callback');
