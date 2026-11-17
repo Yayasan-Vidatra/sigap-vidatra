@@ -6,6 +6,7 @@ use App\Enums\Peran;
 use App\Enums\TujuanPengalihan;
 use App\Models\Laporan;
 use App\Models\Pengalihan;
+use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -26,5 +27,16 @@ class PengalihanFactory extends Factory
             'dikirim_oleh' => User::factory()->peran(Peran::AdminPengaduan),
             'diterima_pada' => null,
         ];
+    }
+
+    /**
+     * Pengalihan laporan kekerasan ke Kepala Sekolah sebuah unit (UC-19).
+     */
+    public function keKepalaSekolah(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'tujuan' => TujuanPengalihan::KepalaSekolah,
+            'unit_tujuan_id' => Unit::factory(),
+        ]);
     }
 }

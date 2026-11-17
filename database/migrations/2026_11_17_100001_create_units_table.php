@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Unit Yayasan (Rancangan r1 Bagian 10).
+     * Unit Yayasan (Rancangan r1 Bagian 10). kontak_darurat diisi lewat Pengaturan (US-24), tidak di kode.
      */
     public function up(): void
     {
@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nama', 100)->unique();
             $table->boolean('aktif')->default(true);
+            $table->string('kontak_darurat')->nullable();
             $table->timestamp('dibuat_pada')->nullable();
             $table->timestamp('diperbarui_pada')->nullable();
         });

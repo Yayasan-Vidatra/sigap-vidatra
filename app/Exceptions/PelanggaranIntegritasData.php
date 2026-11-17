@@ -31,6 +31,21 @@ class PelanggaranIntegritasData extends LogicException
         return new self("{$entitas} hanya boleh dibuat untuk laporan {$jenis->getLabel()}.");
     }
 
+    public static function penilaianDiLuarRentang(int $penilaian): self
+    {
+        return new self("Penilaian harus 1 sampai 5, bukan {$penilaian} (US-13).");
+    }
+
+    public static function kepalaSekolahTerlapor(): self
+    {
+        return new self('Laporan tidak dapat dialihkan ke Kepala Sekolah yang menjadi terlapor; rujuk ke Pokja BSAN (US-20).');
+    }
+
+    public static function unitTujuanWajib(): self
+    {
+        return new self('Pengalihan ke Kepala Sekolah wajib menyebut unit tujuan (UC-19).');
+    }
+
     public static function logAuditHanyaBisaDitambah(): self
     {
         return new self('Log audit hanya bisa ditambah, tidak bisa diubah atau dihapus (NF-07).');

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Unit Yayasan: SD YPVDP, SMP YPVDP, SMA YPVDP, Pelaksana Harian (Rancangan r1 Bagian 10).
  */
-#[Fillable(['nama', 'aktif'])]
+#[Fillable(['nama', 'aktif', 'kontak_darurat'])]
 class Unit extends Model
 {
     /** @use HasFactory<UnitFactory> */

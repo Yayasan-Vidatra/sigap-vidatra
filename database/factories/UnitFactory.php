@@ -18,6 +18,7 @@ class UnitFactory extends Factory
         return [
             'nama' => 'Unit '.fake()->unique()->bothify('??-###'),
             'aktif' => true,
+            'kontak_darurat' => fake()->numerify('08##########'),
         ];
     }
 

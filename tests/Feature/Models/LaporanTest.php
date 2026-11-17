@@ -3,6 +3,8 @@
 namespace Tests\Feature\Models;
 
 use App\Enums\JenisLaporan;
+use App\Enums\JenisPelapor;
+use App\Enums\KesimpulanWbs;
 use App\Enums\Peran;
 use App\Enums\StatusLaporan;
 use App\Exceptions\PelanggaranIntegritasData;
@@ -21,18 +23,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class LaporanTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_wbs_judul_kronologi_and_lokasi_are_stored_encrypted(): void
+    public function test_wbs_judul_kronologi_lokasi_and_saksi_are_stored_encrypted(): void
     {
         $laporan = Laporan::factory()->wbs()->create([
             'judul' => 'Dana BOS dipakai pribadi',
             'kronologi' => 'Bendahara memindahkan dana ke rekening pribadi.',
             'lokasi' => 'Ruang bendahara',
+            'saksi' => 'Staf tata usaha',
         ]);
 
         $mentah = DB::table('laporan')->where('id', $laporan->id)->first();
@@ -43,20 +47,24 @@ class LaporanTest extends TestCase
         $this->assertSame('Bendahara memindahkan dana ke rekening pribadi.', Crypt::decryptString($mentah->kronologi));
         $this->assertNotSame('Ruang bendahara', $mentah->lokasi);
         $this->assertSame('Ruang bendahara', Crypt::decryptString($mentah->lokasi));
+        $this->assertNotSame('Staf tata usaha', $mentah->saksi);
+        $this->assertSame('Staf tata usaha', Crypt::decryptString($mentah->saksi));
 
         $tersimpan = $laporan->fresh();
 
         $this->assertSame('Dana BOS dipakai pribadi', $tersimpan->judul);
         $this->assertSame('Bendahara memindahkan dana ke rekening pribadi.', $tersimpan->kronologi);
         $this->assertSame('Ruang bendahara', $tersimpan->lokasi);
+        $this->assertSame('Staf tata usaha', $tersimpan->saksi);
     }
 
-    public function test_pengaduan_judul_kronologi_and_lokasi_are_stored_as_plain_text(): void
+    public function test_pengaduan_judul_kronologi_lokasi_and_saksi_are_stored_as_plain_text(): void
     {
         $laporan = Laporan::factory()->create([
             'judul' => 'Toilet lantai 2 rusak',
             'kronologi' => 'Keran bocor sejak Senin.',
             'lokasi' => 'Gedung B lantai 2',
+            'saksi' => 'Petugas kebersihan',
         ]);
 
         $mentah = DB::table('laporan')->where('id', $laporan->id)->first();
@@ -64,6 +72,89 @@ class LaporanTest extends TestCase
         $this->assertSame('Toilet lantai 2 rusak', $mentah->judul);
         $this->assertSame('Keran bocor sejak Senin.', $mentah->kronologi);
         $this->assertSame('Gedung B lantai 2', $mentah->lokasi);
+        $this->assertSame('Petugas kebersihan', $mentah->saksi);
+    }
+
+    public function test_pengaduan_stores_jenis_pelapor_jabatan_and_penilaian(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Selesai)->create([
+            'jenis_pelapor' => JenisPelapor::Siswa,
+            'jabatan_pihak_dikeluhkan' => 'Guru olahraga',
+            'penilaian' => 4,
+        ]);
+
+        $tersimpan = $laporan->fresh();
+
+        $this->assertSame(JenisPelapor::Siswa, $tersimpan->jenis_pelapor);
+        $this->assertSame('Guru olahraga', $tersimpan->jabatan_pihak_dikeluhkan);
+        $this->assertSame(4, $tersimpan->penilaian);
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function penilaianDiLuarRentang(): array
+    {
+        return [
+            'di bawah 1' => [0],
+            'di atas 5' => [6],
+        ];
+    }
+
+    #[DataProvider('penilaianDiLuarRentang')]
+    public function test_penilaian_outside_1_to_5_is_rejected(int $penilaian): void
+    {
+        $this->expectException(PelanggaranIntegritasData::class);
+
+        try {
+            Laporan::factory()->create(['penilaian' => $penilaian]);
+        } finally {
+            $this->assertDatabaseCount('laporan', 0);
+        }
+    }
+
+    /**
+     * @return array<string, array{string, mixed}>
+     */
+    public static function kolomKhususPengaduan(): array
+    {
+        return [
+            'jenis pelapor' => ['jenis_pelapor', JenisPelapor::OrangTua],
+            'jabatan pihak dikeluhkan (harus di terlapor_wbs)' => ['jabatan_pihak_dikeluhkan', 'Bendahara'],
+            'penilaian' => ['penilaian', 5],
+        ];
+    }
+
+    #[DataProvider('kolomKhususPengaduan')]
+    public function test_pengaduan_only_column_on_a_wbs_laporan_is_rejected(string $kolom, mixed $nilai): void
+    {
+        $this->expectException(PelanggaranIntegritasData::class);
+
+        try {
+            Laporan::factory()->wbs()->create([$kolom => $nilai]);
+        } finally {
+            $this->assertDatabaseCount('laporan', 0);
+        }
+    }
+
+    public function test_kesimpulan_is_stored_for_wbs(): void
+    {
+        $laporan = Laporan::factory()->wbs()->berstatus(StatusLaporan::Selesai)->create([
+            'kesimpulan' => KesimpulanWbs::BuktiTidakCukup,
+        ]);
+
+        $this->assertSame(KesimpulanWbs::BuktiTidakCukup, $laporan->fresh()->kesimpulan);
+    }
+
+    public function test_kesimpulan_on_a_pengaduan_is_rejected(): void
+    {
+        $this->expectException(PelanggaranIntegritasData::class);
+
+        try {
+            Laporan::factory()->create(['kesimpulan' => KesimpulanWbs::Terbukti]);
+        } finally {
+            $this->assertDatabaseCount('laporan', 0);
+        }
     }
 
     public function test_wbs_content_is_encrypted_when_jenis_comes_after_judul_in_the_input(): void

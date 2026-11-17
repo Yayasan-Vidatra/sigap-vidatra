@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Casts\TerenkripsiBilaWbs;
 use App\Enums\JenisLaporan;
+use App\Enums\JenisPelapor;
 use App\Enums\KedudukanTerlapor;
+use App\Enums\KesimpulanWbs;
 use App\Enums\Prioritas;
 use App\Enums\StatusLaporan;
 use App\Enums\SumberLaporan;
@@ -25,9 +27,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 #[Table('laporan')]
 #[Fillable([
-    'kode_lacak', 'jenis', 'sumber', 'unit_id', 'kategori_id', 'judul', 'kronologi', 'waktu_kejadian',
-    'lokasi', 'kedudukan_terlapor', 'status', 'prioritas', 'batas_waktu', 'dialihkan_ke',
-    'perpanjangan_disetujui_oleh', 'pin_hash',
+    'kode_lacak', 'jenis', 'sumber', 'jenis_pelapor', 'unit_id', 'kategori_id', 'judul', 'kronologi',
+    'waktu_kejadian', 'lokasi', 'jabatan_pihak_dikeluhkan', 'saksi', 'kedudukan_terlapor', 'status',
+    'prioritas', 'batas_waktu', 'penilaian', 'kesimpulan', 'dialihkan_ke', 'perpanjangan_disetujui_oleh',
+    'pin_hash',
 ])]
 #[Hidden(['pin_hash'])]
 class Laporan extends Model
@@ -39,6 +42,19 @@ class Laporan extends Model
 
     public const UPDATED_AT = 'diperbarui_pada';
 
+    /**
+     * Kolom yang hanya berlaku untuk pengaduan. Di WBS, pihak terlapor dicatat terenkripsi di
+     * terlapor_wbs, sehingga jabatan_pihak_dikeluhkan tidak boleh terisi teks biasa.
+     *
+     * @var list<string>
+     */
+    public const KOLOM_KHUSUS_PENGADUAN = ['jenis_pelapor', 'jabatan_pihak_dikeluhkan', 'penilaian'];
+
+    /**
+     * @var list<string>
+     */
+    public const KOLOM_KHUSUS_WBS = ['kesimpulan'];
+
     protected static function booted(): void
     {
         static::saving(function (Laporan $laporan): void {
@@ -49,7 +65,26 @@ class Laporan extends Model
             if ($laporan->status !== null && ! $laporan->status->berlakuUntuk($laporan->jenis)) {
                 throw PelanggaranIntegritasData::statusTidakBerlaku($laporan->status, $laporan->jenis);
             }
+
+            $laporan->pastikanKolomSesuaiJenis();
+
+            if ($laporan->penilaian !== null && ($laporan->penilaian < 1 || $laporan->penilaian > 5)) {
+                throw PelanggaranIntegritasData::penilaianDiLuarRentang($laporan->penilaian);
+            }
         });
+    }
+
+    private function pastikanKolomSesuaiJenis(): void
+    {
+        [$kolomTerlarang, $jenisBerlaku] = $this->isWbs()
+            ? [self::KOLOM_KHUSUS_PENGADUAN, JenisLaporan::Pengaduan]
+            : [self::KOLOM_KHUSUS_WBS, JenisLaporan::Wbs];
+
+        foreach ($kolomTerlarang as $kolom) {
+            if (($this->getAttributes()[$kolom] ?? null) !== null) {
+                throw PelanggaranIntegritasData::hanyaUntukJenis("Kolom {$kolom}", $jenisBerlaku);
+            }
+        }
     }
 
     /**
@@ -75,14 +110,18 @@ class Laporan extends Model
         return [
             'jenis' => JenisLaporan::class,
             'sumber' => SumberLaporan::class,
+            'jenis_pelapor' => JenisPelapor::class,
             'judul' => TerenkripsiBilaWbs::class,
             'kronologi' => TerenkripsiBilaWbs::class,
             'lokasi' => TerenkripsiBilaWbs::class,
+            'saksi' => TerenkripsiBilaWbs::class,
             'waktu_kejadian' => 'datetime',
             'kedudukan_terlapor' => KedudukanTerlapor::class,
             'status' => StatusLaporan::class,
             'prioritas' => Prioritas::class,
             'batas_waktu' => 'datetime',
+            'penilaian' => 'integer',
+            'kesimpulan' => KesimpulanWbs::class,
             'dialihkan_ke' => TujuanPengalihan::class,
             'pin_hash' => 'hashed',
         ];

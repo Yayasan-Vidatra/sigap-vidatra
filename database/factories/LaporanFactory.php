@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\JenisLaporan;
+use App\Enums\JenisPelapor;
 use App\Enums\KedudukanTerlapor;
 use App\Enums\StatusLaporan;
 use App\Enums\SumberLaporan;
@@ -36,6 +37,8 @@ class LaporanFactory extends Factory
             'kronologi' => fake()->paragraph(),
             'waktu_kejadian' => fake()->dateTimeBetween('-1 month'),
             'lokasi' => fake()->streetName(),
+            'jenis_pelapor' => JenisPelapor::OrangTua,
+            'jabatan_pihak_dikeluhkan' => 'Wali kelas',
             'status' => StatusLaporan::Diterima,
         ];
     }
@@ -45,6 +48,9 @@ class LaporanFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'kode_lacak' => 'WBS-'.strtoupper(fake()->unique()->bothify('?#?#-#?#?')),
             'jenis' => JenisLaporan::Wbs,
+            'jenis_pelapor' => null,
+            'jabatan_pihak_dikeluhkan' => null,
+            'saksi' => fake()->name(),
             'kedudukan_terlapor' => KedudukanTerlapor::GuruPegawai,
             'pin_hash' => fake()->numerify('######'),
         ]);
