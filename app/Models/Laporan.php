@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Random\Randomizer;
 
 /**
  * Laporan bersama kanal Pengaduan dan WBS (Rancangan r1 Bagian 10).
@@ -132,6 +133,42 @@ class Laporan extends Model
     public function isWbs(): bool
     {
         return $this->jenis === JenisLaporan::Wbs;
+    }
+
+    /**
+     * Huruf dan angka kode lacak, tanpa karakter yang mudah tertukar (0/O, 1/I/L).
+     */
+    public const ALFABET_KODE_LACAK = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+    private static ?Randomizer $pengacakKodeLacak = null;
+
+    /**
+     * Kode lacak acak yang belum dipakai (Rancangan r1 Bagian 9, US-07). Pengaduan: PGD-{yymm}-{6 acak},
+     * mengikuti contoh UC-01 dengan bagian akhir acak. WBS: WBS-{4 acak}-{4 acak}, mengikuti contoh UC-02.
+     */
+    public static function buatKodeLacak(JenisLaporan $jenis): string
+    {
+        do {
+            $kode = match ($jenis) {
+                JenisLaporan::Pengaduan => 'PGD-'.now()->format('ym').'-'.self::acakKodeLacak(6),
+                JenisLaporan::Wbs => 'WBS-'.self::acakKodeLacak(4).'-'.self::acakKodeLacak(4),
+            };
+        } while (self::query()->where('kode_lacak', $kode)->exists());
+
+        return $kode;
+    }
+
+    /**
+     * Mengganti sumber acak kode lacak; hanya untuk test. null kembali ke sumber acak kriptografis.
+     */
+    public static function pakaiPengacakKodeLacak(?Randomizer $pengacak): void
+    {
+        self::$pengacakKodeLacak = $pengacak;
+    }
+
+    private static function acakKodeLacak(int $panjang): string
+    {
+        return (self::$pengacakKodeLacak ?? new Randomizer)->getBytesFromString(self::ALFABET_KODE_LACAK, $panjang);
     }
 
     /**

@@ -40,4 +40,25 @@ return [
         'domain' => 'vidatra.sch.id',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Formulir Pengaduan (US-02, UC-01)
+    |--------------------------------------------------------------------------
+    |
+    | Batas pengiriman per menit per alamat IP (jalur /pengaduan, bukan /wbs).
+    | Kata kunci memicu saran pindah ke kanal WBS (UC-01 alur 2a); saran ini
+    | hanya anjuran dan tidak menghalangi pengiriman.
+    |
+    */
+
+    'pengaduan' => [
+        'batas_kirim_per_menit' => 5,
+        'kata_kunci_wbs' => [
+            'korupsi', 'pungli', 'pungutan liar', 'pungutan tidak resmi', 'suap', 'sogok', 'gratifikasi',
+            'dana bos', 'penggelapan', 'penyalahgunaan dana', 'manipulasi', 'mark up', 'markup',
+            'benturan kepentingan', 'kekerasan', 'perundungan', 'bullying', 'pelecehan', 'pemukulan',
+            'pemerasan', 'ancaman', 'balas dendam',
+        ],
+    ],
+
 ];
