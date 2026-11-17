@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AksiAudit;
 use App\Exceptions\PelanggaranIntegritasData;
 use Database\Factories\LogAuditFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -37,14 +38,27 @@ class LogAudit extends Model
     }
 
     /**
+     * Objek untuk percobaan login dengan surel yang tidak terdaftar; surel itu sendiri tidak disimpan.
+     */
+    public const OBJEK_PENGGUNA_TIDAK_TERDAFTAR = 'users:tidak_terdaftar';
+
+    /**
      * Mencatat aksi terhadap sebuah model, dengan objek berformat "{tabel}:{id}".
      */
-    public static function catat(?User $user, string $aksi, Model $objek): self
+    public static function catat(?User $user, AksiAudit|string $aksi, Model $objek): self
+    {
+        return self::catatObjek($user, $aksi, $objek->getTable().':'.$objek->getKey());
+    }
+
+    /**
+     * Mencatat aksi dengan rujukan objek yang sudah berbentuk teks, misalnya OBJEK_PENGGUNA_TIDAK_TERDAFTAR.
+     */
+    public static function catatObjek(?User $user, AksiAudit|string $aksi, string $objek): self
     {
         return self::create([
             'user_id' => $user?->getKey(),
-            'aksi' => $aksi,
-            'objek' => $objek->getTable().':'.$objek->getKey(),
+            'aksi' => $aksi instanceof AksiAudit ? $aksi->value : $aksi,
+            'objek' => $objek,
         ]);
     }
 

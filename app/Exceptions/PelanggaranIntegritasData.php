@@ -61,6 +61,13 @@ class PelanggaranIntegritasData extends LogicException
             : new self("Peran {$peran->getLabel()} tidak terikat pada unit.");
     }
 
+    public static function akunSsoTidakSesuaiPeran(?Peran $peran): self
+    {
+        $nama = $peran?->getLabel() ?? 'tanpa peran';
+
+        return new self("Akun SSO hanya untuk Admin Pengaduan dan PIC Unit; peran {$nama} memakai akun lokal (Rancangan r1 Bagian 9).");
+    }
+
     public static function logAuditHanyaBisaDitambah(): self
     {
         return new self('Log audit hanya bisa ditambah, tidak bisa diubah atau dihapus (NF-07).');
