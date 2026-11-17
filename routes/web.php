@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\BerandaController;
+use App\Http\Controllers\BuktiLaporController;
+use App\Http\Controllers\PengaduanController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -9,6 +11,12 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::get('/', BerandaController::class)->name('beranda');
+
+Route::get('/pengaduan', [PengaduanController::class, 'create'])->name('pengaduan.create');
+Route::post('/pengaduan', [PengaduanController::class, 'store'])
+    ->middleware('throttle:kirim-pengaduan')
+    ->name('pengaduan.store');
+Route::get('/selesai', BuktiLaporController::class)->name('bukti-lapor');
 
 // Halaman sementara; isinya dikerjakan sesuai jadwal TOR (H-06 Hari 8, H-08 Hari 13).
 Route::inertia('/lacak', 'Sementara', [
