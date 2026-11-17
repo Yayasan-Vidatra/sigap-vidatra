@@ -282,6 +282,17 @@ React + Tailwind CSS
 
 > **Catatan:** `php artisan serve` menjalankan aplikasi Laravel, sedangkan `npm run dev` menjalankan Vite untuk development frontend. Keduanya memiliki fungsi yang berbeda dan biasanya dijalankan secara bersamaan.
 
+### Verifikasi ALTCHA butuh koneksi aman
+
+Formulir publik (Pengaduan, nanti WBS) memakai CAPTCHA ALTCHA yang menghitung hash lewat Web Crypto (`crypto.subtle`). Browser hanya menyediakan API ini di **konteks aman**: alamat `https://` atau `localhost`/`127.0.0.1`. Bila situs dibuka lewat `http://` dengan nama domain lain (misalnya `http://sigap-vidatra.test`), widget tidak berjalan dan formulir menampilkan pesan "Verifikasi butuh koneksi aman (HTTPS)".
+
+Untuk pengembangan lokal, pilih salah satu:
+
+- **Laragon dengan SSL**: klik kanan ikon Laragon → *Apache* (atau *Nginx*) → *SSL* → *Enabled*, lalu buka `https://sigap-vidatra.test`. Sesuaikan `APP_URL` di `.env` menjadi alamat `https://` yang sama. Bila browser memperingatkan sertifikat, tambahkan sertifikat Laragon ke *trusted root* (menu *SSL* → *Add laragon.crt to Trust Store*).
+- **localhost**: jalankan `php artisan serve` dan buka `http://127.0.0.1:8000` atau `http://localhost:8000`. Alamat ini dianggap aman oleh browser walau tanpa HTTPS.
+
+Di produksi situs selalu dilayani lewat HTTPS, jadi pesan ini tidak muncul bagi pengguna.
+
 ## Project Structure
 
 Berikut adalah struktur folder utama pada starter:
