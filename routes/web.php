@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AltchaController;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\BuktiLaporController;
 use App\Http\Controllers\PengaduanController;
@@ -33,17 +34,25 @@ Route::inertia('/privasi', 'Sementara', [
 ])->name('privasi');
 
 /*
- * Jalur /wbs* tidak memasang cookie apa pun: tanpa sesi, tanpa token CSRF, tanpa cookie terenkripsi
- * (aturan proyek no. 5, Rancangan r1 Bagian 9). Semua halaman WBS (H-03, H-04) ditambahkan di grup ini.
+ * Middleware yang memasang cookie: sesi, token CSRF, dan cookie terenkripsi. Dilepas dari jalur /wbs* dan
+ * dari endpoint tantangan CAPTCHA yang dipakai formulir WBS (aturan proyek no. 5, Rancangan r1 Bagian 9).
  */
+$tanpaCookie = [
+    EncryptCookies::class,
+    AddQueuedCookiesToResponse::class,
+    StartSession::class,
+    ShareErrorsFromSession::class,
+    PreventRequestForgery::class,
+];
+
+Route::get('/altcha/tantangan', AltchaController::class)
+    ->withoutMiddleware($tanpaCookie)
+    ->middleware('throttle:tantangan-altcha')
+    ->name('altcha.tantangan');
+
+// Semua halaman WBS (H-03, H-04) ditambahkan di grup ini.
 Route::prefix('wbs')
-    ->withoutMiddleware([
-        EncryptCookies::class,
-        AddQueuedCookiesToResponse::class,
-        StartSession::class,
-        ShareErrorsFromSession::class,
-        PreventRequestForgery::class,
-    ])
+    ->withoutMiddleware($tanpaCookie)
     ->group(function (): void {
         Route::inertia('/', 'Sementara', [
             'judul' => 'Pelaporan Pelanggaran (WBS)',

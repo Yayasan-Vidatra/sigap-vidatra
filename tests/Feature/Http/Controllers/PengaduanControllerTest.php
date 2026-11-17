@@ -14,10 +14,12 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\MemecahkanAltcha;
 use Tests\TestCase;
 
 class PengaduanControllerTest extends TestCase
 {
+    use MemecahkanAltcha;
     use RefreshDatabase;
 
     public function test_form_offers_only_active_units_and_pengaduan_categories(): void
@@ -174,12 +176,11 @@ class PengaduanControllerTest extends TestCase
     public function test_sixth_submission_within_a_minute_is_refused(): void
     {
         config(['sigap.pengaduan.batas_kirim_per_menit' => 5]);
-        $isian = $this->isianSah();
 
         foreach (range(1, 5) as $kiriman) {
-            $this->post('/pengaduan', $isian)->assertRedirect(route('bukti-lapor'));
+            $this->post('/pengaduan', $this->isianSah())->assertRedirect(route('bukti-lapor'));
         }
-        $response = $this->from('/pengaduan')->post('/pengaduan', $isian);
+        $response = $this->from('/pengaduan')->post('/pengaduan', $this->isianSah());
 
         $response->assertRedirect('/pengaduan');
         $response->assertSessionHasErrors(['kirim']);
@@ -188,13 +189,12 @@ class PengaduanControllerTest extends TestCase
 
     public function test_submissions_are_accepted_again_after_a_minute(): void
     {
-        $isian = $this->isianSah();
         foreach (range(1, 5) as $kiriman) {
-            $this->post('/pengaduan', $isian);
+            $this->post('/pengaduan', $this->isianSah());
         }
 
         $this->travel(61)->seconds();
-        $response = $this->post('/pengaduan', $isian);
+        $response = $this->post('/pengaduan', $this->isianSah());
 
         $response->assertRedirect(route('bukti-lapor'));
         $this->assertDatabaseCount('laporan', 6);
@@ -236,6 +236,7 @@ class PengaduanControllerTest extends TestCase
             'jabatan_pihak_dikeluhkan' => 'Wali kelas',
             'setuju_ketentuan' => true,
             'situs_web' => '',
+            'altcha' => $this->solusiAltcha(),
             ...$ubah,
         ];
     }
