@@ -66,10 +66,19 @@ enum Peran: string implements HasLabel
     }
 
     /**
-     * Peran yang hak aksesnya dibatasi pada satu unit (A4, dan Kepala Sekolah pada A8).
+     * Peran yang wajib terikat pada satu unit (A4, dan Kepala Sekolah pada A8).
      */
-    public function terikatUnit(): bool
+    public function wajibUnit(): bool
     {
         return in_array($this, [self::PicUnit, self::KepalaSekolah], true);
+    }
+
+    /**
+     * Peran yang boleh memiliki unit_id. Admin Pengaduan dengan unit_id adalah Admin Sekolah
+     * (Rancangan r1 Bagian 2) yang hanya menangani unit itu; tanpa unit_id berarti seluruh yayasan.
+     */
+    public function bolehUnit(): bool
+    {
+        return $this->wajibUnit() || $this === self::AdminPengaduan;
     }
 }

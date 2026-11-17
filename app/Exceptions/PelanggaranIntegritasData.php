@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use App\Enums\JenisLaporan;
+use App\Enums\Peran;
 use App\Enums\StatusLaporan;
 use LogicException;
 
@@ -51,6 +52,13 @@ class PelanggaranIntegritasData extends LogicException
         return $jenis === JenisLaporan::Pengaduan
             ? new self('Kategori pengaduan wajib memiliki SLA tanggapan awal dan selesai (hari kerja).')
             : new self('Kategori WBS tidak memiliki SLA; tenggat WBS diatur per tahap di config/sigap.php.');
+    }
+
+    public static function unitTidakSesuaiPeran(Peran $peran): self
+    {
+        return $peran->wajibUnit()
+            ? new self("Peran {$peran->getLabel()} wajib terikat pada satu unit.")
+            : new self("Peran {$peran->getLabel()} tidak terikat pada unit.");
     }
 
     public static function logAuditHanyaBisaDitambah(): self

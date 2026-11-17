@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\JenisAkun;
 use App\Enums\Peran;
+use App\Exceptions\PelanggaranIntegritasData;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -21,6 +22,21 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            if ($user->peran === null) {
+                return;
+            }
+
+            $punyaUnit = $user->unit_id !== null;
+
+            if (($user->peran->wajibUnit() && ! $punyaUnit) || ($punyaUnit && ! $user->peran->bolehUnit())) {
+                throw PelanggaranIntegritasData::unitTidakSesuaiPeran($user->peran);
+            }
+        });
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -34,6 +50,22 @@ class User extends Authenticatable
             'peran' => Peran::class,
             'jenis_akun' => JenisAkun::class,
         ];
+    }
+
+    /**
+     * Admin Pengaduan yang hanya menangani satu unit (Admin Sekolah, Rancangan r1 Bagian 2).
+     */
+    public function isAdminSekolah(): bool
+    {
+        return $this->peran === Peran::AdminPengaduan && $this->unit_id !== null;
+    }
+
+    /**
+     * Admin Pengaduan untuk seluruh yayasan.
+     */
+    public function isAdminYayasan(): bool
+    {
+        return $this->peran === Peran::AdminPengaduan && $this->unit_id === null;
     }
 
     /**

@@ -14,11 +14,18 @@ class PeranTest extends TestCase
         $this->assertSame([Peran::AdminPengaduan, Peran::PicUnit], $bolehSso);
     }
 
-    public function test_only_pic_unit_and_kepala_sekolah_are_bound_to_a_unit(): void
+    public function test_only_pic_unit_and_kepala_sekolah_require_a_unit(): void
     {
-        $terikat = array_values(array_filter(Peran::cases(), fn (Peran $peran): bool => $peran->terikatUnit()));
+        $wajib = array_values(array_filter(Peran::cases(), fn (Peran $peran): bool => $peran->wajibUnit()));
 
-        $this->assertSame([Peran::PicUnit, Peran::KepalaSekolah], $terikat);
+        $this->assertSame([Peran::PicUnit, Peran::KepalaSekolah], $wajib);
+    }
+
+    public function test_admin_pengaduan_may_also_have_a_unit_as_admin_sekolah(): void
+    {
+        $boleh = array_values(array_filter(Peran::cases(), fn (Peran $peran): bool => $peran->bolehUnit()));
+
+        $this->assertSame([Peran::AdminPengaduan, Peran::PicUnit, Peran::KepalaSekolah], $boleh);
     }
 
     public function test_maps_each_peran_to_its_actor_code(): void
