@@ -18,6 +18,10 @@ enum AksiAudit: string implements HasLabel
     case MembukaLaporan = 'membuka_laporan';
     case MembukaLampiran = 'membuka_lampiran';
     case LampiranDikarantina = 'lampiran_dikarantina';
+    case MembukaIdentitasPelapor = 'membuka_identitas_pelapor';
+    case MemverifikasiPengaduan = 'memverifikasi_pengaduan';
+    case MenolakPengaduan = 'menolak_pengaduan';
+    case MendisposisikanPengaduan = 'mendisposisikan_pengaduan';
 
     public function getLabel(): string
     {
@@ -31,6 +35,10 @@ enum AksiAudit: string implements HasLabel
             self::MembukaLaporan => 'Membuka laporan',
             self::MembukaLampiran => 'Membuka lampiran',
             self::LampiranDikarantina => 'Lampiran dikarantina',
+            self::MembukaIdentitasPelapor => 'Membuka identitas pelapor',
+            self::MemverifikasiPengaduan => 'Memverifikasi pengaduan',
+            self::MenolakPengaduan => 'Menolak pengaduan',
+            self::MendisposisikanPengaduan => 'Mendisposisikan pengaduan',
         };
     }
 }

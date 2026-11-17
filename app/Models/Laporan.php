@@ -7,6 +7,7 @@ use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
 use App\Enums\KedudukanTerlapor;
 use App\Enums\KesimpulanWbs;
+use App\Enums\Peran;
 use App\Enums\Prioritas;
 use App\Enums\StatusLaporan;
 use App\Enums\SumberLaporan;
@@ -184,6 +185,26 @@ class Laporan extends Model
             ->where(fn (Builder $kedudukan) => $kedudukan
                 ->whereNull('kedudukan_terlapor')
                 ->orWhereNotIn('kedudukan_terlapor', KedudukanTerlapor::nilaiTertutupBagiKetuaTimWbs()));
+    }
+
+    /**
+     * Pengaduan di Kotak Masuk (H-11) yang boleh ditangani pengguna: Admin Pengaduan yayasan melihat
+     * semua unit, Admin Sekolah (Admin Pengaduan dengan unit_id) hanya unitnya. Laporan WBS tidak pernah
+     * termasuk, dan peran lain tidak mendapat baris apa pun.
+     *
+     * @param  Builder<Laporan>  $query
+     */
+    #[Scope]
+    protected function kotakMasukPengaduan(Builder $query, User $user): void
+    {
+        if ($user->peran !== Peran::AdminPengaduan) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where('jenis', JenisLaporan::Pengaduan->value)
+            ->when($user->isAdminSekolah(), fn (Builder $unit) => $unit->where('unit_id', $user->unit_id));
     }
 
     /**
