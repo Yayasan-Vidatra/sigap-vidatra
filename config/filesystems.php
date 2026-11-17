@@ -38,6 +38,17 @@ return [
             'report' => false,
         ],
 
+        // Lampiran laporan (Rancangan r1 Bagian 8): di luar folder publik, tidak disajikan lewat URL
+        // (serve: false). Unduhan hanya lewat tautan sementara petugas yang tercatat di log audit.
+        'lampiran' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/lampiran'),
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+            'visibility' => 'private',
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

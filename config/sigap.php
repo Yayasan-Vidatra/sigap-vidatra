@@ -110,6 +110,8 @@ return [
                 'mime' => ['audio/mpeg', 'audio/mp4', 'audio/x-m4a'],
             ],
         ],
+        // Kunci enkripsi isi lampiran WBS: 32 byte, base64. Wajib bila ada lampiran WBS yang disimpan.
+        'kunci_enkripsi' => env('LAMPIRAN_KUNCI_ENKRIPSI'),
         'pemindai' => env('LAMPIRAN_PEMINDAI', 'lokal'),
         'pembersih_metadata' => env('LAMPIRAN_PEMBERSIH_METADATA', 'lokal'),
         'alat' => [

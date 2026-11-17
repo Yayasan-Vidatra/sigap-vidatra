@@ -38,6 +38,15 @@ class Lampiran extends Model
     }
 
     /**
+     * Isi lampiran WBS disimpan terenkripsi (Rancangan r1 Bagian 8 dan 9); lampiran pengaduan cukup di
+     * penyimpanan privat. Mengikuti jenis laporan, seperti enkripsi kolom TerenkripsiBilaWbs.
+     */
+    public function terenkripsi(): bool
+    {
+        return $this->laporan->isWbs();
+    }
+
+    /**
      * @return BelongsTo<Laporan, $this>
      */
     public function laporan(): BelongsTo
