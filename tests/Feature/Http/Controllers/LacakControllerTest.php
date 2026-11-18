@@ -45,9 +45,9 @@ class LacakControllerTest extends TestCase
     {
         $laporan = Laporan::factory()->create(['kode_lacak' => 'PGD-2611-ABC234']);
 
-        $this->post('/lacak', ['kode' => ' pgd-2611-abc234 '])->assertRedirect('/lacak/PGD-2611-ABC234');
+        $this->post('/lacak', ['kode' => ' pgd-2611-abc234 '])->assertRedirect('/lacak/laporan');
 
-        $this->get('/lacak/PGD-2611-ABC234')
+        $this->get('/lacak/laporan')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Lacak/Detail')
@@ -95,7 +95,7 @@ class LacakControllerTest extends TestCase
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234'])->assertSessionHasErrors('altcha');
 
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234', 'altcha' => $this->solusiAltcha()])
-            ->assertRedirect('/lacak/PGD-2611-ABC234');
+            ->assertRedirect('/lacak/laporan');
         $this->get('/lacak')->assertInertia(fn (Assert $page) => $page->where('perluCaptcha', false));
     }
 
@@ -103,19 +103,26 @@ class LacakControllerTest extends TestCase
     {
         Laporan::factory()->create(['kode_lacak' => 'PGD-2611-ABC234']);
 
-        $this->get('/lacak/PGD-2611-ABC234')
+        $this->get('/lacak/laporan')
             ->assertRedirect('/lacak')
             ->assertSessionHas('lacak_pesan', LacakController::PESAN_SESI_BERAKHIR);
     }
 
-    public function test_permission_is_for_one_report_only(): void
+    public function test_the_report_is_chosen_from_the_session_and_the_code_never_appears_in_a_url(): void
     {
         Laporan::factory()->create(['kode_lacak' => 'PGD-2611-ABC234']);
         Laporan::factory()->create(['kode_lacak' => 'PGD-2611-XYZ789']);
 
-        $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
+        $masuk = $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
+        $this->assertStringNotContainsString('PGD-2611-ABC234', (string) $masuk->headers->get('Location'));
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page->where('kodeLacak', 'PGD-2611-ABC234'));
 
-        $this->get('/lacak/PGD-2611-XYZ789')->assertRedirect('/lacak');
+        // Masuk dengan kode lain mengganti izin; laporan pertama tidak lagi terbuka.
+        $this->post('/lacak', ['kode' => 'PGD-2611-XYZ789'])->assertRedirect('/lacak/laporan');
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page->where('kodeLacak', 'PGD-2611-XYZ789'));
+
+        // Alamat lama berisi kode tidak lagi ada.
+        $this->get('/lacak/PGD-2611-ABC234')->assertNotFound();
     }
 
     public function test_the_session_ends_after_fifteen_minutes_without_activity(): void
@@ -125,16 +132,16 @@ class LacakControllerTest extends TestCase
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
 
         $this->travel(14)->minutes();
-        $this->get('/lacak/PGD-2611-ABC234')->assertOk();
+        $this->get('/lacak/laporan')->assertOk();
 
         // Aktivitas tadi memperpanjang sesi: 14 menit lagi masih boleh.
         $this->travel(14)->minutes();
-        $this->get('/lacak/PGD-2611-ABC234')->assertOk();
+        $this->get('/lacak/laporan')->assertOk();
 
         $this->travel(16)->minutes();
-        $this->get('/lacak/PGD-2611-ABC234')->assertRedirect('/lacak');
+        $this->get('/lacak/laporan')->assertRedirect('/lacak');
         $this->travel(1)->minutes();
-        $this->get('/lacak/PGD-2611-ABC234')->assertRedirect('/lacak');
+        $this->get('/lacak/laporan')->assertRedirect('/lacak');
     }
 
     public function test_only_reporter_visible_notes_messages_and_no_officer_data_are_shown(): void
@@ -149,7 +156,7 @@ class LacakControllerTest extends TestCase
         Pesan::factory()->internal()->for($laporan)->create(['isi' => 'Pelapor ini sering melapor.']);
 
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
-        $response = $this->get('/lacak/PGD-2611-ABC234');
+        $response = $this->get('/lacak/laporan');
 
         $response->assertInertia(fn (Assert $page) => $page
             ->where('riwayat.0.catatan', null)
@@ -171,27 +178,41 @@ class LacakControllerTest extends TestCase
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
         $id = $this->idUnggahanSiap($this->pdfUji(), 'kuitansi.pdf');
 
-        $this->from('/lacak/PGD-2611-ABC234')
-            ->post('/lacak/PGD-2611-ABC234/pesan', ['isi' => 'Ini kuitansinya.', 'lampiran' => [$id]])
-            ->assertRedirect('/lacak/PGD-2611-ABC234')
+        $this->from('/lacak/laporan')
+            ->post('/lacak/laporan/pesan', ['isi' => 'Ini kuitansinya.', 'lampiran' => [$id]])
+            ->assertRedirect('/lacak/laporan')
             ->assertSessionHasNoErrors();
 
         $pesan = $laporan->pesan()->sole();
         $this->assertSame(PengirimPesan::Pelapor, $pesan->pengirim);
         $this->assertSame('kuitansi.pdf', $pesan->lampiran()->sole()->nama_asli);
-        $this->get('/lacak/PGD-2611-ABC234')->assertInertia(fn (Assert $page) => $page
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page
             ->where('pesan.0.dari', 'Anda')
             ->where('pesan.0.lampiran', ['kuitansi.pdf']));
+    }
+
+    #[TestWith([StatusLaporan::Selesai])]
+    #[TestWith([StatusLaporan::Ditolak])]
+    public function test_reporter_cannot_send_messages_after_the_report_is_closed(StatusLaporan $status): void
+    {
+        $laporan = Laporan::factory()->berstatus($status)->create(['kode_lacak' => 'PGD-2611-ABC234']);
+        $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
+
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page->where('bolehKirimPesan', false));
+        $this->post('/lacak/laporan/pesan', ['isi' => 'Masih ada masalah.'])
+            ->assertSessionHasErrors(['isi' => 'Laporan sudah ditutup. Bila ada masalah baru, silakan buat pengaduan baru.']);
+
+        $this->assertSame(0, $laporan->pesan()->count());
     }
 
     public function test_messages_cannot_be_sent_without_permission_or_content(): void
     {
         $laporan = Laporan::factory()->create(['kode_lacak' => 'PGD-2611-ABC234']);
 
-        $this->post('/lacak/PGD-2611-ABC234/pesan', ['isi' => 'Halo'])->assertRedirect('/lacak');
+        $this->post('/lacak/laporan/pesan', ['isi' => 'Halo'])->assertRedirect('/lacak');
 
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
-        $this->post('/lacak/PGD-2611-ABC234/pesan', ['isi' => ''])->assertSessionHasErrors(['isi' => 'Tulis pesan terlebih dahulu.']);
+        $this->post('/lacak/laporan/pesan', ['isi' => ''])->assertSessionHasErrors(['isi' => 'Tulis pesan terlebih dahulu.']);
 
         $this->assertDatabaseCount('pesan', 0);
         $this->assertSame(0, $laporan->pesan()->count());
@@ -202,7 +223,7 @@ class LacakControllerTest extends TestCase
         $laporan = Laporan::factory()->berstatus(StatusLaporan::MenungguKonfirmasi)->create(['kode_lacak' => 'PGD-2611-ABC234']);
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
 
-        $this->post('/lacak/PGD-2611-ABC234/konfirmasi')->assertSessionHasNoErrors();
+        $this->post('/lacak/laporan/konfirmasi')->assertSessionHasNoErrors();
 
         $this->assertSame(StatusLaporan::Selesai, $laporan->fresh()->status);
     }
@@ -214,10 +235,10 @@ class LacakControllerTest extends TestCase
         $admin = User::factory()->peran(Peran::AdminPengaduan)->create();
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
 
-        $this->post('/lacak/PGD-2611-ABC234/tolak', ['alasan' => ''])->assertSessionHasErrors(['alasan' => 'Tuliskan alasan Anda menolak hasilnya.']);
+        $this->post('/lacak/laporan/tolak', ['alasan' => ''])->assertSessionHasErrors(['alasan' => 'Tuliskan alasan Anda menolak hasilnya.']);
         $this->assertSame(StatusLaporan::MenungguKonfirmasi, $laporan->fresh()->status);
 
-        $this->post('/lacak/PGD-2611-ABC234/tolak', ['alasan' => 'Keran masih bocor.'])->assertSessionHasNoErrors();
+        $this->post('/lacak/laporan/tolak', ['alasan' => 'Keran masih bocor.'])->assertSessionHasNoErrors();
 
         $this->assertSame(StatusLaporan::Diproses, $laporan->fresh()->status);
         Mail::assertQueued(HasilPengaduanDitolakPelapor::class, fn (HasilPengaduanDitolakPelapor $surel): bool => $surel->hasTo($admin->email));
@@ -228,7 +249,7 @@ class LacakControllerTest extends TestCase
         $laporan = Laporan::factory()->berstatus(StatusLaporan::Diproses)->create(['kode_lacak' => 'PGD-2611-ABC234']);
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
 
-        $this->post('/lacak/PGD-2611-ABC234/konfirmasi')->assertSessionHasErrors('tanggapan');
+        $this->post('/lacak/laporan/konfirmasi')->assertSessionHasErrors('tanggapan');
 
         $this->assertSame(StatusLaporan::Diproses, $laporan->fresh()->status);
     }
@@ -237,13 +258,13 @@ class LacakControllerTest extends TestCase
     {
         $laporan = Laporan::factory()->berstatus(StatusLaporan::Selesai)->create(['kode_lacak' => 'PGD-2611-ABC234']);
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
-        $this->get('/lacak/PGD-2611-ABC234')->assertInertia(fn (Assert $page) => $page->where('bolehMenilai', true));
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page->where('bolehMenilai', true));
 
-        $this->post('/lacak/PGD-2611-ABC234/penilaian', ['nilai' => 5])->assertSessionHasNoErrors();
-        $this->post('/lacak/PGD-2611-ABC234/penilaian', ['nilai' => 1])->assertSessionHasErrors('nilai');
+        $this->post('/lacak/laporan/penilaian', ['nilai' => 5])->assertSessionHasNoErrors();
+        $this->post('/lacak/laporan/penilaian', ['nilai' => 1])->assertSessionHasErrors('nilai');
 
         $this->assertSame(5, $laporan->fresh()->penilaian);
-        $this->get('/lacak/PGD-2611-ABC234')->assertInertia(fn (Assert $page) => $page->where('bolehMenilai', false)->where('penilaian', 5));
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page->where('bolehMenilai', false)->where('penilaian', 5));
     }
 
     public function test_rating_outside_one_to_five_is_rejected(): void
@@ -251,7 +272,7 @@ class LacakControllerTest extends TestCase
         Laporan::factory()->berstatus(StatusLaporan::Selesai)->create(['kode_lacak' => 'PGD-2611-ABC234']);
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
 
-        $this->post('/lacak/PGD-2611-ABC234/penilaian', ['nilai' => 6])->assertSessionHasErrors(['nilai' => 'Pilih penilaian 1 sampai 5.']);
+        $this->post('/lacak/laporan/penilaian', ['nilai' => 6])->assertSessionHasErrors(['nilai' => 'Pilih penilaian 1 sampai 5.']);
     }
 
     public function test_times_are_shown_in_wita(): void
@@ -262,7 +283,7 @@ class LacakControllerTest extends TestCase
         ]);
         $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
 
-        $this->get('/lacak/PGD-2611-ABC234')->assertInertia(fn (Assert $page) => $page
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page
             ->where('dibuatPada', 'Rabu, 18 November 2026, 07.46 WITA'));
     }
 
@@ -273,6 +294,6 @@ class LacakControllerTest extends TestCase
 
         $this->post('/lacak/keluar')->assertRedirect('/lacak');
 
-        $this->get('/lacak/PGD-2611-ABC234')->assertRedirect('/lacak');
+        $this->get('/lacak/laporan')->assertRedirect('/lacak');
     }
 }

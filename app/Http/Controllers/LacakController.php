@@ -30,8 +30,9 @@ use Inertia\Response;
 /**
  * H-06 Lacak Laporan dan H-07 Detail Laporan untuk pelapor pengaduan (US-08, US-09, US-13; UC-04, UC-05,
  * UC-06; F-06). Kode lacak yang tidak ada dan yang salah mendapat pesan yang sama. Setelah 5 kali gagal,
- * percobaan berikutnya wajib CAPTCHA dan menunggu jeda. Detail hanya terbuka dengan izin di sesi
- * (IzinLacak), yang berakhir setelah 15 menit tidak aktif.
+ * percobaan berikutnya wajib CAPTCHA dan menunggu jeda. Detail di /lacak/laporan hanya terbuka dengan izin
+ * di sesi (IzinLacak), yang berakhir setelah 15 menit tidak aktif. Kode lacak tidak pernah ada di URL, agar
+ * tidak tersimpan di riwayat browser dan log server.
  *
  * Laporan WBS dilacak lewat jalurnya sendiri tanpa sesi dan tanpa IP (Hari 9); di sini kode WBS mendapat
  * pesan gagal yang sama.
@@ -88,17 +89,17 @@ class LacakController extends Controller
         IzinLacak::berikan($request, $laporan);
         LogAudit::catat(null, AksiAudit::PelaporMembukaLaporan, $laporan);
 
-        return redirect()->route('lacak.show', $laporan->kode_lacak);
+        return redirect()->route('lacak.show');
     }
 
-    public function show(Request $request, string $kode): Response|RedirectResponse
+    public function show(Request $request): Response|RedirectResponse
     {
-        return $this->denganIzin($request, $kode, fn (Laporan $laporan): Response => Inertia::render('Lacak/Detail', $this->dataDetail($laporan)));
+        return $this->denganIzin($request, fn (Laporan $laporan): Response => Inertia::render('Lacak/Detail', $this->dataDetail($laporan)));
     }
 
-    public function kirimPesan(Request $request, string $kode, PesanLaporan $pesan): RedirectResponse
+    public function kirimPesan(Request $request, PesanLaporan $pesan): RedirectResponse
     {
-        return $this->denganIzin($request, $kode, function (Laporan $laporan) use ($request, $pesan): RedirectResponse {
+        return $this->denganIzin($request, function (Laporan $laporan) use ($request, $pesan): RedirectResponse {
             $data = $request->validate([
                 'isi' => ['required', 'string', 'max:'.PesanLaporan::MAKS_ISI],
                 'lampiran' => ['nullable', 'array', 'max:'.config('sigap.lampiran.maks_berkas'), new UnggahanLampiranSiap(JenisLaporan::Pengaduan)],
@@ -113,18 +114,18 @@ class LacakController extends Controller
         });
     }
 
-    public function konfirmasi(Request $request, string $kode, KonfirmasiPelapor $konfirmasi): RedirectResponse
+    public function konfirmasi(Request $request, KonfirmasiPelapor $konfirmasi): RedirectResponse
     {
-        return $this->denganIzin($request, $kode, fn (Laporan $laporan): RedirectResponse => $this->jalankan(
+        return $this->denganIzin($request, fn (Laporan $laporan): RedirectResponse => $this->jalankan(
             fn () => $konfirmasi->konfirmasi($laporan),
             'Terima kasih. Pengaduan Anda dinyatakan selesai.',
             'tanggapan',
         ));
     }
 
-    public function tolak(Request $request, string $kode, KonfirmasiPelapor $konfirmasi): RedirectResponse
+    public function tolak(Request $request, KonfirmasiPelapor $konfirmasi): RedirectResponse
     {
-        return $this->denganIzin($request, $kode, function (Laporan $laporan) use ($request, $konfirmasi): RedirectResponse {
+        return $this->denganIzin($request, function (Laporan $laporan) use ($request, $konfirmasi): RedirectResponse {
             $data = $request->validate(
                 ['alasan' => ['required', 'string', 'max:1000']],
                 ['alasan.required' => 'Tuliskan alasan Anda menolak hasilnya.', 'alasan.max' => 'Alasan paling banyak :max karakter.'],
@@ -134,9 +135,9 @@ class LacakController extends Controller
         });
     }
 
-    public function nilai(Request $request, string $kode, KonfirmasiPelapor $konfirmasi): RedirectResponse
+    public function nilai(Request $request, KonfirmasiPelapor $konfirmasi): RedirectResponse
     {
-        return $this->denganIzin($request, $kode, function (Laporan $laporan) use ($request, $konfirmasi): RedirectResponse {
+        return $this->denganIzin($request, function (Laporan $laporan) use ($request, $konfirmasi): RedirectResponse {
             $data = $request->validate(
                 ['nilai' => ['required', 'integer', 'between:1,5']],
                 ['nilai.required' => 'Pilih penilaian 1 sampai 5.', 'nilai.between' => 'Pilih penilaian 1 sampai 5.', 'nilai.integer' => 'Pilih penilaian 1 sampai 5.'],
@@ -159,9 +160,9 @@ class LacakController extends Controller
      * @param  Closure(Laporan): T  $lanjut
      * @return T|RedirectResponse
      */
-    private function denganIzin(Request $request, string $kode, Closure $lanjut): mixed
+    private function denganIzin(Request $request, Closure $lanjut): mixed
     {
-        $laporan = IzinLacak::laporan($request, strtoupper($kode));
+        $laporan = IzinLacak::laporan($request);
 
         if ($laporan === null) {
             return redirect()->route('lacak')->with('lacak_pesan', self::PESAN_SESI_BERAKHIR);
@@ -224,6 +225,7 @@ class LacakController extends Controller
                 'lampiran' => $pesan->lampiran->map(fn (Lampiran $lampiran): string => $lampiran->nama_asli)->all(),
             ])->all(),
             'bolehMenanggapi' => $laporan->status === StatusLaporan::MenungguKonfirmasi,
+            'bolehKirimPesan' => PesanLaporan::pelaporBolehMengirim($laporan),
             'batasTanggapan' => ($batas = KonfirmasiPelapor::batasTanggapan($laporan))
                 ? WaktuLokal::tampilkan($batas->subSecond(), 'l, d F Y, H.i')
                 : null,

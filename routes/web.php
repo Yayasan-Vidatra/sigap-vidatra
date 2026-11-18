@@ -33,11 +33,12 @@ Route::prefix('lampiran/unggah')->name('lampiran.unggah.')->group(function (): v
     Route::delete('/{id}', [UnggahLampiranController::class, 'batal'])->name('batal');
 });
 
-// H-06 Lacak Laporan dan H-07 Detail Laporan (US-08, US-09, US-13). Izin detail disimpan di sesi.
+// H-06 Lacak Laporan dan H-07 Detail Laporan (US-08, US-09, US-13). Laporan yang dibuka ditentukan dari izin
+// di sesi; kode lacak tidak pernah ada di URL agar tidak tersimpan di riwayat browser dan log server.
 Route::get('/lacak', [LacakController::class, 'create'])->name('lacak');
 Route::post('/lacak', [LacakController::class, 'store'])->name('lacak.store');
 Route::post('/lacak/keluar', [LacakController::class, 'keluar'])->name('lacak.keluar');
-Route::prefix('lacak/{kode}')->name('lacak.')->group(function (): void {
+Route::prefix('lacak/laporan')->name('lacak.')->group(function (): void {
     Route::get('/', [LacakController::class, 'show'])->name('show');
     Route::post('/pesan', [LacakController::class, 'kirimPesan'])->middleware('throttle:pesan-pelapor')->name('pesan');
     Route::post('/konfirmasi', [LacakController::class, 'konfirmasi'])->name('konfirmasi');

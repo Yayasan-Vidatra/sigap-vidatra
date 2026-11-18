@@ -57,6 +57,11 @@ class AksiPengaduanTidakSah extends RuntimeException
         return new self("Ringkasan untuk pelapor paling panjang {$maks} karakter.");
     }
 
+    public static function laporanDitutup(): self
+    {
+        return new self('Laporan sudah ditutup. Bila ada masalah baru, silakan buat pengaduan baru.');
+    }
+
     public static function pesanKosong(): self
     {
         return new self('Isi pesan wajib diisi.');

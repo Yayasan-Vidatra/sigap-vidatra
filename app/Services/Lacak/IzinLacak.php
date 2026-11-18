@@ -25,14 +25,14 @@ class IzinLacak
     }
 
     /**
-     * Laporan yang boleh dibuka sesi ini dengan kode tersebut, atau null bila izinnya tidak ada, untuk kode
-     * lain, atau sudah berakhir (izin yang berakhir sekaligus dihapus).
+     * Laporan yang boleh dibuka sesi ini, atau null bila izinnya tidak ada atau sudah berakhir (izin yang
+     * berakhir sekaligus dihapus). Laporan ditentukan dari sesi, bukan dari URL.
      */
-    public static function laporan(Request $request, string $kodeLacak): ?Laporan
+    public static function laporan(Request $request): ?Laporan
     {
         $izin = $request->session()->get(self::KUNCI_SESI);
 
-        if (! is_array($izin) || ($izin['kode_lacak'] ?? null) !== $kodeLacak) {
+        if (! is_array($izin)) {
             return null;
         }
 
@@ -44,7 +44,7 @@ class IzinLacak
 
         $laporan = Laporan::query()->find($izin['laporan_id'] ?? null);
 
-        if ($laporan === null || $laporan->kode_lacak !== $kodeLacak) {
+        if ($laporan === null || $laporan->kode_lacak !== ($izin['kode_lacak'] ?? null)) {
             self::cabut($request);
 
             return null;

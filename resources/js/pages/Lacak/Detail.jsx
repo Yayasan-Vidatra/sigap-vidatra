@@ -29,12 +29,12 @@ function Galat({ id, pesan }) {
  * Keluar otomatis setelah masa sesi tanpa aktivitas: halaman dimuat ulang, lalu server mengarahkan ke H-06
  * karena izin di sesi sudah berakhir. Setiap kunjungan Inertia (kirim pesan, tanggapan) mengulang hitungan.
  */
-function useKeluarOtomatis(kodeLacak, masaSesiMenit) {
+function useKeluarOtomatis(masaSesiMenit) {
     useEffect(() => {
         let pewaktu;
         const mulai = () => {
             window.clearTimeout(pewaktu);
-            pewaktu = window.setTimeout(() => router.visit(`/lacak/${kodeLacak}`), masaSesiMenit * 60 * 1000 + 1000);
+            pewaktu = window.setTimeout(() => router.visit('/lacak/laporan'), masaSesiMenit * 60 * 1000 + 1000);
         };
 
         mulai();
@@ -44,10 +44,10 @@ function useKeluarOtomatis(kodeLacak, masaSesiMenit) {
             window.clearTimeout(pewaktu);
             lepas();
         };
-    }, [kodeLacak, masaSesiMenit]);
+    }, [masaSesiMenit]);
 }
 
-function Tanggapan({ kodeLacak, batasTanggapan }) {
+function Tanggapan({ batasTanggapan }) {
     const konfirmasi = useForm({});
     const tolak = useForm({ alasan: '' });
     const [menolak, setMenolak] = useState(false);
@@ -63,7 +63,7 @@ function Tanggapan({ kodeLacak, batasTanggapan }) {
                     <button
                         type="button"
                         disabled={konfirmasi.processing}
-                        onClick={() => konfirmasi.post(`/lacak/${kodeLacak}/konfirmasi`, { preserveScroll: true })}
+                        onClick={() => konfirmasi.post('/lacak/laporan/konfirmasi', { preserveScroll: true })}
                         className={`${gayaTombol} bg-teal-700 text-white hover:bg-teal-800`}
                     >
                         Ya, sudah selesai
@@ -81,7 +81,7 @@ function Tanggapan({ kodeLacak, batasTanggapan }) {
                     noValidate
                     onSubmit={(e) => {
                         e.preventDefault();
-                        tolak.post(`/lacak/${kodeLacak}/tolak`, { preserveScroll: true });
+                        tolak.post('/lacak/laporan/tolak', { preserveScroll: true });
                     }}
                     className="flex flex-col gap-3"
                 >
@@ -116,7 +116,7 @@ function Tanggapan({ kodeLacak, batasTanggapan }) {
     );
 }
 
-function Penilaian({ kodeLacak }) {
+function Penilaian() {
     const { data, setData, post, processing, errors } = useForm({ nilai: '' });
 
     return (
@@ -125,7 +125,7 @@ function Penilaian({ kodeLacak }) {
                 noValidate
                 onSubmit={(e) => {
                     e.preventDefault();
-                    post(`/lacak/${kodeLacak}/penilaian`, { preserveScroll: true });
+                    post('/lacak/laporan/penilaian', { preserveScroll: true });
                 }}
                 className="flex flex-col gap-3"
             >
@@ -161,14 +161,14 @@ function Penilaian({ kodeLacak }) {
     );
 }
 
-function Pesan({ kodeLacak, pesan, aturanLampiran }) {
+function Pesan({ pesan, bolehKirimPesan, aturanLampiran }) {
     const form = useForm({ isi: '', lampiran: [] });
     const [sedangMengunggah, setSedangMengunggah] = useState(false);
     const [kunciUnggah, setKunciUnggah] = useState(0);
 
     function kirim(e) {
         e.preventDefault();
-        form.post(`/lacak/${kodeLacak}/pesan`, {
+        form.post('/lacak/laporan/pesan', {
             preserveScroll: true,
             onSuccess: () => {
                 form.reset();
@@ -204,6 +204,11 @@ function Pesan({ kodeLacak, pesan, aturanLampiran }) {
                 </ol>
             )}
 
+            {!bolehKirimPesan ? (
+                <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
+                    Laporan sudah ditutup. Bila ada masalah baru, silakan buat pengaduan baru.
+                </p>
+            ) : (
             <form onSubmit={kirim} noValidate className="flex flex-col gap-3">
                 <label htmlFor="isi" className="font-medium text-slate-800">
                     Tulis pesan
@@ -235,6 +240,7 @@ function Pesan({ kodeLacak, pesan, aturanLampiran }) {
                     {form.processing ? 'Mengirim…' : sedangMengunggah ? 'Menunggu unggahan selesai…' : 'Kirim pesan'}
                 </button>
             </form>
+            )}
         </Bagian>
     );
 }
@@ -245,13 +251,14 @@ function Pesan({ kodeLacak, pesan, aturanLampiran }) {
  */
 export default function Detail(props) {
     const { kodeLacak, judul, unit, kategori, dibuatPada, status, riwayat, pesan, bolehMenanggapi, batasTanggapan } = props;
-    const { bolehMenilai, penilaian, masaSesiMenit, berhasil, aturanLampiran } = props;
+    const { bolehMenilai, penilaian, masaSesiMenit, berhasil, aturanLampiran, bolehKirimPesan } = props;
 
-    useKeluarOtomatis(kodeLacak, masaSesiMenit);
+    useKeluarOtomatis(masaSesiMenit);
 
     return (
         <PublicLayout>
-            <Head title={`Lacak ${kodeLacak}`} />
+            {/* Tanpa kode lacak di judul tab, agar tidak tersimpan di riwayat browser. */}
+            <Head title="Detail Laporan" />
 
             <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-3 rounded-xl border border-teal-200 bg-white p-5">
@@ -306,8 +313,8 @@ export default function Detail(props) {
                     </p>
                 )}
 
-                {bolehMenanggapi && <Tanggapan kodeLacak={kodeLacak} batasTanggapan={batasTanggapan} />}
-                {bolehMenilai && <Penilaian kodeLacak={kodeLacak} />}
+                {bolehMenanggapi && <Tanggapan batasTanggapan={batasTanggapan} />}
+                {bolehMenilai && <Penilaian />}
                 {penilaian && (
                     <p className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-700">
                         Penilaian Anda: <strong>{penilaian} dari 5</strong>. Terima kasih.
@@ -326,7 +333,7 @@ export default function Detail(props) {
                     </ol>
                 </Bagian>
 
-                <Pesan kodeLacak={kodeLacak} pesan={pesan} aturanLampiran={aturanLampiran} />
+                <Pesan pesan={pesan} bolehKirimPesan={bolehKirimPesan} aturanLampiran={aturanLampiran} />
             </div>
         </PublicLayout>
     );
