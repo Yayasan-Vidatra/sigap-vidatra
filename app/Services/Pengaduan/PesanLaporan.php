@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Kanal pesan dua arah pengaduan (UC-05, US-09, F-06): pelapor dan Admin Pengaduan saling berkirim pesan.
+ * Kanal pesan dua arah (UC-05, US-09, F-06): pelapor dan Admin Pengaduan saling berkirim pesan. Pelapor WBS
+ * memakai kanal yang sama dari halaman Lacak; balasan Tim WBS menyusul bersama Ruang Kerja WBS (Hari 10).
  * Pelapor boleh menyertakan lampiran tambahan lewat unggah bertahap yang sudah ada (dipindai lewat queue).
  * Admin boleh menulis catatan internal yang tidak terlihat pelapor. PIC Unit tidak melihat kanal ini.
  * Setelah Selesai atau Ditolak, pelapor tidak bisa mengirim pesan lagi; Admin tetap bisa. Setiap pesan
@@ -31,7 +32,7 @@ class PesanLaporan
      *
      * @var list<StatusLaporan>
      */
-    public const STATUS_TERTUTUP_BAGI_PELAPOR = [StatusLaporan::Selesai, StatusLaporan::Ditolak];
+    public const STATUS_TERTUTUP_BAGI_PELAPOR = [StatusLaporan::Selesai, StatusLaporan::Ditolak, StatusLaporan::TidakDitindaklanjuti];
 
     public function __construct(private PelampirUnggahan $pelampir) {}
 

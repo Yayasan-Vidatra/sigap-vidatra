@@ -6,6 +6,9 @@ use App\Http\Controllers\BuktiLaporController;
 use App\Http\Controllers\LacakController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\UnggahLampiranController;
+use App\Http\Controllers\WbsController;
+use App\Http\Middleware\LindungiJalurWbs;
+use App\Http\Middleware\PeriksaTokenFormulirWbs;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -73,13 +76,32 @@ Route::get('/altcha/tantangan', AltchaController::class)
     ->middleware('throttle:tantangan-altcha')
     ->name('altcha.tantangan');
 
-// Semua halaman WBS (H-03, H-04) ditambahkan di grup ini.
+/*
+ * Semua jalur WBS (H-03, H-04, H-05) di grup ini: tanpa sesi, cookie, dan CSRF; header no-referrer, no-store,
+ * dan CSP tanpa pihak ketiga (LindungiJalurWbs). Pengganti CSRF: ALTCHA dan token formulir bertanda tangan.
+ */
 Route::prefix('wbs')
     ->withoutMiddleware($tanpaCookie)
+    ->middleware(LindungiJalurWbs::class)
     ->group(function (): void {
-        Route::inertia('/', 'Sementara', [
-            'judul' => 'Pelaporan Pelanggaran (WBS)',
-            'keterangan' => 'Kanal pelaporan pelanggaran sedang disiapkan. Sementara itu, laporan pelanggaran '
-                .'dapat disampaikan lewat surel atau telepon/WhatsApp khusus SPI.',
-        ])->name('wbs');
+        Route::prefix('lampiran/unggah')
+            ->name('wbs.lampiran.unggah.')
+            ->middleware(PeriksaTokenFormulirWbs::class)
+            ->group(function (): void {
+                Route::post('/', [UnggahLampiranController::class, 'mulai'])->middleware('throttle:unggah-lampiran-wbs')->name('mulai');
+                Route::post('/{id}/potongan/{indeks}', [UnggahLampiranController::class, 'potongan'])
+                    ->whereNumber('indeks')
+                    ->middleware('throttle:potongan-lampiran-wbs')
+                    ->name('potongan');
+                Route::post('/{id}/selesai', [UnggahLampiranController::class, 'selesai'])->middleware('throttle:unggah-lampiran-wbs')->name('selesai');
+                Route::delete('/{id}', [UnggahLampiranController::class, 'batal'])->middleware('throttle:unggah-lampiran-wbs')->name('batal');
+            });
+
+        Route::get('/', [WbsController::class, 'jaminan'])->name('wbs');
+        Route::get('/jaminan-kerahasiaan', [WbsController::class, 'berkasJaminan'])->name('wbs.jaminan.berkas');
+        Route::get('/lapor', [WbsController::class, 'create'])->name('wbs.lapor');
+        Route::get('/lapor/token', [WbsController::class, 'token'])->middleware('throttle:tantangan-altcha')->name('wbs.token');
+        // Kiriman dijawab JSON berisi data Bukti Lapor WBS (H-05) yang ditampilkan sekali di halaman.
+        Route::post('/lapor', [WbsController::class, 'store'])->middleware('throttle:kirim-wbs')->name('wbs.store');
+        Route::post('/bukti/pdf', [WbsController::class, 'pdf'])->middleware('throttle:kirim-wbs')->name('wbs.bukti.pdf');
     });

@@ -45,10 +45,14 @@ enum StatusLaporan: string implements HasLabel
     }
 
     /**
-     * Penjelasan singkat status pengaduan untuk pelapor (surel dan halaman Lacak).
+     * Penjelasan singkat status untuk pelapor (surel pengaduan dan halaman Lacak).
      */
-    public function penjelasanUntukPelapor(): string
+    public function penjelasanUntukPelapor(JenisLaporan $jenis = JenisLaporan::Pengaduan): string
     {
+        if ($jenis === JenisLaporan::Wbs) {
+            return $this->penjelasanUntukPelaporWbs();
+        }
+
         return match ($this) {
             self::Diterima => 'Pengaduan Anda sudah masuk dan menunggu diperiksa petugas.',
             self::Terverifikasi => 'Pengaduan Anda sudah diperiksa dan akan diteruskan ke unit terkait.',
@@ -59,6 +63,25 @@ enum StatusLaporan: string implements HasLabel
             self::Selesai => 'Penanganan pengaduan Anda sudah selesai. Terima kasih atas laporan Anda.',
             self::Ditolak => 'Pengaduan Anda tidak dapat ditindaklanjuti.',
             default => 'Status pengaduan Anda diperbarui.',
+        };
+    }
+
+    /**
+     * Arti status WBS bagi pelapor (Bagian 6), tanpa menyebut nama petugas atau isi penanganan.
+     */
+    private function penjelasanUntukPelaporWbs(): string
+    {
+        return match ($this) {
+            self::Diterima => 'Laporan Anda sudah masuk dan menunggu ditelaah.',
+            self::Ditelaah => 'Laporan Anda sedang dinilai kelayakannya.',
+            self::Diinvestigasi => 'Laporan Anda sedang diinvestigasi.',
+            self::DiinvestigasiDiperpanjang => 'Investigasi diperpanjang dengan persetujuan penerima hasil.',
+            self::Selesai => 'Penanganan sudah selesai dan ditutup dengan kesimpulan. Tindak lanjutnya diputuskan penerima hasil.',
+            self::TidakDitindaklanjuti => 'Laporan tidak dapat ditindaklanjuti dengan investigasi. Alasan umumnya tercantum di riwayat status.',
+            self::DialihkanKeSekolah => 'Laporan menyangkut kekerasan dan diteruskan ke Kepala Sekolah selaku penanggung jawab BSAN.',
+            self::DirujukKePokjaBsan => 'Laporan dirujuk ke Pokja BSAN.',
+            self::DialihkanKeKomiteEtik => 'Laporan menyangkut kode etik atau kepegawaian dan dialihkan ke Komite Etik.',
+            default => 'Status laporan Anda diperbarui.',
         };
     }
 

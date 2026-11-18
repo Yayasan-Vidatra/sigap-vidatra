@@ -38,6 +38,15 @@ class AltchaControllerTest extends TestCase
         $this->getJson('/altcha/tantangan')->assertTooManyRequests();
     }
 
+    public function test_challenge_limit_is_global_and_not_keyed_by_ip_address(): void
+    {
+        config(['sigap.altcha.batas_tantangan_per_menit' => 2]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.1'])->getJson('/altcha/tantangan')->assertOk();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.2'])->getJson('/altcha/tantangan')->assertOk();
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.3'])->getJson('/altcha/tantangan')->assertTooManyRequests();
+    }
+
     public function test_missing_hmac_key_refuses_to_issue_challenges(): void
     {
         config(['sigap.altcha.hmac_key' => '']);

@@ -47,7 +47,6 @@ class BerandaControllerTest extends TestCase
         return [
             'faq' => ['/faq', 'Tanya Jawab (FAQ)'],
             'privasi' => ['/privasi', 'Kebijakan Privasi'],
-            'wbs' => ['/wbs', 'Pelaporan Pelanggaran (WBS)'],
         ];
     }
 
