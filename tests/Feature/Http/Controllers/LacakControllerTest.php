@@ -31,6 +31,16 @@ class LacakControllerTest extends TestCase
     use MengunggahLampiran;
     use RefreshDatabase;
 
+    public function test_the_tracking_page_asks_for_the_tracking_code(): void
+    {
+        $this->get('/lacak')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Lacak/Masuk')
+                ->where('perluCaptcha', false)
+                ->where('sisaJeda', 0));
+    }
+
     public function test_a_valid_tracking_code_opens_the_detail_page_and_is_logged(): void
     {
         $laporan = Laporan::factory()->create(['kode_lacak' => 'PGD-2611-ABC234']);

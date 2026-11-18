@@ -45,7 +45,6 @@ class BerandaControllerTest extends TestCase
     public static function halamanSementara(): array
     {
         return [
-            'lacak' => ['/lacak', 'Lacak Laporan'],
             'faq' => ['/faq', 'Tanya Jawab (FAQ)'],
             'privasi' => ['/privasi', 'Kebijakan Privasi'],
             'wbs' => ['/wbs', 'Pelaporan Pelanggaran (WBS)'],
