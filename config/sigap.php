@@ -19,6 +19,20 @@ return [
         'telaah_hari_kerja' => 5,
         'investigasi_hari_kerja' => 30,
         'perpanjangan_hari_kerja' => 30,
+        // Token formulir pengganti CSRF di jalur /wbs* tanpa sesi; halaman formulir memperbaruinya berkala.
+        'masa_token_formulir_menit' => 30,
+        // Pembatas laju jalur WBS tanpa IP: penghitung global, ditambah per token formulir untuk unggahan.
+        'batas_kirim_global_per_menit' => 20,
+        'batas_unggah_global_per_menit' => 60,
+        'batas_unggah_per_token_per_menit' => 20,
+        'batas_potongan_global_per_menit' => 600,
+        'batas_potongan_per_token_per_menit' => 120,
+        // Isi laporan yang memicu pesan kontak darurat sekolah di formulir WBS (UC-02 2b).
+        'kata_kunci_kekerasan' => [
+            'kekerasan', 'perundungan', 'bullying', 'pelecehan', 'pemukulan', 'dipukul', 'memukul',
+            'ancaman', 'diancam', 'intimidasi', 'kekerasan seksual', 'cabul',
+        ],
+        'maks_terlapor' => 10,
     ],
 
     /*
@@ -63,7 +77,8 @@ return [
         'cost' => 5000,
         'counter_min' => 1000,
         'counter_maks' => 3000,
-        'batas_tantangan_per_menit' => 30,
+        // Penghitung global, bukan per IP, karena endpoint ini juga dipakai formulir WBS (aturan proyek no. 5).
+        'batas_tantangan_per_menit' => 120,
     ],
 
     /*
@@ -196,6 +211,8 @@ return [
         'masa_gagal_menit' => 15,
         'jeda_detik' => 60,
         'masa_sesi_menit' => 15,
+        // Kode WBS: penghitung gagal per kode lacak dan penghitung global semua kode WBS, tanpa IP.
+        'wbs_maks_gagal_global' => 50,
     ],
 
     /*

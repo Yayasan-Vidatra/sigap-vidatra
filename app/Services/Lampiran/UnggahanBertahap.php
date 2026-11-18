@@ -168,6 +168,17 @@ class UnggahanBertahap
     }
 
     /**
+     * Kanal unggahan yang sedang berjalan atau siap, atau null bila id tidak dikenal. Dipakai endpoint unggah
+     * agar unggahan WBS hanya bisa dilanjutkan lewat jalur /wbs dan unggahan pengaduan lewat jalur biasa.
+     */
+    public function kanal(string $id): ?JenisLaporan
+    {
+        $data = $this->data($id);
+
+        return $data === null ? null : JenisLaporan::from($data['kanal']);
+    }
+
+    /**
      * Menghapus unggahan beserta berkas tunggunya; dipakai saat dibatalkan, ditolak, atau sudah dilampirkan.
      */
     public function batal(string $id): void
