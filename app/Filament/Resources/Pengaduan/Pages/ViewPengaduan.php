@@ -202,6 +202,10 @@ class ViewPengaduan extends ViewRecord
     }
 
     /**
+     * Menjalankan aksi lalu memuat ulang record yang sama beserta relasinya. Infolist yang sudah dibangun
+     * memegang objek record ini, sehingga record harus diperbarui di tempat (bukan diganti objek baru) agar
+     * seluruh isi halaman, termasuk Status di Ringkasan, langsung berubah tanpa muat ulang.
+     *
      * @param  Closure(User): Laporan  $aksi
      */
     private function jalankan(Closure $aksi, string $pesanBerhasil): void
@@ -210,12 +214,13 @@ class ViewPengaduan extends ViewRecord
         abort_unless($user instanceof User, 403);
 
         try {
-            $this->record = $aksi($user);
+            $aksi($user);
         } catch (AksiPengaduanTidakSah $galat) {
             Notification::make()->danger()->title($galat->getMessage())->send();
-            $this->record->refresh();
 
             return;
+        } finally {
+            $this->record->refresh()->load(['unit', 'kategori', 'lampiran', 'disposisi.unit', 'disposisi.pic', 'riwayatStatus.oleh']);
         }
 
         Notification::make()->success()->title($pesanBerhasil)->send();

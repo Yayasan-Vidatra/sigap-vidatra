@@ -7,6 +7,7 @@ use App\Enums\StatusPindai;
 use App\Filament\Resources\Pengaduan\Tables\PengaduanTable;
 use App\Models\Lampiran;
 use App\Models\Laporan;
+use App\Services\WaktuLokal;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -33,7 +34,7 @@ class PengaduanInfolist
                             ->label('Status')
                             ->badge()
                             ->color(fn (StatusLaporan $state): string => PengaduanTable::warnaStatus($state)),
-                        TextEntry::make('dibuat_pada')->label('Masuk')->dateTime('d M Y H:i'),
+                        TextEntry::make('dibuat_pada')->label('Masuk')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label()),
                         TextEntry::make('unit.nama')->label('Unit'),
                         TextEntry::make('kategori.nama')->label('Kategori')->placeholder('Belum ada'),
                         TextEntry::make('jenis_pelapor')->label('Jenis pelapor'),
@@ -50,7 +51,7 @@ class PengaduanInfolist
                     ->schema([
                         TextEntry::make('judul')->label('Judul')->columnSpanFull(),
                         TextEntry::make('kronologi')->label('Kronologi')->columnSpanFull()->prose(),
-                        TextEntry::make('waktu_kejadian')->label('Waktu kejadian')->dateTime('d M Y H:i')->placeholder('-'),
+                        TextEntry::make('waktu_kejadian')->label('Waktu kejadian')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label())->placeholder('-'),
                         TextEntry::make('lokasi')->label('Lokasi')->placeholder('-'),
                         TextEntry::make('jabatan_pihak_dikeluhkan')->label('Jabatan pihak yang dikeluhkan')->placeholder('-'),
                     ]),
@@ -92,7 +93,7 @@ class PengaduanInfolist
                             ->schema([
                                 TextEntry::make('unit.nama')->label('Unit'),
                                 TextEntry::make('pic.name')->label('PIC'),
-                                TextEntry::make('dibuat_pada')->label('Waktu')->dateTime('d M Y H:i'),
+                                TextEntry::make('dibuat_pada')->label('Waktu')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label()),
                                 TextEntry::make('instruksi')->label('Instruksi')->placeholder('-'),
                             ]),
                     ]),
@@ -102,7 +103,7 @@ class PengaduanInfolist
                             ->hiddenLabel()
                             ->columns(5)
                             ->schema([
-                                TextEntry::make('waktu')->label('Waktu')->dateTime('d M Y H:i'),
+                                TextEntry::make('waktu')->label('Waktu')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label()),
                                 TextEntry::make('status_baru')->label('Status')->badge(),
                                 TextEntry::make('oleh.name')->label('Oleh')->placeholder('Sistem / pelapor'),
                                 TextEntry::make('catatan')->label('Catatan')->placeholder('-'),

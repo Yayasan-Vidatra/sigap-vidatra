@@ -102,6 +102,35 @@ class PanelPanelProviderTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_dashboard_shows_the_account_card_but_not_the_filament_info_widget(): void
+    {
+        $user = User::factory()->peran(Peran::AdminPengaduan)->denganMfa()->create(['name' => 'Dewi Admin']);
+
+        $response = $this->actingAs($user)->get('/panel');
+
+        $response->assertOk();
+        $response->assertSee('Dewi Admin');
+        $response->assertDontSee('filamentphp.com', false);
+        $response->assertDontSee('github.com/filamentphp', false);
+    }
+
+    public function test_2fa_setup_page_is_in_indonesian(): void
+    {
+        $user = User::factory()->peran(Peran::KetuaTimWbs)->create();
+
+        $response = $this->actingAs($user)->get(self::HALAMAN_PASANG_2FA);
+
+        $response->assertOk();
+        $response->assertSee('Pasang verifikasi dua langkah');
+        $response->assertSee('Aplikasi autentikator');
+        $response->assertDontSee('Set up two-factor authentication');
+        $response->assertDontSee('authenticator');
+        // Modal pemasangan dan kode masuk baru tampil setelah tombol ditekan; teksnya ikut diterjemahkan.
+        $this->assertSame('Aktifkan aplikasi autentikator', __('filament-panels::auth/multi-factor/app/actions/set-up.modal.heading'));
+        $this->assertSame('Masukkan kode 6 digit dari aplikasi autentikator', __('filament-panels::auth/multi-factor/app/provider.login_form.code.label'));
+        $this->assertSame('Lanjutkan', __('filament-panels::auth/multi-factor/pages/set-up-required-multi-factor-authentication.actions.continue.label'));
+    }
+
     public function test_officer_without_2fa_can_still_log_out(): void
     {
         $user = User::factory()->peran(Peran::KetuaTimWbs)->create();

@@ -6,6 +6,7 @@ use App\Mail\KonfirmasiPengaduan;
 use App\Models\IdentitasPelapor;
 use App\Models\Laporan;
 use App\Models\Unit;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -29,6 +30,18 @@ class KonfirmasiPengaduanTest extends TestCase
         $surel->assertSeeInHtml('SMP YPVDP');
         $surel->assertSeeInHtml(route('lacak'));
         $surel->assertSeeInText('2 hari kerja');
+    }
+
+    public function test_receipt_time_is_shown_in_wita(): void
+    {
+        $laporan = Laporan::factory()->create([
+            'dibuat_pada' => CarbonImmutable::parse('2026-11-17 23:46:00', 'UTC'),
+        ]);
+
+        $surel = new KonfirmasiPengaduan($laporan->fresh());
+
+        $surel->assertSeeInText('18 November 2026, 07.46 WITA');
+        $surel->assertDontSeeInText('WIB');
     }
 
     public function test_sends_to_the_reporter_email(): void

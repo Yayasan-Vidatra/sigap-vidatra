@@ -38,9 +38,19 @@ class BuktiLaporControllerTest extends TestCase
         $teks = $this->teksPdf($response->getContent());
         $this->assertStringContainsString($kode, $teks);
         $this->assertStringContainsString('Pengaduan', $teks);
-        $this->assertStringContainsString('17 November 2026, 10.15 WIB', $teks);
+        $this->assertStringContainsString('17 November 2026, 11.15 WITA', $teks);
         $this->assertStringContainsString(route('lacak'), $teks);
         $this->assertStringContainsString('Simpan dokumen ini', $teks);
+    }
+
+    public function test_receipt_pdf_embeds_only_the_glyphs_it_uses(): void
+    {
+        $this->kirimPengaduan();
+
+        $pdf = $this->get('/selesai/pdf')->getContent();
+
+        // Tanpa font subsetting, DejaVu Sans tertanam utuh dan PDF berukuran sekitar 860 KB.
+        $this->assertLessThan(100 * 1024, strlen($pdf));
     }
 
     public function test_receipt_pdf_contains_no_identity_or_report_content(): void
@@ -116,7 +126,7 @@ class BuktiLaporControllerTest extends TestCase
         $html = view('pdf.bukti-lapor', [
             'kodeLacak' => 'PGD-2611-7KQ2M9',
             'wbs' => false,
-            'dikirimPada' => 'Selasa, 17 November 2026, 10.15 WIB',
+            'dikirimPada' => 'Selasa, 17 November 2026, 11.15 WITA',
             'tautanLacak' => route('lacak'),
         ])->render();
 

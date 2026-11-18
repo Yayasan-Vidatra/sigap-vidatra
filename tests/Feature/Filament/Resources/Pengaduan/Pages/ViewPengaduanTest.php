@@ -100,6 +100,53 @@ class ViewPengaduanTest extends TestCase
         $this->assertSame($kategori->id, $laporan->fresh()->kategori_id);
     }
 
+    public function test_the_whole_detail_page_updates_right_after_each_action_without_reloading(): void
+    {
+        $kategoriLama = Kategori::factory()->create(['nama' => 'Kategori Pilihan Pelapor']);
+        $kategoriBaru = Kategori::factory()->create(['nama' => 'Sarana dan Prasarana']);
+        $laporan = Laporan::factory()->for($kategoriLama)->create();
+        $unitTujuan = Unit::factory()->create(['nama' => 'SMA YPVDP']);
+        $pic = User::factory()->peran(Peran::PicUnit)->for($unitTujuan)->create(['name' => 'Bu Sari PIC']);
+
+        $this->actingAs($this->admin);
+
+        $halaman = Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->assertSeeText('Diterima')
+            ->assertSeeText('Kategori Pilihan Pelapor')
+            ->assertSeeText('Belum didisposisikan.');
+
+        $halaman->callAction('verifikasi', data: ['kategori_id' => $kategoriBaru->id])
+            ->assertSeeText('Terverifikasi')
+            ->assertDontSeeText('Diterima')
+            ->assertSeeText('Sarana dan Prasarana')
+            ->assertDontSeeText('Kategori Pilihan Pelapor');
+
+        $halaman->callAction('disposisi', data: [
+            'unit_id' => $unitTujuan->id,
+            'pic_user_id' => $pic->id,
+            'prioritas' => Prioritas::Tinggi->value,
+        ])
+            ->assertSeeText('Diproses')
+            ->assertSeeText('Tinggi')
+            ->assertSeeText('Bu Sari PIC')
+            ->assertSeeText('SMA YPVDP')
+            ->assertDontSeeText('Belum didisposisikan.')
+            ->assertDontSeeText('Dihitung saat disposisi');
+    }
+
+    public function test_status_and_reason_appear_right_after_rejecting(): void
+    {
+        $laporan = Laporan::factory()->create();
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->callAction('tolak', data: ['alasan' => 'Laporan ganda dengan PGD lain.'])
+            ->assertSeeText('Ditolak')
+            ->assertSeeText('Laporan ganda dengan PGD lain.')
+            ->assertDontSeeText('Diterima');
+    }
+
     public function test_rejecting_without_a_reason_shows_a_validation_error_and_keeps_the_status(): void
     {
         $laporan = Laporan::factory()->create();

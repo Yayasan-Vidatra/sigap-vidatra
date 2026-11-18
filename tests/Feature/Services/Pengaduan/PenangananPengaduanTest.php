@@ -18,6 +18,7 @@ use App\Services\Pengaduan\PenangananPengaduan;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -211,6 +212,22 @@ class PenangananPengaduanTest extends TestCase
         ]);
         Event::assertDispatched(PengaduanDidisposisikan::class, fn (PengaduanDidisposisikan $event): bool => $event->disposisi->pic->is($pic));
         Event::assertDispatched(StatusLaporanBerubah::class);
+    }
+
+    public function test_disposition_deadline_counts_working_days_from_the_wita_date(): void
+    {
+        $kategori = Kategori::factory()->create(['sla_hari' => 14]);
+        // Masuk Rabu 18 Nov 2026 07.46 WITA (= Selasa 17 Nov 23.46 UTC).
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Terverifikasi)->for($kategori)->create([
+            'dibuat_pada' => CarbonImmutable::parse('2026-11-17 23:46:00', 'UTC'),
+        ]);
+        $pic = User::factory()->peran(Peran::PicUnit)->create(['unit_id' => $laporan->unit_id]);
+
+        $this->penanganan->disposisi($laporan, $this->admin, $laporan->unit, $pic, Prioritas::Sedang, null);
+
+        $batas = $laporan->fresh()->batas_waktu;
+        $this->assertSame('Tue 2026-12-08 07:46', $batas->setTimezone('Asia/Makassar')->format('D Y-m-d H:i'));
+        $this->assertSame('2026-12-07 23:46:00', DB::table('laporan')->where('id', $laporan->id)->value('batas_waktu'));
     }
 
     /**

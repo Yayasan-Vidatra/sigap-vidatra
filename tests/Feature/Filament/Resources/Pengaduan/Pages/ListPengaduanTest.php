@@ -103,6 +103,22 @@ class ListPengaduanTest extends TestCase
             ->assertCanNotSeeTableRecords([$lain]);
     }
 
+    public function test_date_filter_and_times_follow_wita(): void
+    {
+        $admin = User::factory()->peran(Peran::AdminPengaduan)->denganMfa()->create();
+        // Rabu 18 Nov 2026 07.46 WITA = Selasa 17 Nov 23.46 UTC.
+        $rabuPagi = Laporan::factory()->create(['dibuat_pada' => CarbonImmutable::parse('2026-11-17 23:46:00', 'UTC')]);
+        $selasaSore = Laporan::factory()->create(['dibuat_pada' => CarbonImmutable::parse('2026-11-17 10:00:00', 'UTC')]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(ListPengaduan::class)
+            ->assertSee('18 Nov 2026 07:46 WITA')
+            ->filterTable('dibuat_pada', ['dari' => '2026-11-18', 'sampai' => '2026-11-18'])
+            ->assertCanSeeTableRecords([$rabuPagi])
+            ->assertCanNotSeeTableRecords([$selasaSore]);
+    }
+
     public function test_filters_narrow_by_unit_category_status_priority_and_date(): void
     {
         $admin = User::factory()->peran(Peran::AdminPengaduan)->denganMfa()->create();

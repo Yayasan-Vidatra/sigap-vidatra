@@ -7,6 +7,7 @@ use App\Enums\Prioritas;
 use App\Enums\StatusLaporan;
 use App\Models\Laporan;
 use App\Models\User;
+use App\Services\WaktuLokal;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
@@ -58,6 +59,7 @@ class PengaduanTable
                 TextColumn::make('dibuat_pada')
                     ->label('Masuk')
                     ->dateTime('d M Y H:i')
+                    ->suffix(' '.WaktuLokal::label())
                     ->sortable(),
             ])
             ->defaultSort('dibuat_pada', 'desc')
@@ -84,8 +86,8 @@ class PengaduanTable
                         DatePicker::make('sampai')->label('Sampai tanggal'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query
-                        ->when($data['dari'] ?? null, fn (Builder $q, string $dari) => $q->whereDate('dibuat_pada', '>=', $dari))
-                        ->when($data['sampai'] ?? null, fn (Builder $q, string $sampai) => $q->whereDate('dibuat_pada', '<=', $sampai))),
+                        ->when($data['dari'] ?? null, fn (Builder $q, string $dari) => $q->where('dibuat_pada', '>=', WaktuLokal::awalHari($dari)))
+                        ->when($data['sampai'] ?? null, fn (Builder $q, string $sampai) => $q->where('dibuat_pada', '<=', WaktuLokal::akhirHari($sampai)))),
             ])
             ->recordActions([
                 ViewAction::make()->label('Buka'),

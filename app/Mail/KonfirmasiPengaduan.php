@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Laporan;
+use App\Services\WaktuLokal;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -52,7 +53,7 @@ class KonfirmasiPengaduan extends Mailable
                 'nama' => $this->laporan->identitasPelapor?->nama,
                 'judul' => $this->laporan->judul,
                 'unit' => $this->laporan->unit?->nama,
-                'diterimaPada' => $this->laporan->dibuat_pada?->translatedFormat('d M Y H:i'),
+                'diterimaPada' => $this->laporan->dibuat_pada ? WaktuLokal::tampilkan($this->laporan->dibuat_pada, 'd F Y, H.i') : null,
                 'tautanLacak' => route('lacak'),
             ],
         );

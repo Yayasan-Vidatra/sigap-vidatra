@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\LogAudits\Tables;
 
 use App\Enums\AksiAudit;
+use App\Services\WaktuLokal;
 use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -21,7 +22,7 @@ class LogAuditsTable
             ->columns([
                 TextColumn::make('waktu')
                     ->label('Waktu')
-                    ->dateTime('d M Y H:i:s')
+                    ->dateTime('d M Y H:i:s')->suffix(' '.WaktuLokal::label())
                     ->sortable(),
                 TextColumn::make('user.name')
                     ->label('Pengguna')
@@ -49,8 +50,8 @@ class LogAuditsTable
                         DatePicker::make('sampai')->label('Sampai tanggal'),
                     ])
                     ->query(fn (Builder $query, array $data): Builder => $query
-                        ->when($data['dari'] ?? null, fn (Builder $q, string $dari) => $q->whereDate('waktu', '>=', $dari))
-                        ->when($data['sampai'] ?? null, fn (Builder $q, string $sampai) => $q->whereDate('waktu', '<=', $sampai))),
+                        ->when($data['dari'] ?? null, fn (Builder $q, string $dari) => $q->where('waktu', '>=', WaktuLokal::awalHari($dari)))
+                        ->when($data['sampai'] ?? null, fn (Builder $q, string $sampai) => $q->where('waktu', '<=', WaktuLokal::akhirHari($sampai)))),
             ])
             ->recordActions([])
             ->toolbarActions([]);

@@ -6,6 +6,7 @@ use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
 use App\Rules\AltchaSah;
 use App\Services\Lampiran\UnggahanBertahap;
+use App\Services\WaktuLokal;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -44,7 +45,8 @@ class StorePengaduanRequest extends FormRequest
             'persetujuan_orang_tua' => ["exclude_unless:jenis_pelapor,{$siswa}", 'accepted'],
             'judul' => ['required', 'string', 'max:200'],
             'kronologi' => ['required', 'string', 'min:20', 'max:5000'],
-            'waktu_kejadian' => ['nullable', 'date', 'before_or_equal:now'],
+            // Isian datetime-local tidak membawa zona; pelapor mengisi waktu WITA (App\Services\WaktuLokal).
+            'waktu_kejadian' => ['nullable', 'date', 'before_or_equal:'.WaktuLokal::sekarangSebagaiMasukan()],
             'lokasi' => ['nullable', 'string', 'max:200'],
             'jabatan_pihak_dikeluhkan' => ['nullable', 'string', 'max:150'],
             'setuju_ketentuan' => ['accepted'],

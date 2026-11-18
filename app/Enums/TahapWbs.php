@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Services\WaktuLokal;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Filament\Support\Contracts\HasLabel;
@@ -30,10 +31,10 @@ enum TahapWbs: string implements HasLabel
     }
 
     /**
-     * Batas waktu tahap ini dihitung dari awal tahap (Senin–Jumat; libur nasional belum dihitung).
+     * Batas waktu tahap ini dihitung dari awal tahap (Senin–Jumat menurut tanggal WITA; libur nasional belum dihitung).
      */
     public function batasDari(CarbonInterface $mulai): CarbonImmutable
     {
-        return CarbonImmutable::instance($mulai)->addWeekdays($this->hariKerja());
+        return WaktuLokal::tambahHariKerja($mulai, $this->hariKerja());
     }
 }
