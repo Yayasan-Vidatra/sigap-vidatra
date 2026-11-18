@@ -12,3 +12,4 @@ Schedule::command('sigap:bersihkan-unggahan')->hourly();
 
 // Waktu terjadwal di bawah memakai WITA (Bontang); lihat config sigap.zona_waktu.
 Schedule::command('sigap:tutup-pengaduan-otomatis')->dailyAt('00:10')->timezone(config('sigap.zona_waktu.nama'));
+Schedule::command('sigap:pengingat-batas-waktu')->dailyAt('07:00')->timezone(config('sigap.zona_waktu.nama'));
