@@ -7,8 +7,10 @@ use App\Enums\KedudukanTerlapor;
 use App\Enums\KesimpulanWbs;
 use App\Enums\StatusLaporan;
 use App\Enums\TahapWbs;
+use App\Events\HasilWbsDikirim;
 use App\Events\InvestigatorWbsDitunjuk;
 use App\Events\LaporanWbsPerluDitelaah;
+use App\Events\PerpanjanganWbsDiajukan;
 use App\Exceptions\AksiWbsTidakSah;
 use App\Models\Laporan;
 use App\Models\LogAudit;
@@ -21,12 +23,15 @@ use Illuminate\Support\Facades\Gate;
  * Aksi Ruang Kerja WBS (H-13): telaah (UC-12, US-15), penunjukan investigator dan kesimpulan (UC-13, US-17).
  * Setiap aksi memeriksa ulang hak akses (LaporanPolicy) dan status terbaru di server, lalu mencatat riwayat_status
  * dan log audit. Catatan riwayat terenkripsi; hanya alasan umum "Tidak Ditindaklanjuti" dan catatan untuk pelapor
- * yang ditandai tampil_ke_pelapor. Perpanjangan investigasi dengan persetujuan penerima hasil menyusul bersama
- * Hasil WBS untuk Saya (H-16, Hari 11).
+ * yang ditandai tampil_ke_pelapor. Perpanjangan investigasi diajukan Tim WBS dan diputuskan penerima hasil di
+ * Hasil WBS untuk Saya (H-16); kesimpulan dikirim ke penerima hasil tanpa identitas pelapor.
  */
 class PenangananWbs
 {
     public const MAKS_CATATAN = 2000;
+
+    /** Awalan catatan riwayat pengajuan perpanjangan; alasannya ditampilkan kepada penerima hasil di H-16. */
+    public const AWALAN_PERPANJANGAN = 'Perpanjangan investigasi diajukan kepada penerima hasil. Alasan:';
 
     /**
      * Status tempat telaah masih berjalan (koreksi kedudukan dan keputusan kelayakan).
@@ -52,6 +57,9 @@ class PenangananWbs
             'koreksiKedudukan', 'tidakDitindaklanjuti' => in_array($laporan->status, self::STATUS_TELAAH, true),
             'mulaiInvestigasi' => $laporan->status === StatusLaporan::Ditelaah,
             'simpulkan' => in_array($laporan->status, self::STATUS_INVESTIGASI, true),
+            'ajukanPerpanjangan' => $laporan->status === StatusLaporan::Diinvestigasi && $laporan->perpanjangan_diajukan_pada === null,
+            'putuskanPerpanjangan' => $laporan->status === StatusLaporan::Diinvestigasi && $laporan->perpanjangan_diajukan_pada !== null,
+            'tandaiDitindaklanjuti' => $laporan->kesimpulan !== null && $laporan->hasil_ditindaklanjuti_pada === null,
             default => false,
         };
     }
@@ -174,7 +182,8 @@ class PenangananWbs
 
     /**
      * Kesimpulan dan rekomendasi (UC-13 langkah 5). Tim WBS tidak menjatuhkan sanksi; rekomendasi terenkripsi.
-     * Pengiriman ke penerima hasil menurut matriks menyusul bersama H-16 (Hari 11).
+     * Hasil dikirim ke penerima hasil menurut matriks (H-16) tanpa identitas pelapor; pengajuan perpanjangan yang
+     * belum diputuskan ikut gugur.
      */
     public function simpulkan(Laporan $laporan, User $oleh, KesimpulanWbs $kesimpulan, string $rekomendasi, ?string $catatanPelapor): Laporan
     {
@@ -192,12 +201,121 @@ class PenangananWbs
                 $terkunci->kesimpulan = $kesimpulan;
                 $terkunci->rekomendasi = $rekomendasi;
                 $terkunci->batas_waktu = null;
+                $terkunci->perpanjangan_diajukan_pada = null;
 
-                return "Kesimpulan: {$kesimpulan->getLabel()}.";
+                HasilWbsDikirim::dispatch($terkunci);
+
+                return "Kesimpulan: {$kesimpulan->getLabel()}. Hasil dikirim ke penerima hasil.";
             },
             catatanPelapor: $catatanPelapor,
             beritahuPelapor: false,
         );
+    }
+
+    /**
+     * Pengajuan perpanjangan 30 hari kerja (UC-13 1a) oleh penelaah utama atau investigator. Status belum berubah sampai
+     * penerima hasil menyetujui.
+     */
+    public function ajukanPerpanjangan(Laporan $laporan, User $oleh, string $alasan): Laporan
+    {
+        Gate::forUser($oleh)->authorize('simpulkanLaporanWbs', $laporan);
+        $alasan = $this->wajib($alasan, 'Alasan perpanjangan');
+
+        return $this->catatTanpaUbahStatus($laporan, $oleh, 'ajukanPerpanjangan', 'diajukan perpanjangannya', AksiAudit::MengajukanPerpanjangan,
+            function (Laporan $terkunci) use ($alasan): string {
+                $terkunci->perpanjangan_diajukan_pada = now();
+                PerpanjanganWbsDiajukan::dispatch($terkunci);
+
+                return self::AWALAN_PERPANJANGAN.' '.$alasan;
+            });
+    }
+
+    /**
+     * Penerima hasil menyetujui perpanjangan: status Diinvestigasi (diperpanjang), batas bertambah 30 hari kerja dari
+     * batas semula, dan persetujuan tercatat (laporan.perpanjangan_disetujui_oleh).
+     */
+    public function setujuiPerpanjangan(Laporan $laporan, User $penerima): Laporan
+    {
+        Gate::forUser($penerima)->authorize('putuskanHasilWbs', $laporan);
+
+        return $this->pengubah->ubah(
+            $laporan,
+            $penerima,
+            fn (Laporan $terkunci): ?AksiWbsTidakSah => self::bisa('putuskanPerpanjangan', $terkunci)
+                ? null
+                : AksiWbsTidakSah::statusWbsTidakSesuai('diputuskan perpanjangannya', $terkunci->status),
+            StatusLaporan::DiinvestigasiDiperpanjang,
+            AksiAudit::MenyetujuiPerpanjangan,
+            function (Laporan $terkunci) use ($penerima): string {
+                $terkunci->perpanjangan_disetujui_oleh = $penerima->getKey();
+                $terkunci->perpanjangan_diajukan_pada = null;
+                $terkunci->batas_waktu = TahapWbs::Perpanjangan->batasDari($terkunci->batas_waktu ?? now());
+
+                return "Perpanjangan disetujui {$penerima->name}.";
+            },
+            beritahuPelapor: false,
+        );
+    }
+
+    public function tolakPerpanjangan(Laporan $laporan, User $penerima, string $alasan): Laporan
+    {
+        Gate::forUser($penerima)->authorize('putuskanHasilWbs', $laporan);
+        $alasan = $this->wajib($alasan, 'Alasan penolakan');
+
+        return $this->catatTanpaUbahStatus($laporan, $penerima, 'putuskanPerpanjangan', 'diputuskan perpanjangannya', AksiAudit::MenolakPerpanjangan,
+            function (Laporan $terkunci) use ($penerima, $alasan): string {
+                $terkunci->perpanjangan_diajukan_pada = null;
+
+                return "Perpanjangan ditolak {$penerima->name}. Alasan: {$alasan}";
+            });
+    }
+
+    /**
+     * Penerima hasil menandai hasil sudah ditindaklanjuti (H-16). Catatan tindak lanjut hanya untuk petugas.
+     */
+    public function tandaiDitindaklanjuti(Laporan $laporan, User $penerima, string $catatan): Laporan
+    {
+        Gate::forUser($penerima)->authorize('putuskanHasilWbs', $laporan);
+        $catatan = $this->wajib($catatan, 'Catatan tindak lanjut');
+
+        return $this->catatTanpaUbahStatus($laporan, $penerima, 'tandaiDitindaklanjuti', 'ditandai ditindaklanjuti', AksiAudit::MenandaiHasilDitindaklanjuti,
+            function (Laporan $terkunci) use ($penerima, $catatan): string {
+                $terkunci->hasil_ditindaklanjuti_pada = now();
+                $terkunci->hasil_ditindaklanjuti_oleh = $penerima->getKey();
+
+                return "Tindak lanjut hasil oleh {$penerima->name}: {$catatan}";
+            });
+    }
+
+    /**
+     * Aksi yang tidak mengubah status: dicatat di riwayat (status sama, catatan petugas) dan log audit.
+     *
+     * @param  callable(Laporan): string  $ubah
+     */
+    private function catatTanpaUbahStatus(Laporan $laporan, User $oleh, string $aksi, string $kataKerja, AksiAudit $audit, callable $ubah): Laporan
+    {
+        return DB::transaction(function () use ($laporan, $oleh, $aksi, $kataKerja, $audit, $ubah): Laporan {
+            $terkunci = Laporan::query()->lockForUpdate()->findOrFail($laporan->getKey());
+
+            if (! self::bisa($aksi, $terkunci)) {
+                throw AksiWbsTidakSah::statusWbsTidakSesuai($kataKerja, $terkunci->status);
+            }
+
+            $catatan = $ubah($terkunci);
+            $terkunci->save();
+
+            $terkunci->riwayatStatus()->create([
+                'status_lama' => $terkunci->status,
+                'status_baru' => $terkunci->status,
+                'oleh_user_id' => $oleh->getKey(),
+                'catatan' => $catatan,
+                'tampil_ke_pelapor' => false,
+            ]);
+
+            LogAudit::catat($oleh, $audit, $terkunci);
+
+            return $terkunci;
+        });
     }
 
     /**

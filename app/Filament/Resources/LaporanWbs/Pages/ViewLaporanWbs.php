@@ -49,6 +49,20 @@ class ViewLaporanWbs extends ViewRecord
             $this->aksiMulaiInvestigasi(),
             $this->aksiTidakDitindaklanjuti(),
             $this->aksiSimpulkan(),
+            Action::make('ajukanPerpanjangan')
+                ->label('Ajukan perpanjangan')
+                ->icon(Heroicon::OutlinedClock)
+                ->color('warning')
+                ->authorize('simpulkanLaporanWbs')
+                ->visible(fn (Laporan $record): bool => PenangananWbs::bisa('ajukanPerpanjangan', $record))
+                ->modalDescription('Perpanjangan 30 hari kerja berlaku setelah disetujui penerima hasil menurut matriks. Penerima diberi tahu lewat surel tanpa isi laporan.')
+                ->schema([
+                    Textarea::make('alasan')->label('Alasan perpanjangan')->required()->rule($this->tidakKosong('Alasan perpanjangan'))->maxLength(PenangananWbs::MAKS_CATATAN)->rows(3),
+                ])
+                ->action(fn (array $data, PenangananWbs $penanganan) => $this->jalankan(
+                    fn (User $oleh) => $penanganan->ajukanPerpanjangan($this->record, $oleh, (string) $data['alasan']),
+                    'Perpanjangan diajukan kepada penerima hasil.',
+                )),
             $this->aksiKoreksiKedudukan(),
             $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),

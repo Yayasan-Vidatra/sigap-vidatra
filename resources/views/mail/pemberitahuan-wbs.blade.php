@@ -7,7 +7,7 @@
 Isi laporan hanya dapat dibaca di panel setelah login dengan 2FA.
 
 <x-mail::button :url="$tautan">
-Buka Ruang Kerja WBS
+Buka di panel
 </x-mail::button>
 
 Jangan meneruskan surel ini. Surel ini dikirim otomatis; mohon tidak membalasnya.

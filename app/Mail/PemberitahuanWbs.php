@@ -26,6 +26,10 @@ class PemberitahuanWbs extends Mailable implements ShouldQueue
 
     public const PESAN_BARU = 'pesan_baru';
 
+    public const HASIL = 'hasil';
+
+    public const PERPANJANGAN = 'perpanjangan';
+
     public function __construct(public string $jenis, public string $tautan)
     {
         $this->afterCommit();
@@ -37,6 +41,8 @@ class PemberitahuanWbs extends Mailable implements ShouldQueue
             self::LAPORAN_BARU => 'Ada laporan WBS baru untuk ditelaah',
             self::DIALIHKAN => 'Laporan WBS dialihkan kepada Anda',
             self::DITUGASKAN => 'Anda ditunjuk sebagai investigator laporan WBS',
+            self::HASIL => 'Hasil laporan WBS untuk Anda',
+            self::PERPANJANGAN => 'Permintaan persetujuan perpanjangan investigasi WBS',
             default => 'Ada pesan baru dari pelapor WBS',
         });
     }
@@ -50,6 +56,8 @@ class PemberitahuanWbs extends Mailable implements ShouldQueue
                     self::LAPORAN_BARU => 'Ada laporan pelanggaran baru yang perlu Anda telaah menurut matriks penerima.',
                     self::DIALIHKAN => 'Setelah kedudukan terlapor diperiksa, sebuah laporan pelanggaran kini menjadi bagian Anda menurut matriks penerima.',
                     self::DITUGASKAN => 'Anda ditunjuk sebagai investigator sebuah laporan pelanggaran.',
+                    self::HASIL => 'Tim WBS menyampaikan kesimpulan dan rekomendasi sebuah laporan pelanggaran yang menjadi bagian Anda menurut matriks penerima.',
+                    self::PERPANJANGAN => 'Tim WBS meminta persetujuan Anda untuk memperpanjang investigasi sebuah laporan pelanggaran.',
                     default => 'Pelapor mengirim pesan baru pada laporan pelanggaran yang Anda tangani.',
                 },
                 'tautan' => $this->tautan,

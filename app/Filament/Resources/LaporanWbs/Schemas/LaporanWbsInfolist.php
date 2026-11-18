@@ -68,6 +68,14 @@ class LaporanWbsInfolist
                     ->label('Penerima hasil')
                     ->state(fn (Laporan $record): string => AksesWbs::kedudukanEfektif($record)->penerimaHasil()),
                 TextEntry::make('investigator.name')->label('Investigator')->placeholder('Belum ditunjuk'),
+                TextEntry::make('perpanjangan')
+                    ->label('Perpanjangan')
+                    ->state(fn (Laporan $record): ?string => match (true) {
+                        $record->perpanjangan_diajukan_pada !== null => 'Menunggu persetujuan penerima hasil',
+                        $record->perpanjangan_disetujui_oleh !== null => 'Disetujui penerima hasil',
+                        default => null,
+                    })
+                    ->placeholder('-'),
                 TextEntry::make('batas_waktu')
                     ->label('Batas waktu tahap ini')
                     ->date('d M Y')
