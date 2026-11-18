@@ -23,6 +23,15 @@ enum AksiAudit: string implements HasLabel
     case MenolakPengaduan = 'menolak_pengaduan';
     case MendisposisikanPengaduan = 'mendisposisikan_pengaduan';
     case MengubahUnitPengaduan = 'mengubah_unit_pengaduan';
+    case MenutupPengaduan = 'menutup_pengaduan';
+    case MencatatTindakLanjut = 'mencatat_tindak_lanjut';
+    case MengunggahBuktiPenyelesaian = 'mengunggah_bukti_penyelesaian';
+    case MemintaKonfirmasiPelapor = 'meminta_konfirmasi_pelapor';
+    case PelaporMengonfirmasiHasil = 'pelapor_mengonfirmasi_hasil';
+    case PelaporMenolakHasil = 'pelapor_menolak_hasil';
+    case MenutupPengaduanOtomatis = 'menutup_pengaduan_otomatis';
+    case MengirimPengingatBatasWaktu = 'mengirim_pengingat_batas_waktu';
+    case MengirimEskalasiBatasWaktu = 'mengirim_eskalasi_batas_waktu';
 
     public function getLabel(): string
     {
@@ -41,6 +50,15 @@ enum AksiAudit: string implements HasLabel
             self::MenolakPengaduan => 'Menolak pengaduan',
             self::MendisposisikanPengaduan => 'Mendisposisikan pengaduan',
             self::MengubahUnitPengaduan => 'Mengubah unit pengaduan',
+            self::MenutupPengaduan => 'Menutup pengaduan (konfirmasi lewat telepon)',
+            self::MencatatTindakLanjut => 'Mencatat tindak lanjut',
+            self::MengunggahBuktiPenyelesaian => 'Mengunggah bukti penyelesaian',
+            self::MemintaKonfirmasiPelapor => 'Meminta konfirmasi pelapor',
+            self::PelaporMengonfirmasiHasil => 'Pelapor mengonfirmasi hasil',
+            self::PelaporMenolakHasil => 'Pelapor menolak hasil',
+            self::MenutupPengaduanOtomatis => 'Menutup pengaduan otomatis (7 hari tanpa tanggapan)',
+            self::MengirimPengingatBatasWaktu => 'Mengirim pengingat batas waktu',
+            self::MengirimEskalasiBatasWaktu => 'Mengirim eskalasi batas waktu',
         };
     }
 }

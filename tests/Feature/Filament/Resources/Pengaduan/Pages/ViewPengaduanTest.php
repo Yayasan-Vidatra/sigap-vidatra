@@ -147,6 +147,50 @@ class ViewPengaduanTest extends TestCase
             ->assertDontSeeText('Diterima');
     }
 
+    public function test_admin_closes_a_phone_confirmed_complaint_with_a_required_note(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::MenungguKonfirmasi)->create();
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->assertActionVisible('tutupLewatTelepon')
+            ->callAction('tutupLewatTelepon', data: ['catatan' => ''])
+            ->assertHasActionErrors(['catatan' => 'required'])
+            ->fillForm(['catatan' => 'Pelapor mengonfirmasi lewat telepon pukul 09.00.'])
+            ->callMountedAction()
+            ->assertHasNoActionErrors()
+            ->assertSeeText('Selesai')
+            ->assertSeeText('Tidak, hanya petugas')
+            ->assertActionHidden('tutupLewatTelepon');
+
+        $this->assertSame(StatusLaporan::Selesai, $laporan->fresh()->status);
+    }
+
+    public function test_close_by_phone_is_only_offered_while_waiting_for_confirmation(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Diproses)->create();
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->assertActionHidden('tutupLewatTelepon');
+    }
+
+    public function test_admin_sees_the_units_follow_up_and_evidence_separately_from_reporter_attachments(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::MenungguKonfirmasi)->create();
+        $disposisi = Disposisi::factory()->for($laporan)->create(['unit_id' => $laporan->unit_id, 'tindak_lanjut' => 'AC sudah diservis.']);
+        Lampiran::factory()->for($laporan)->create(['nama_asli' => 'foto-pelapor.jpg', 'status_pindai' => StatusPindai::Bersih]);
+        Lampiran::factory()->for($laporan)->create(['nama_asli' => 'nota-servis.pdf', 'disposisi_id' => $disposisi->id, 'status_pindai' => StatusPindai::Bersih]);
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->assertSeeText('AC sudah diservis.')
+            ->assertSeeInOrder(['Lampiran pelapor', 'foto-pelapor.jpg', 'Bukti penyelesaian dari unit', 'nota-servis.pdf']);
+    }
+
     public function test_rejecting_without_a_reason_shows_a_validation_error_and_keeps_the_status(): void
     {
         $laporan = Laporan::factory()->create();

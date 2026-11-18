@@ -9,6 +9,7 @@ use App\Enums\Prioritas;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Filament\Concerns\MencatatPembukaanLaporan;
 use App\Filament\Resources\Pengaduan\PengaduanResource;
+use App\Filament\Resources\Pengaduan\Schemas\PengaduanInfolist;
 use App\Models\Kategori;
 use App\Models\Laporan;
 use App\Models\LogAudit;
@@ -49,6 +50,7 @@ class ViewPengaduan extends ViewRecord
             $this->aksiVerifikasi(),
             $this->aksiDisposisi(),
             $this->aksiTolak(),
+            $this->aksiTutupLewatTelepon(),
             $this->aksiLihatIdentitas(),
             Action::make('pindahKeWbs')
                 ->label('Pindah ke WBS (Hari 10/11)')
@@ -90,6 +92,40 @@ class ViewPengaduan extends ViewRecord
             ->action(fn (array $data, PenangananPengaduan $penanganan) => $this->jalankan(
                 fn (User $oleh) => $penanganan->verifikasi($this->record, $oleh, Kategori::query()->findOrFail($data['kategori_id'])),
                 'Pengaduan terverifikasi.',
+            ));
+    }
+
+    /**
+     * Pengecualian penutupan oleh Admin (log deviasi): pelapor mengonfirmasi hasil lewat telepon. Catatannya
+     * wajib dan hanya untuk petugas.
+     */
+    private function aksiTutupLewatTelepon(): Action
+    {
+        return Action::make('tutupLewatTelepon')
+            ->label('Tutup (konfirmasi lewat telepon)')
+            ->icon(Heroicon::OutlinedPhone)
+            ->color('success')
+            ->authorize('kelolaPengaduan')
+            ->visible(fn (Laporan $record): bool => PenangananPengaduan::bisa('tutup', $record))
+            ->modalHeading('Tutup pengaduan')
+            ->modalDescription('Gunakan hanya bila pelapor sudah mengonfirmasi hasil lewat telepon. Catatan ini hanya terlihat petugas.')
+            ->modalSubmitActionLabel('Tutup pengaduan')
+            ->schema([
+                Textarea::make('catatan')
+                    ->label('Catatan penutupan')
+                    ->helperText('Mis. kapan dan dengan siapa konfirmasi lewat telepon dilakukan.')
+                    ->required()
+                    ->rule(fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                        if (trim((string) $value) === '') {
+                            $fail('Catatan penutupan wajib diisi.');
+                        }
+                    })
+                    ->maxLength(2000)
+                    ->rows(3),
+            ])
+            ->action(fn (array $data, PenangananPengaduan $penanganan) => $this->jalankan(
+                fn (User $oleh) => $penanganan->tutupLewatTelepon($this->record, $oleh, $data['catatan']),
+                'Pengaduan ditutup.',
             ));
     }
 
@@ -220,7 +256,7 @@ class ViewPengaduan extends ViewRecord
 
             return;
         } finally {
-            $this->record->refresh()->load(['unit', 'kategori', 'lampiran', 'disposisi.unit', 'disposisi.pic', 'riwayatStatus.oleh']);
+            $this->record->refresh()->load(PengaduanInfolist::RELASI);
         }
 
         Notification::make()->success()->title($pesanBerhasil)->send();

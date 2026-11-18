@@ -208,6 +208,27 @@ class Laporan extends Model
     }
 
     /**
+     * Pengaduan di halaman Pengaduan Unit Saya (H-12) untuk PIC Unit: hanya pengaduan yang sudah
+     * didisposisikan ke unitnya. Pengaduan unit itu yang belum didisposisikan, pengaduan unit lain, dan
+     * laporan WBS tidak termasuk; peran lain tidak mendapat baris apa pun.
+     *
+     * @param  Builder<Laporan>  $query
+     */
+    #[Scope]
+    protected function pengaduanUnitPic(Builder $query, User $user): void
+    {
+        if ($user->peran !== Peran::PicUnit || $user->unit_id === null) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where('jenis', JenisLaporan::Pengaduan->value)
+            ->where('unit_id', $user->unit_id)
+            ->whereHas('disposisi', fn (Builder $disposisi) => $disposisi->where('unit_id', $user->unit_id));
+    }
+
+    /**
      * @return BelongsTo<Unit, $this>
      */
     public function unit(): BelongsTo
@@ -253,6 +274,26 @@ class Laporan extends Model
     public function lampiran(): HasMany
     {
         return $this->hasMany(Lampiran::class);
+    }
+
+    /**
+     * Lampiran dari pelapor, tanpa bukti penyelesaian PIC Unit.
+     *
+     * @return HasMany<Lampiran, $this>
+     */
+    public function lampiranPelapor(): HasMany
+    {
+        return $this->lampiran()->whereNull('disposisi_id');
+    }
+
+    /**
+     * Bukti penyelesaian yang diunggah PIC Unit lewat disposisi (UC-10).
+     *
+     * @return HasMany<Lampiran, $this>
+     */
+    public function buktiPenyelesaian(): HasMany
+    {
+        return $this->lampiran()->whereNotNull('disposisi_id');
     }
 
     /**

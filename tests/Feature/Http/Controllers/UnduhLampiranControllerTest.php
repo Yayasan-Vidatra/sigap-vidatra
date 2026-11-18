@@ -6,6 +6,7 @@ use App\Enums\AksiAudit;
 use App\Enums\KedudukanTerlapor;
 use App\Enums\Peran;
 use App\Enums\StatusPindai;
+use App\Models\Disposisi;
 use App\Models\Lampiran;
 use App\Models\Laporan;
 use App\Models\LogAudit;
@@ -124,13 +125,24 @@ class UnduhLampiranControllerTest extends TestCase
         $this->assertDatabaseMissing('log_audit', ['aksi' => AksiAudit::MembukaLampiran->value]);
     }
 
-    public function test_pic_unit_downloads_attachments_of_their_own_unit(): void
+    public function test_pic_unit_downloads_attachments_of_complaints_disposed_to_their_unit(): void
+    {
+        $unit = Unit::factory()->create();
+        $pic = User::factory()->peran(Peran::PicUnit)->for($unit)->denganMfa()->create();
+        $laporan = Laporan::factory()->for($unit)->create();
+        Disposisi::factory()->for($laporan)->for($unit)->create(['pic_user_id' => $pic->id]);
+        $lampiran = $this->lampiran($laporan, $this->pdfUji());
+
+        $this->actingAs($pic)->get($lampiran->tautanUnduhSementara())->assertOk();
+    }
+
+    public function test_pic_unit_cannot_download_attachments_of_a_complaint_not_yet_disposed(): void
     {
         $unit = Unit::factory()->create();
         $pic = User::factory()->peran(Peran::PicUnit)->for($unit)->denganMfa()->create();
         $lampiran = $this->lampiran(Laporan::factory()->for($unit)->create(), $this->pdfUji());
 
-        $this->actingAs($pic)->get($lampiran->tautanUnduhSementara())->assertOk();
+        $this->actingAs($pic)->get($lampiran->tautanUnduhSementara())->assertForbidden();
     }
 
     public function test_quarantined_attachment_cannot_be_downloaded(): void

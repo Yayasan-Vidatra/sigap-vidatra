@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Disposisi pengaduan ke unit dan PIC (UC-09). Laporan WBS tidak pernah diteruskan ke unit
@@ -43,6 +44,16 @@ class Disposisi extends Model
         return [
             'selesai_pada' => 'datetime',
         ];
+    }
+
+    /**
+     * Bukti penyelesaian yang diunggah PIC Unit (UC-10).
+     *
+     * @return HasMany<Lampiran, $this>
+     */
+    public function bukti(): HasMany
+    {
+        return $this->hasMany(Lampiran::class);
     }
 
     /**

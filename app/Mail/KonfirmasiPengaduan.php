@@ -5,20 +5,24 @@ namespace App\Mail;
 use App\Models\Laporan;
 use App\Services\WaktuLokal;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Surel konfirmasi pengaduan berisi kode lacak (UC-01 langkah 6, US-07). Disiapkan di Hari 5;
- * pengirimannya lewat queue dan SMTP Google Workspace dipasang di Hari 7 (US-11, F-12).
+ * Surel konfirmasi pengaduan berisi kode lacak (UC-01 langkah 6, US-07), dikirim lewat queue saat pengaduan
+ * diterima (listener KirimSurelStatusKePelapor). SMTP Google Workspace dipasang di Hari 14.
  */
-class KonfirmasiPengaduan extends Mailable
+class KonfirmasiPengaduan extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Laporan $laporan) {}
+    public function __construct(public Laporan $laporan)
+    {
+        $this->afterCommit();
+    }
 
     /**
      * Alamat surel pelapor: surel pelapor, atau kontak orang tua/wali bila berupa surel (pelapor siswa).
@@ -26,15 +30,7 @@ class KonfirmasiPengaduan extends Mailable
      */
     public static function alamatTujuan(Laporan $laporan): ?string
     {
-        $identitas = $laporan->identitasPelapor;
-
-        foreach ([$identitas?->email, $identitas?->kontak_orang_tua] as $calon) {
-            if (is_string($calon) && filter_var($calon, FILTER_VALIDATE_EMAIL)) {
-                return $calon;
-            }
-        }
-
-        return null;
+        return $laporan->identitasPelapor?->alamatSurel();
     }
 
     public function envelope(): Envelope

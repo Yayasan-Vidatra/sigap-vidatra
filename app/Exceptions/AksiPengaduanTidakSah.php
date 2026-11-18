@@ -37,6 +37,36 @@ class AksiPengaduanTidakSah extends RuntimeException
         return new self('Alasan penolakan wajib diisi.');
     }
 
+    public static function catatanPenutupanWajib(): self
+    {
+        return new self('Catatan penutupan wajib diisi, misalnya kapan dan dengan siapa konfirmasi lewat telepon dilakukan.');
+    }
+
+    public static function tindakLanjutKosong(): self
+    {
+        return new self('Isi tindak lanjut terlebih dahulu sebelum meminta konfirmasi pelapor.');
+    }
+
+    public static function ringkasanPelaporWajib(): self
+    {
+        return new self('Ringkasan untuk pelapor wajib diisi.');
+    }
+
+    public static function ringkasanPelaporTerlaluPanjang(int $maks): self
+    {
+        return new self("Ringkasan untuk pelapor paling panjang {$maks} karakter.");
+    }
+
+    public static function bukanDisposisiUnit(): self
+    {
+        return new self('Pengaduan ini tidak didisposisikan ke unit Anda.');
+    }
+
+    public static function alasanTolakHasilWajib(): self
+    {
+        return new self('Alasan menolak hasil wajib diisi.');
+    }
+
     public static function unitTidakSah(): self
     {
         return new self('Unit tujuan tidak aktif atau di luar unit yang Anda tangani.');

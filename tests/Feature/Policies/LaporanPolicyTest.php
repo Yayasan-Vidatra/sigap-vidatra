@@ -3,6 +3,7 @@
 namespace Tests\Feature\Policies;
 
 use App\Enums\Peran;
+use App\Models\Disposisi;
 use App\Models\Laporan;
 use App\Models\Unit;
 use App\Models\User;
@@ -71,6 +72,46 @@ class LaporanPolicyTest extends TestCase
 
         $this->assertFalse(User::factory()->peran(Peran::AdminPengaduan)->create()->can('kelolaPengaduan', $wbs));
         $this->assertFalse(User::factory()->peran(Peran::AdminPengaduan)->for($unit)->create()->can('kelolaPengaduan', $wbs));
+    }
+
+    public function test_pic_unit_opens_only_complaints_disposed_to_their_unit(): void
+    {
+        $unit = Unit::factory()->create();
+        $pic = User::factory()->peran(Peran::PicUnit)->for($unit)->create();
+        $didisposisikan = Laporan::factory()->for($unit)->create();
+        Disposisi::factory()->for($didisposisikan)->for($unit)->create();
+        $belumDisposisi = Laporan::factory()->for($unit)->create();
+        $unitLain = Laporan::factory()->create();
+        Disposisi::factory()->for($unitLain)->create(['unit_id' => $unitLain->unit_id]);
+        $wbs = Laporan::factory()->wbs()->for($unit)->create();
+
+        $this->assertTrue($pic->can('lihatPengaduanUnit', Laporan::class));
+        $this->assertTrue($pic->can('tindakLanjutiPengaduan', $didisposisikan));
+        $this->assertFalse($pic->can('tindakLanjutiPengaduan', $belumDisposisi));
+        $this->assertFalse($pic->can('tindakLanjutiPengaduan', $unitLain));
+        $this->assertFalse($pic->can('tindakLanjutiPengaduan', $wbs));
+    }
+
+    /**
+     * @return array<string, array{Peran}>
+     */
+    public static function peranSelainPic(): array
+    {
+        return collect(Peran::cases())
+            ->reject(fn (Peran $peran): bool => $peran === Peran::PicUnit)
+            ->mapWithKeys(fn (Peran $peran): array => [$peran->value => [$peran]])
+            ->all();
+    }
+
+    #[DataProvider('peranSelainPic')]
+    public function test_other_roles_cannot_open_the_unit_page_or_follow_up(Peran $peran): void
+    {
+        $laporan = Laporan::factory()->create();
+        Disposisi::factory()->for($laporan)->create(['unit_id' => $laporan->unit_id]);
+        $user = User::factory()->peran($peran)->create(['unit_id' => $peran->bolehUnit() ? $laporan->unit_id : null]);
+
+        $this->assertFalse($user->can('lihatPengaduanUnit', Laporan::class));
+        $this->assertFalse($user->can('tindakLanjutiPengaduan', $laporan));
     }
 
     /**
