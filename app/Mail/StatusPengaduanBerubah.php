@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Enums\StatusLaporan;
 use App\Models\Laporan;
 use App\Models\RiwayatStatus;
 use App\Services\WaktuLokal;
@@ -43,23 +42,9 @@ class StatusPengaduanBerubah extends Mailable implements ShouldQueue
                 'status' => $this->riwayat->status_baru->getLabel(),
                 'waktu' => WaktuLokal::tampilkan($this->riwayat->waktu, 'd F Y, H.i'),
                 'catatan' => $this->riwayat->tampil_ke_pelapor ? $this->riwayat->catatan : null,
-                'penjelasan' => self::penjelasan($this->riwayat->status_baru),
+                'penjelasan' => $this->riwayat->status_baru->penjelasanUntukPelapor(),
                 'tautanLacak' => route('lacak'),
             ],
         );
-    }
-
-    private static function penjelasan(StatusLaporan $status): string
-    {
-        return match ($status) {
-            StatusLaporan::Terverifikasi => 'Pengaduan Anda sudah diperiksa dan akan diteruskan ke unit terkait.',
-            StatusLaporan::Diproses => 'Pengaduan Anda sedang ditangani unit terkait.',
-            StatusLaporan::MenungguKonfirmasi => 'Unit sudah menindaklanjuti pengaduan Anda. Mohon buka halaman Lacak Laporan untuk '
-                .'mengonfirmasi atau menolak hasilnya dalam '.config('sigap.pengaduan.hari_konfirmasi').' hari. Tanpa tanggapan, '
-                .'pengaduan dianggap selesai.',
-            StatusLaporan::Selesai => 'Penanganan pengaduan Anda sudah selesai. Terima kasih atas laporan Anda.',
-            StatusLaporan::Ditolak => 'Pengaduan Anda tidak dapat ditindaklanjuti.',
-            default => 'Status pengaduan Anda diperbarui.',
-        };
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AltchaController;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\BuktiLaporController;
+use App\Http\Controllers\LacakController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\UnggahLampiranController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -32,11 +33,19 @@ Route::prefix('lampiran/unggah')->name('lampiran.unggah.')->group(function (): v
     Route::delete('/{id}', [UnggahLampiranController::class, 'batal'])->name('batal');
 });
 
-// Halaman sementara; isinya dikerjakan sesuai jadwal TOR (H-06 Hari 8, H-08 Hari 13).
-Route::inertia('/lacak', 'Sementara', [
-    'judul' => 'Lacak Laporan',
-    'keterangan' => 'Halaman untuk melacak laporan dengan kode lacak sedang disiapkan.',
-])->name('lacak');
+// H-06 Lacak Laporan dan H-07 Detail Laporan (US-08, US-09, US-13). Izin detail disimpan di sesi.
+Route::get('/lacak', [LacakController::class, 'create'])->name('lacak');
+Route::post('/lacak', [LacakController::class, 'store'])->name('lacak.store');
+Route::post('/lacak/keluar', [LacakController::class, 'keluar'])->name('lacak.keluar');
+Route::prefix('lacak/{kode}')->name('lacak.')->group(function (): void {
+    Route::get('/', [LacakController::class, 'show'])->name('show');
+    Route::post('/pesan', [LacakController::class, 'kirimPesan'])->middleware('throttle:pesan-pelapor')->name('pesan');
+    Route::post('/konfirmasi', [LacakController::class, 'konfirmasi'])->name('konfirmasi');
+    Route::post('/tolak', [LacakController::class, 'tolak'])->name('tolak');
+    Route::post('/penilaian', [LacakController::class, 'nilai'])->name('penilaian');
+});
+
+// Halaman sementara; isinya dikerjakan sesuai jadwal TOR (H-08 Hari 13).
 Route::inertia('/faq', 'Sementara', [
     'judul' => 'Tanya Jawab (FAQ)',
     'keterangan' => 'Tanya jawab umum dan target waktu penanganan sedang disiapkan.',

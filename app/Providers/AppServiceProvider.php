@@ -76,6 +76,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Unggah lampiran: memulai/menyelesaikan unggahan, dan potongan (100 MB = 20 potongan 5 MB).
         RateLimiter::for('unggah-lampiran', fn (Request $request): Limit => Limit::perMinute(20)->by($request->ip()));
+        // Pesan pelapor di halaman Lacak (UC-05), per sesi.
+        RateLimiter::for('pesan-pelapor', fn (Request $request): Limit => Limit::perMinute(10)->by($request->session()->getId()));
         RateLimiter::for('potongan-lampiran', fn (Request $request): Limit => Limit::perMinute(120)->by($request->ip()));
     }
 }

@@ -45,6 +45,24 @@ enum StatusLaporan: string implements HasLabel
     }
 
     /**
+     * Penjelasan singkat status pengaduan untuk pelapor (surel dan halaman Lacak).
+     */
+    public function penjelasanUntukPelapor(): string
+    {
+        return match ($this) {
+            self::Diterima => 'Pengaduan Anda sudah masuk dan menunggu diperiksa petugas.',
+            self::Terverifikasi => 'Pengaduan Anda sudah diperiksa dan akan diteruskan ke unit terkait.',
+            self::Diproses => 'Pengaduan Anda sedang ditangani unit terkait.',
+            self::MenungguKonfirmasi => 'Unit sudah menindaklanjuti pengaduan Anda. Mohon buka halaman Lacak Laporan untuk '
+                .'mengonfirmasi atau menolak hasilnya dalam '.config('sigap.pengaduan.hari_konfirmasi').' hari. Tanpa tanggapan, '
+                .'pengaduan dianggap selesai.',
+            self::Selesai => 'Penanganan pengaduan Anda sudah selesai. Terima kasih atas laporan Anda.',
+            self::Ditolak => 'Pengaduan Anda tidak dapat ditindaklanjuti.',
+            default => 'Status pengaduan Anda diperbarui.',
+        };
+    }
+
+    /**
      * Apakah status ini boleh dipakai pada kanal tertentu (kolom "Kanal" di Bagian 6).
      */
     public function berlakuUntuk(JenisLaporan $jenis): bool
