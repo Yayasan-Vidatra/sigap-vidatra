@@ -13,6 +13,7 @@ use App\Enums\StatusLaporan;
 use App\Enums\SumberLaporan;
 use App\Enums\TujuanPengalihan;
 use App\Exceptions\PelanggaranIntegritasData;
+use App\Services\Wbs\AksesWbs;
 use Database\Factories\LaporanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -34,7 +35,7 @@ use Random\Randomizer;
     'kode_lacak', 'jenis', 'sumber', 'jenis_pelapor', 'unit_id', 'kategori_id', 'judul', 'kronologi',
     'waktu_kejadian', 'lokasi', 'jabatan_pihak_dikeluhkan', 'saksi', 'kedudukan_terlapor', 'status',
     'prioritas', 'batas_waktu', 'penilaian', 'kesimpulan', 'dialihkan_ke', 'perpanjangan_disetujui_oleh',
-    'pin_hash',
+    'pin_hash', 'investigator_user_id', 'rekomendasi',
 ])]
 #[Hidden(['pin_hash'])]
 class Laporan extends Model
@@ -57,7 +58,7 @@ class Laporan extends Model
     /**
      * @var list<string>
      */
-    public const KOLOM_KHUSUS_WBS = ['kesimpulan'];
+    public const KOLOM_KHUSUS_WBS = ['kesimpulan', 'investigator_user_id', 'rekomendasi'];
 
     protected static function booted(): void
     {
@@ -128,6 +129,7 @@ class Laporan extends Model
             'kesimpulan' => KesimpulanWbs::class,
             'dialihkan_ke' => TujuanPengalihan::class,
             'pin_hash' => 'hashed',
+            'rekomendasi' => 'encrypted',
         ];
     }
 
@@ -188,30 +190,16 @@ class Laporan extends Model
     }
 
     /**
-     * Laporan WBS yang boleh dibuka pengguna menurut matriks penerima Bagian 3.1 (F-19, aturan proyek no. 2 dan 3).
-     * Kedudukan kosong diperlakukan seperti "Tidak tahu". Super Admin dan peran tanpa baris di matriks tidak
-     * mendapat baris apa pun.
+     * Laporan WBS yang boleh dibuka pengguna menurut matriks penerima Bagian 3.1, termasuk lapis kedua berdasarkan
+     * nama terlapor dan penunjukan investigator (App\Services\Wbs\AksesWbs; F-19, aturan proyek no. 2 dan 3).
+     * Super Admin dan peran di luar matriks tidak mendapat baris apa pun.
      *
      * @param  Builder<Laporan>  $query
      */
     #[Scope]
     protected function wbsTerbukaBagi(Builder $query, User $user): void
     {
-        $nilai = $user->peran === null ? [] : KedudukanTerlapor::nilaiTerbukaBagi($user->peran);
-
-        if ($nilai === []) {
-            $query->whereRaw('1 = 0');
-
-            return;
-        }
-
-        $query->where('jenis', JenisLaporan::Wbs->value)
-            ->where(fn (Builder $kedudukan) => $kedudukan
-                ->whereIn('kedudukan_terlapor', $nilai)
-                ->when(
-                    in_array(KedudukanTerlapor::TidakTahu->value, $nilai, true),
-                    fn (Builder $kosong) => $kosong->orWhereNull('kedudukan_terlapor'),
-                ));
+        $query->where('jenis', JenisLaporan::Wbs->value)->whereIn('id', AksesWbs::idTerbukaBagi($user));
     }
 
     /**
@@ -277,6 +265,16 @@ class Laporan extends Model
     public function perpanjanganDisetujuiOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'perpanjangan_disetujui_oleh');
+    }
+
+    /**
+     * Investigator laporan WBS yang ditunjuk penelaah (UC-13).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function investigator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'investigator_user_id');
     }
 
     /**

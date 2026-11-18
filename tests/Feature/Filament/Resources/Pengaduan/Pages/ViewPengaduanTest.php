@@ -3,6 +3,7 @@
 namespace Tests\Feature\Filament\Resources\Pengaduan\Pages;
 
 use App\Enums\AksiAudit;
+use App\Enums\JenisLaporan;
 use App\Enums\PengirimPesan;
 use App\Enums\Peran;
 use App\Enums\Prioritas;
@@ -369,16 +370,21 @@ class ViewPengaduanTest extends TestCase
             ->assertSee('Dikarantina, tidak bisa diunduh');
     }
 
-    public function test_move_to_wbs_and_redirect_are_prepared_but_not_active_yet(): void
+    /**
+     * Temuan uji: tombol Pindah ke WBS dan Alihkan tidak boleh tampil pada status akhir. Fiturnya belum ada, sehingga
+     * keduanya tersembunyi untuk semua status pengaduan.
+     */
+    public function test_move_to_wbs_and_redirect_buttons_are_hidden_until_the_features_exist(): void
     {
-        $laporan = Laporan::factory()->create();
-
         $this->actingAs($this->admin);
 
-        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
-            ->assertActionVisible('pindahKeWbs')
-            ->assertActionDisabled('pindahKeWbs')
-            ->assertActionVisible('alihkan')
-            ->assertActionDisabled('alihkan');
+        foreach (StatusLaporan::untuk(JenisLaporan::Pengaduan) as $status) {
+            $laporan = Laporan::factory()->berstatus($status)->create();
+
+            Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+                ->assertActionHidden('pindahKeWbs')
+                ->assertActionHidden('alihkan')
+                ->assertDontSee('Pindah ke WBS');
+        }
     }
 }

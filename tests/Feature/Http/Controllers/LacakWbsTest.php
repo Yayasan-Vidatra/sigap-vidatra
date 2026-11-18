@@ -200,6 +200,21 @@ class LacakWbsTest extends TestCase
             ->where('bolehKirimPesan', false));
     }
 
+    public function test_history_rows_without_a_status_change_stay_internal(): void
+    {
+        $laporan = $this->laporanWbs();
+        $laporan->riwayatStatus()->create(['status_lama' => null, 'status_baru' => StatusLaporan::Diterima]);
+        $laporan->riwayatStatus()->create([
+            'status_lama' => StatusLaporan::Diterima,
+            'status_baru' => StatusLaporan::Diterima,
+            'catatan' => 'Kedudukan terlapor dikoreksi.',
+        ]);
+
+        $this->post('/lacak', ['kode' => 'WBS-7KQ2-M9PA', 'pin' => '582904']);
+
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page->has('riwayat', 1)->where('riwayat.0.status', 'Diterima'));
+    }
+
     public function test_reporter_sends_a_message_with_encrypted_wbs_evidence(): void
     {
         Storage::fake('lampiran');

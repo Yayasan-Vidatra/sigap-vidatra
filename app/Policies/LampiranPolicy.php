@@ -12,9 +12,8 @@ use App\Models\User;
  * - pengaduan: mengikuti LaporanPolicy. Admin Pengaduan yayasan semua unit, Admin Sekolah hanya unitnya
  *   (kelolaPengaduan), PIC Unit hanya pengaduan yang sudah didisposisikan ke unitnya
  *   (tindakLanjutiPengaduan), termasuk bukti penyelesaiannya;
- * - WBS: Ketua Tim WBS, hanya untuk laporan yang terbuka baginya menurut matriks.
- * Peran lain ditolak, termasuk Super Admin untuk WBS (aturan proyek no. 3). Aturan WBS diperhalus bersama
- * Ruang Kerja WBS (penunjukan investigator, penelaah pengganti, pengalihan).
+ * - WBS: sama dengan bukaLaporanWbs (matriks penerima, lapis kedua nama terlapor, investigator yang ditunjuk).
+ * Peran lain ditolak, termasuk Super Admin untuk WBS (aturan proyek no. 3).
  */
 class LampiranPolicy
 {
@@ -23,8 +22,7 @@ class LampiranPolicy
         $laporan = $lampiran->laporan;
 
         if ($laporan->isWbs()) {
-            return $user->peran === Peran::KetuaTimWbs
-                && Laporan::query()->terbukaBagiKetuaTimWbs()->whereKey($laporan->getKey())->exists();
+            return $user->can('bukaLaporanWbs', $laporan);
         }
 
         return match ($user->peran) {
