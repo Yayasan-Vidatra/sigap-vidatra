@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Table('pengalihan')]
 #[Fillable([
     'laporan_id', 'tujuan', 'unit_tujuan_id', 'kepala_sekolah_terlapor', 'ringkasan', 'dikirim_oleh', 'diterima_pada',
+    'diterima_oleh', 'catatan_tindak_lanjut',
 ])]
 class Pengalihan extends Model
 {
@@ -57,6 +58,7 @@ class Pengalihan extends Model
             'kepala_sekolah_terlapor' => 'boolean',
             'ringkasan' => 'encrypted',
             'diterima_pada' => 'datetime',
+            'catatan_tindak_lanjut' => 'encrypted',
         ];
     }
 
@@ -76,6 +78,14 @@ class Pengalihan extends Model
     public function unitTujuan(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'unit_tujuan_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function penerima(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diterima_oleh');
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Enums\KedudukanTerlapor;
 use App\Enums\KesimpulanWbs;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Filament\Concerns\MencatatPembukaanLaporan;
+use App\Filament\Concerns\MengalihkanLaporan;
 use App\Filament\Resources\LaporanWbs\LaporanWbsResource;
 use App\Filament\Resources\LaporanWbs\Schemas\LaporanWbsInfolist;
 use App\Models\Laporan;
@@ -39,6 +40,7 @@ use Illuminate\Support\Facades\Gate;
 class ViewLaporanWbs extends ViewRecord
 {
     use MencatatPembukaanLaporan;
+    use MengalihkanLaporan;
 
     protected static string $resource = LaporanWbsResource::class;
 
@@ -64,6 +66,7 @@ class ViewLaporanWbs extends ViewRecord
                     'Perpanjangan diajukan kepada penerima hasil.',
                 )),
             $this->aksiKoreksiKedudukan(),
+            $this->aksiAlihkan(fn (Closure $aksi, string $pesan) => $this->jalankan($aksi, $pesan)),
             $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),
         ];
