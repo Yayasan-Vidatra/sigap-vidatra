@@ -250,6 +250,47 @@ class Laporan extends Model
     }
 
     /**
+     * Peran yang hanya melihat angka agregat (dashboard H-10 dan Rekap H-18): Pimpinan Yayasan (A7) dan Penerima
+     * Hasil WBS (A6).
+     *
+     * @var list<Peran>
+     */
+    public const PERAN_REKAP_AGREGAT = [Peran::KetuaUmum, Peran::PengurusHarian, Peran::DewanPengawas, Peran::KetuaPembina, Peran::Pembina];
+
+    /**
+     * Pengaduan yang dihitung di dashboard dan rekap (H-10, H-18, F-13): Admin Pengaduan sama dengan Kotak Masuk (Admin
+     * Sekolah hanya sekolahnya), PIC Unit sama dengan Pengaduan Unit Saya, Pimpinan Yayasan dan Penerima Hasil semua
+     * unit (hanya agregat). Peran lain, termasuk Super Admin, tidak mendapat baris apa pun.
+     *
+     * @param  Builder<Laporan>  $query
+     */
+    #[Scope]
+    protected function rekapPengaduanBagi(Builder $query, User $user): void
+    {
+        match (true) {
+            $user->peran === Peran::AdminPengaduan => $query->kotakMasukPengaduan($user),
+            $user->peran === Peran::PicUnit => $query->pengaduanUnitPic($user),
+            in_array($user->peran, self::PERAN_REKAP_AGREGAT, true) => $query->where('jenis', JenisLaporan::Pengaduan->value),
+            default => $query->whereRaw('1 = 0'),
+        };
+    }
+
+    /**
+     * Laporan WBS yang boleh dihitung sebagai jumlah per kategori per triwulan (A7 Bagian 2, F-13): hanya untuk Pimpinan
+     * Yayasan dan Penerima Hasil, dan hanya sebagai agregat yang disembunyikan bila kurang dari 3. Admin, PIC, dan Super
+     * Admin tidak mendapat baris apa pun.
+     *
+     * @param  Builder<Laporan>  $query
+     */
+    #[Scope]
+    protected function rekapWbsBagi(Builder $query, User $user): void
+    {
+        in_array($user->peran, self::PERAN_REKAP_AGREGAT, true)
+            ? $query->where('jenis', JenisLaporan::Wbs->value)
+            : $query->whereRaw('1 = 0');
+    }
+
+    /**
      * @return BelongsTo<Unit, $this>
      */
     public function unit(): BelongsTo

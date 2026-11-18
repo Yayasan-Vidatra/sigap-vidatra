@@ -61,7 +61,7 @@ class PanelPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
-            // Dasbor per peran dikerjakan Hari 12 (H-10); sementara hanya kartu akun.
+            // Widget dasbor per peran (H-10) ditemukan otomatis dari app/Filament/Widgets.
             ->widgets([
                 AccountWidget::class,
             ])
