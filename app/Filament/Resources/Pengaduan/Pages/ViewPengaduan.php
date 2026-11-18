@@ -36,7 +36,7 @@ use Filament\Support\Icons\Heroicon;
  *
  * Aksi mengikuti alur Rancangan r1 Bagian 6 dan dijalankan lewat PenangananPengaduan, yang memeriksa
  * ulang hak akses dan status di server. Pindah ke WBS (UC-09 1a) dan pengalihan ke Kepala Sekolah/Komite
- * Etik (UC-19) baru disiapkan sebagai tombol nonaktif; keduanya dikerjakan Hari 10/11.
+ * Etik (UC-19) belum dikerjakan; tombolnya disembunyikan sampai fiturnya ada.
  *
  * @property Laporan $record
  */
@@ -55,18 +55,17 @@ class ViewPengaduan extends ViewRecord
             $this->aksiTutupLewatTelepon(),
             $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),
+            // Pindah ke WBS (UC-09 1a) dan pengalihan (UC-19, Hari 11) belum dikerjakan, sehingga tombolnya
+            // disembunyikan untuk semua status. Saat dikerjakan, tombol tidak boleh tampil pada status akhir
+            // (Selesai, Ditolak, Dipindah ke WBS, Dialihkan).
             Action::make('pindahKeWbs')
-                ->label('Pindah ke WBS (Hari 10/11)')
+                ->label('Pindah ke WBS')
                 ->icon(Heroicon::OutlinedShieldExclamation)
-                ->color('gray')
-                ->disabled()
-                ->tooltip('Belum aktif. Pindah ke kanal WBS (UC-09 1a) dikerjakan Hari 10/11.'),
+                ->hidden(),
             Action::make('alihkan')
-                ->label('Alihkan ke Kepala Sekolah/Komite Etik (Hari 10/11)')
+                ->label('Alihkan ke Kepala Sekolah/Komite Etik')
                 ->icon(Heroicon::OutlinedArrowUturnRight)
-                ->color('gray')
-                ->disabled()
-                ->tooltip('Belum aktif. Pengalihan (UC-19) dikerjakan Hari 10/11.'),
+                ->hidden(),
         ];
     }
 
