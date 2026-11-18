@@ -6,6 +6,7 @@ use App\Http\Controllers\BuktiLaporController;
 use App\Http\Controllers\LacakController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\UnggahLampiranController;
+use App\Http\Controllers\WbsController;
 use App\Http\Middleware\LindungiJalurWbs;
 use App\Http\Middleware\PeriksaTokenFormulirWbs;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -96,9 +97,11 @@ Route::prefix('wbs')
                 Route::delete('/{id}', [UnggahLampiranController::class, 'batal'])->middleware('throttle:unggah-lampiran-wbs')->name('batal');
             });
 
-        Route::inertia('/', 'Sementara', [
-            'judul' => 'Pelaporan Pelanggaran (WBS)',
-            'keterangan' => 'Kanal pelaporan pelanggaran sedang disiapkan. Sementara itu, laporan pelanggaran '
-                .'dapat disampaikan lewat surel atau telepon/WhatsApp khusus SPI.',
-        ])->name('wbs');
+        Route::get('/', [WbsController::class, 'jaminan'])->name('wbs');
+        Route::get('/jaminan-kerahasiaan', [WbsController::class, 'berkasJaminan'])->name('wbs.jaminan.berkas');
+        Route::get('/lapor', [WbsController::class, 'create'])->name('wbs.lapor');
+        Route::get('/lapor/token', [WbsController::class, 'token'])->middleware('throttle:tantangan-altcha')->name('wbs.token');
+        // Kiriman dijawab JSON berisi data Bukti Lapor WBS (H-05) yang ditampilkan sekali di halaman.
+        Route::post('/lapor', [WbsController::class, 'store'])->middleware('throttle:kirim-wbs')->name('wbs.store');
+        Route::post('/bukti/pdf', [WbsController::class, 'pdf'])->middleware('throttle:kirim-wbs')->name('wbs.bukti.pdf');
     });

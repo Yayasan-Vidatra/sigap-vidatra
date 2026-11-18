@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Http\Middleware;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class LindungiJalurWbsTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_wbs_responses_carry_privacy_headers(): void
     {
         $this->assertHeaderPrivasi($this->get('/wbs')->assertOk());

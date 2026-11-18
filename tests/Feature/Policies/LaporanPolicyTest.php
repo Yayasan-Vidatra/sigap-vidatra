@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Policies;
 
+use App\Enums\KedudukanTerlapor;
 use App\Enums\Peran;
 use App\Models\Disposisi;
 use App\Models\Laporan;
@@ -134,5 +135,70 @@ class LaporanPolicyTest extends TestCase
         $this->assertFalse($user->can('update', $laporan));
         $this->assertFalse($user->can('delete', $laporan));
         $this->assertFalse($user->can('deleteAny', Laporan::class));
+    }
+
+    /**
+     * Matriks penerima Bagian 3.1: kedudukan terlapor => peran yang boleh membuka laporan WBS.
+     *
+     * @return array<string, array{KedudukanTerlapor|null, list<Peran>}>
+     */
+    public static function matriksPenerima(): array
+    {
+        $timWbs = [Peran::KetuaTimWbs, Peran::AnggotaTimWbs];
+        $pembina = [Peran::KetuaPembina, Peran::Pembina];
+
+        return [
+            'guru/pegawai' => [KedudukanTerlapor::GuruPegawai, $timWbs],
+            'pengurus' => [KedudukanTerlapor::Pengurus, $timWbs],
+            'tidak tahu' => [KedudukanTerlapor::TidakTahu, $timWbs],
+            'kosong' => [null, $timWbs],
+            'spi/tim wbs' => [KedudukanTerlapor::SpiTimWbs, [Peran::DewanPengawas]],
+            'pengawas' => [KedudukanTerlapor::Pengawas, $pembina],
+            'pembina' => [KedudukanTerlapor::Pembina, $pembina],
+        ];
+    }
+
+    /**
+     * @param  list<Peran>  $boleh
+     */
+    #[DataProvider('matriksPenerima')]
+    public function test_wbs_report_opens_only_for_roles_in_the_recipient_matrix(?KedudukanTerlapor $kedudukan, array $boleh): void
+    {
+        $laporan = Laporan::factory()->wbs()->create(['kedudukan_terlapor' => $kedudukan]);
+
+        foreach (Peran::cases() as $peran) {
+            $user = User::factory()->peran($peran)->create(['unit_id' => $peran->wajibUnit() ? Unit::factory()->create()->id : null]);
+
+            $this->assertSame(in_array($peran, $boleh, true), $user->can('bukaLaporanWbs', $laporan), "Peran {$peran->value}");
+        }
+    }
+
+    public function test_super_admin_never_opens_wbs_content(): void
+    {
+        $superAdmin = User::factory()->peran(Peran::SuperAdmin)->create();
+
+        foreach (KedudukanTerlapor::cases() as $kedudukan) {
+            $this->assertFalse($superAdmin->can('bukaLaporanWbs', Laporan::factory()->wbs()->create(['kedudukan_terlapor' => $kedudukan])));
+        }
+
+        $this->assertSame(0, Laporan::query()->wbsTerbukaBagi($superAdmin)->count());
+    }
+
+    public function test_ketua_tim_wbs_never_sees_reports_about_spi_pengawas_or_pembina(): void
+    {
+        $ketua = User::factory()->peran(Peran::KetuaTimWbs)->create();
+        $terbuka = Laporan::factory()->wbs()->create(['kedudukan_terlapor' => KedudukanTerlapor::GuruPegawai]);
+        foreach ([KedudukanTerlapor::SpiTimWbs, KedudukanTerlapor::Pengawas, KedudukanTerlapor::Pembina] as $kedudukan) {
+            Laporan::factory()->wbs()->create(['kedudukan_terlapor' => $kedudukan]);
+        }
+
+        $this->assertSame([$terbuka->id], Laporan::query()->wbsTerbukaBagi($ketua)->pluck('id')->all());
+    }
+
+    public function test_pengaduan_never_opens_through_the_wbs_ability(): void
+    {
+        $ketua = User::factory()->peran(Peran::KetuaTimWbs)->create();
+
+        $this->assertFalse($ketua->can('bukaLaporanWbs', Laporan::factory()->create()));
     }
 }

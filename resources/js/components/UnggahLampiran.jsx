@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 
 /*
- * Unggah lampiran bertahap (US-04, F-04) untuk formulir publik; dipakai ulang di formulir WBS (H-04).
- * Berkas dipotong di browser dan dikirim per potongan ke /lampiran/unggah. Potongan yang gagal
- * dicoba ulang sampai 3 kali, sehingga unggahan video tahan koneksi putus-sambung. Format diperiksa
- * server dari isi berkas; pemeriksaan di sini hanya agar pelapor cepat tahu.
+ * Unggah lampiran bertahap (US-04, F-04) untuk formulir publik, termasuk formulir WBS (H-04).
+ * Berkas dipotong di browser dan dikirim per potongan. Potongan yang gagal dicoba ulang sampai 3 kali,
+ * sehingga unggahan video tahan koneksi putus-sambung. Format diperiksa server dari isi berkas;
+ * pemeriksaan di sini hanya agar pelapor cepat tahu.
+ *
+ * Kanal pengaduan memakai /lampiran/unggah dengan token CSRF dari cookie. Kanal WBS memakai
+ * /wbs/lampiran/unggah tanpa cookie: ambilToken() memberi token formulir WBS yang dikirim di header
+ * X-Token-Formulir, dan token CSRF tidak dikirim.
  *
  * onChange(idSiap, sedangMengunggah) menerima id unggahan yang sudah siap dilampirkan, dan apakah
  * masih ada unggahan yang berjalan (formulir sebaiknya menunda pengiriman).
  */
-const TERIMA = '.pdf,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.heic,.mp4,.mov';
+const FORMAT = {
+    pengaduan: { terima: '.pdf,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.heic,.mp4,.mov', label: 'PDF, DOCX, XLSX, TXT, JPG, PNG, HEIC, MP4, MOV' },
+    wbs: {
+        terima: '.pdf,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.heic,.mp4,.mov,.mp3,.m4a',
+        label: 'PDF, DOCX, XLSX, TXT, JPG, PNG, HEIC, MP4, MOV, MP3, M4A',
+    },
+};
 const PERCOBAAN_POTONGAN = 3;
 const MB = 1024 * 1024;
 
@@ -19,13 +29,18 @@ function tokenCsrf() {
     return cocok ? decodeURIComponent(cocok[1]) : '';
 }
 
-function permintaan(metode, url, badan, saatProgres) {
+function permintaan(metode, url, badan, saatProgres, ambilToken) {
     return new Promise((selesai, gagal) => {
         const xhr = new XMLHttpRequest();
         xhr.open(metode, url);
         xhr.setRequestHeader('Accept', 'application/json');
-        xhr.setRequestHeader('X-XSRF-TOKEN', tokenCsrf());
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+        if (ambilToken) {
+            xhr.setRequestHeader('X-Token-Formulir', ambilToken());
+        } else {
+            xhr.setRequestHeader('X-XSRF-TOKEN', tokenCsrf());
+        }
 
         if (badan && !(badan instanceof FormData)) {
             xhr.setRequestHeader('Content-Type', 'application/json');
@@ -36,7 +51,13 @@ function permintaan(metode, url, badan, saatProgres) {
         }
 
         xhr.onload = () => {
-            const isi = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+            let isi = {};
+
+            try {
+                isi = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+            } catch {
+                isi = {};
+            }
 
             if (xhr.status >= 200 && xhr.status < 300) {
                 selesai(isi);
@@ -51,8 +72,8 @@ function permintaan(metode, url, badan, saatProgres) {
 
 const tunggu = (ms) => new Promise((selesai) => setTimeout(selesai, ms));
 
-async function unggahBerkas(berkas, kanal, saatProgres) {
-    const mulai = await permintaan('POST', '/lampiran/unggah', { nama: berkas.name, ukuran: berkas.size, kanal });
+async function unggahBerkas(berkas, kanal, alamat, ambilToken, saatProgres) {
+    const mulai = await permintaan('POST', alamat, { nama: berkas.name, ukuran: berkas.size, kanal }, null, ambilToken);
     const { id, ukuran_potongan: ukuranPotongan, jumlah_potongan: jumlahPotongan } = mulai;
 
     for (let indeks = 0; indeks < jumlahPotongan; indeks++) {
@@ -63,8 +84,12 @@ async function unggahBerkas(berkas, kanal, saatProgres) {
             try {
                 const badan = new FormData();
                 badan.append('potongan', potongan, 'potongan');
-                await permintaan('POST', `/lampiran/unggah/${id}/potongan/${indeks}`, badan, (terkirim) =>
-                    saatProgres(Math.round(((awal + terkirim) / berkas.size) * 100)),
+                await permintaan(
+                    'POST',
+                    `${alamat}/${id}/potongan/${indeks}`,
+                    badan,
+                    (terkirim) => saatProgres(Math.round(((awal + terkirim) / berkas.size) * 100)),
+                    ambilToken,
                 );
                 break;
             } catch (galat) {
@@ -77,14 +102,16 @@ async function unggahBerkas(berkas, kanal, saatProgres) {
         }
     }
 
-    return permintaan('POST', `/lampiran/unggah/${id}/selesai`);
+    return permintaan('POST', `${alamat}/${id}/selesai`, null, null, ambilToken);
 }
 
 function ukuranTerbaca(byte) {
     return byte >= MB ? `${(byte / MB).toFixed(1)} MB` : `${Math.max(1, Math.round(byte / 1024))} KB`;
 }
 
-export default function UnggahLampiran({ kanal, aturan, onChange, galat }) {
+export default function UnggahLampiran({ kanal, aturan, onChange, galat, ambilToken = null }) {
+    const alamat = kanal === 'wbs' ? '/wbs/lampiran/unggah' : '/lampiran/unggah';
+    const format = FORMAT[kanal] ?? FORMAT.pengaduan;
     const [daftar, setDaftar] = useState([]);
     const masukan = useRef(null);
     const onChangeTerbaru = useRef(onChange);
@@ -143,7 +170,7 @@ export default function UnggahLampiran({ kanal, aturan, onChange, galat }) {
 
         for (const item of baru.filter((calon) => calon.status === 'mengunggah')) {
             try {
-                const hasil = await unggahBerkas(item.berkas, kanal, (progres) => ubah(item.kunci, { progres }));
+                const hasil = await unggahBerkas(item.berkas, kanal, alamat, ambilToken, (progres) => ubah(item.kunci, { progres }));
                 ubah(item.kunci, { status: 'siap', progres: 100, id: hasil.id, berkas: null });
             } catch (kegagalan) {
                 ubah(item.kunci, { status: 'gagal', pesan: kegagalan.pesan, berkas: null });
@@ -153,7 +180,7 @@ export default function UnggahLampiran({ kanal, aturan, onChange, galat }) {
 
     function hapus(item) {
         if (item.id) {
-            permintaan('DELETE', `/lampiran/unggah/${item.id}`).catch(() => {});
+            permintaan('DELETE', `${alamat}/${item.id}`, null, null, ambilToken).catch(() => {});
         }
 
         if (item.pratinjau) {
@@ -170,8 +197,7 @@ export default function UnggahLampiran({ kanal, aturan, onChange, galat }) {
         <div className="flex flex-col gap-3">
             <p className="text-sm text-slate-600">
                 Paling banyak {aturan.maks_berkas} berkas, total {aturan.maks_total_mb} MB.{' '}
-                {aturan.jenis.map((jenis) => `${jenis.label} maks. ${jenis.maks_mb} MB`).join(', ')}. Format: PDF, DOCX,
-                XLSX, TXT, JPG, PNG, HEIC, MP4, MOV.
+                {aturan.jenis.map((jenis) => `${jenis.label} maks. ${jenis.maks_mb} MB`).join(', ')}. Format: {format.label}.
             </p>
 
             <input
@@ -179,7 +205,7 @@ export default function UnggahLampiran({ kanal, aturan, onChange, galat }) {
                 id="lampiran"
                 type="file"
                 multiple
-                accept={TERIMA}
+                accept={format.terima}
                 onChange={pilih}
                 disabled={penuh}
                 className="sr-only"

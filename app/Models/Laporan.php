@@ -188,6 +188,33 @@ class Laporan extends Model
     }
 
     /**
+     * Laporan WBS yang boleh dibuka pengguna menurut matriks penerima Bagian 3.1 (F-19, aturan proyek no. 2 dan 3).
+     * Kedudukan kosong diperlakukan seperti "Tidak tahu". Super Admin dan peran tanpa baris di matriks tidak
+     * mendapat baris apa pun.
+     *
+     * @param  Builder<Laporan>  $query
+     */
+    #[Scope]
+    protected function wbsTerbukaBagi(Builder $query, User $user): void
+    {
+        $nilai = $user->peran === null ? [] : KedudukanTerlapor::nilaiTerbukaBagi($user->peran);
+
+        if ($nilai === []) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where('jenis', JenisLaporan::Wbs->value)
+            ->where(fn (Builder $kedudukan) => $kedudukan
+                ->whereIn('kedudukan_terlapor', $nilai)
+                ->when(
+                    in_array(KedudukanTerlapor::TidakTahu->value, $nilai, true),
+                    fn (Builder $kosong) => $kosong->orWhereNull('kedudukan_terlapor'),
+                ));
+    }
+
+    /**
      * Pengaduan di Kotak Masuk (H-11) yang boleh ditangani pengguna: Admin Pengaduan yayasan melihat
      * semua unit, Admin Sekolah (Admin Pengaduan dengan unit_id) hanya unitnya. Laporan WBS tidak pernah
      * termasuk, dan peran lain tidak mendapat baris apa pun.

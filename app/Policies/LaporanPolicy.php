@@ -60,6 +60,16 @@ class LaporanPolicy
         return Laporan::query()->pengaduanUnitPic($user)->whereKey($laporan->getKey())->exists();
     }
 
+    /**
+     * Membuka isi laporan WBS menurut matriks penerima (Bagian 3.1, F-19). Aturannya sama dengan scope
+     * Laporan::wbsTerbukaBagi(); Super Admin tidak pernah boleh (aturan proyek no. 3). Ruang Kerja WBS (H-13,
+     * Hari 10) memakai ability ini.
+     */
+    public function bukaLaporanWbs(User $user, Laporan $laporan): bool
+    {
+        return Laporan::query()->wbsTerbukaBagi($user)->whereKey($laporan->getKey())->exists();
+    }
+
     public function viewAny(User $user): bool
     {
         return false;
