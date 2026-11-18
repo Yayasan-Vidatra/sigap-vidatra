@@ -8,16 +8,13 @@ use App\Enums\Peran;
 use App\Enums\Prioritas;
 use App\Enums\StatusLaporan;
 use App\Events\PengaduanDidisposisikan;
-use App\Events\StatusLaporanBerubah;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Models\Disposisi;
 use App\Models\Kategori;
 use App\Models\Laporan;
 use App\Models\LogAudit;
-use App\Models\RiwayatStatus;
 use App\Models\Unit;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -29,14 +26,18 @@ use Illuminate\Support\Facades\Gate;
  *   waktu dari SLA kategori dalam hari kerja. Bila unit berganti, unit lama dan baru dicatat di
  *   riwayat_status (hanya untuk petugas) dan log audit.
  *
- * Tidak ada aksi "tutup" langsung ke Selesai: UC-11 dipenuhi lewat Ditolak, sedangkan Selesai diubah
- * pelapor atau sistem (Bagian 6; klarifikasi di prd/log-deviasi.md).
+ * - tutup karena pelapor mengonfirmasi lewat telepon: Menunggu Konfirmasi → Selesai, dengan catatan wajib
+ *   yang hanya untuk petugas. Ini satu-satunya penutupan oleh Admin; selebihnya UC-11 dipenuhi lewat Ditolak,
+ *   dan Selesai diubah pelapor atau sistem (Bagian 6; klarifikasi di prd/log-deviasi.md).
  *
- * Hak akses diperiksa di sini, bukan hanya di tombol. Setiap aksi mengunci baris laporan, memeriksa
- * status terbaru, mencatat riwayat_status dan log audit, lalu mengirim event setelah transaksi tersimpan.
+ * Hak akses diperiksa di sini, bukan hanya di tombol. Perubahan status dijalankan PengubahStatus, yang
+ * mengunci baris laporan, memeriksa status terbaru, mencatat riwayat_status dan log audit, lalu mengirim
+ * event setelah transaksi tersimpan.
  */
 class PenangananPengaduan
 {
+    public function __construct(private PengubahStatus $pengubah) {}
+
     /**
      * Status asal yang sah untuk setiap aksi.
      *
@@ -46,6 +47,7 @@ class PenangananPengaduan
         'verifikasi' => [StatusLaporan::Diterima],
         'tolak' => [StatusLaporan::Diterima, StatusLaporan::Terverifikasi],
         'disposisi' => [StatusLaporan::Terverifikasi],
+        'tutup' => [StatusLaporan::MenungguKonfirmasi],
     ];
 
     public static function bisa(string $aksi, Laporan $laporan): bool
@@ -73,6 +75,7 @@ class PenangananPengaduan
         'verifikasi' => 'diverifikasi',
         'tolak' => 'ditolak',
         'disposisi' => 'didisposisikan',
+        'tutup' => 'ditutup',
     ];
 
     public function verifikasi(Laporan $laporan, User $oleh, Kategori $kategori): Laporan
@@ -99,6 +102,22 @@ class PenangananPengaduan
 
         return $this->ubahStatus($laporan, $oleh, 'tolak', StatusLaporan::Ditolak,
             AksiAudit::MenolakPengaduan, catatanPelapor: $alasan);
+    }
+
+    /**
+     * Admin menutup pengaduan karena pelapor sudah mengonfirmasi hasilnya lewat telepon. Catatannya wajib
+     * dan tidak terlihat pelapor (tampil_ke_pelapor false).
+     */
+    public function tutupLewatTelepon(Laporan $laporan, User $oleh, string $catatan): Laporan
+    {
+        $catatan = trim($catatan);
+
+        if ($catatan === '') {
+            throw AksiPengaduanTidakSah::catatanPenutupanWajib();
+        }
+
+        return $this->ubahStatus($laporan, $oleh, 'tutup', StatusLaporan::Selesai,
+            AksiAudit::MenutupPengaduan, fn (): string => $catatan);
     }
 
     public function disposisi(
@@ -178,33 +197,14 @@ class PenangananPengaduan
     ): Laporan {
         Gate::forUser($oleh)->authorize('kelolaPengaduan', $laporan);
 
-        return DB::transaction(function () use ($laporan, $oleh, $aksi, $statusBaru, $aksiAudit, $ubah, $catatanPelapor): Laporan {
-            $terkunci = Laporan::query()->lockForUpdate()->findOrFail($laporan->getKey());
-
-            if ($galat = self::alasanTidakBisa($aksi, $terkunci)) {
-                throw $galat;
-            }
-
-            $statusLama = $terkunci->status;
-            $catatanPetugas = $ubah !== null ? $ubah($terkunci) : null;
-
-            $terkunci->status = $statusBaru;
-            $terkunci->save();
-
-            /** @var RiwayatStatus $riwayat */
-            $riwayat = $terkunci->riwayatStatus()->create([
-                'status_lama' => $statusLama,
-                'status_baru' => $statusBaru,
-                'oleh_user_id' => $oleh->getKey(),
-                'catatan' => $catatanPelapor ?? $catatanPetugas,
-                'tampil_ke_pelapor' => $catatanPelapor !== null,
-            ]);
-
-            LogAudit::catat($oleh, $aksiAudit, $terkunci);
-
-            StatusLaporanBerubah::dispatch($terkunci, $riwayat);
-
-            return $terkunci;
-        });
+        return $this->pengubah->ubah(
+            $laporan,
+            $oleh,
+            fn (Laporan $terkunci): ?AksiPengaduanTidakSah => self::alasanTidakBisa($aksi, $terkunci),
+            $statusBaru,
+            $aksiAudit,
+            $ubah,
+            $catatanPelapor,
+        );
     }
 }

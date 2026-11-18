@@ -170,6 +170,8 @@ return [
 
     'pengaduan' => [
         'batas_kirim_per_menit' => 5,
+        // Pelapor diminta konfirmasi dalam sekian hari kalender (WITA); lewat itu pengaduan Selesai otomatis.
+        'hari_konfirmasi' => 7,
         'kata_kunci_wbs' => [
             'korupsi', 'pungli', 'pungutan liar', 'pungutan tidak resmi', 'suap', 'sogok', 'gratifikasi',
             'dana bos', 'penggelapan', 'penyalahgunaan dana', 'manipulasi', 'mark up', 'markup',

@@ -117,6 +117,56 @@ class PenangananPengaduanTest extends TestCase
         $this->assertDatabaseCount('riwayat_status', 0);
     }
 
+    public function test_admin_closes_a_complaint_confirmed_by_phone_with_a_note_hidden_from_the_reporter(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::MenungguKonfirmasi)->create();
+
+        $this->penanganan->tutupLewatTelepon($laporan, $this->admin, ' Pelapor (Bu Rina) mengonfirmasi lewat telepon 25/11 pukul 09.00. ');
+
+        $this->assertSame(StatusLaporan::Selesai, $laporan->fresh()->status);
+        $riwayat = $laporan->riwayatStatus()->latest('id')->first();
+        $this->assertSame(StatusLaporan::Selesai, $riwayat->status_baru);
+        $this->assertSame('Pelapor (Bu Rina) mengonfirmasi lewat telepon 25/11 pukul 09.00.', $riwayat->catatan);
+        $this->assertFalse($riwayat->tampil_ke_pelapor);
+        $this->assertSame($this->admin->id, $riwayat->oleh_user_id);
+        $this->assertDatabaseHas('log_audit', [
+            'user_id' => $this->admin->id,
+            'aksi' => AksiAudit::MenutupPengaduan->value,
+            'objek' => "laporan:{$laporan->id}",
+        ]);
+    }
+
+    #[TestWith([''])]
+    #[TestWith(['   '])]
+    public function test_closing_by_phone_requires_a_note(string $catatan): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::MenungguKonfirmasi)->create();
+
+        $this->expectExceptionObject(AksiPengaduanTidakSah::catatanPenutupanWajib());
+
+        try {
+            $this->penanganan->tutupLewatTelepon($laporan, $this->admin, $catatan);
+        } finally {
+            $this->assertSame(StatusLaporan::MenungguKonfirmasi, $laporan->fresh()->status);
+        }
+    }
+
+    #[TestWith([StatusLaporan::Diproses])]
+    #[TestWith([StatusLaporan::Diterima])]
+    #[TestWith([StatusLaporan::Selesai])]
+    public function test_admin_can_only_close_from_waiting_for_confirmation(StatusLaporan $status): void
+    {
+        $laporan = Laporan::factory()->berstatus($status)->create();
+
+        $this->expectException(AksiPengaduanTidakSah::class);
+
+        try {
+            $this->penanganan->tutupLewatTelepon($laporan, $this->admin, 'Dikonfirmasi lewat telepon.');
+        } finally {
+            $this->assertSame($status, $laporan->fresh()->status);
+        }
+    }
+
     public function test_a_verified_complaint_can_still_be_rejected(): void
     {
         $laporan = Laporan::factory()->berstatus(StatusLaporan::Terverifikasi)->create();
