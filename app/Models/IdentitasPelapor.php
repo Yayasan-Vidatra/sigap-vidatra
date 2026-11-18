@@ -38,6 +38,21 @@ class IdentitasPelapor extends Model
     }
 
     /**
+     * Alamat surel pelapor untuk notifikasi (F-12): surel pelapor, atau kontak orang tua/wali bila berupa surel
+     * (pelapor siswa, UC-01 1a). null bila pelapor hanya memberi nomor HP; surel hanya dikirim bila ada.
+     */
+    public function alamatSurel(): ?string
+    {
+        foreach ([$this->email, $this->kontak_orang_tua] as $calon) {
+            if (is_string($calon) && filter_var($calon, FILTER_VALIDATE_EMAIL)) {
+                return $calon;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return BelongsTo<Laporan, $this>
      */
     public function laporan(): BelongsTo

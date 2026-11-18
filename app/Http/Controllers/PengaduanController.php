@@ -7,6 +7,7 @@ use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
 use App\Enums\StatusLaporan;
 use App\Enums\SumberLaporan;
+use App\Events\StatusLaporanBerubah;
 use App\Http\Requests\StorePengaduanRequest;
 use App\Models\Kategori;
 use App\Models\Lampiran;
@@ -81,10 +82,13 @@ class PengaduanController extends Controller
                 'persetujuan_orang_tua' => $siswa,
             ]);
 
-            $laporan->riwayatStatus()->create([
+            $riwayat = $laporan->riwayatStatus()->create([
                 'status_lama' => null,
                 'status_baru' => StatusLaporan::Diterima,
             ]);
+
+            // Surel konfirmasi kode lacak dikirim listener lewat queue setelah transaksi tersimpan.
+            StatusLaporanBerubah::dispatch($laporan, $riwayat);
 
             $pelampir->lampirkan($laporan, array_values($data['lampiran'] ?? []));
 
