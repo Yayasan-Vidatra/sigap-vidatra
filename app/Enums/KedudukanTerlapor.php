@@ -46,6 +46,49 @@ enum KedudukanTerlapor: string implements HasLabel
     }
 
     /**
+     * Peran yang menelaah dan memegang keputusan pada laporan (telaah, koreksi kedudukan, penunjukan investigator,
+     * pembukaan identitas): Ketua Tim WBS, atau penelaah pengganti menurut matriks. Anggota Tim WBS tidak
+     * termasuk; anggota bekerja lewat penunjukan sebagai investigator.
+     *
+     * @return list<Peran>
+     */
+    public function peranPenelaahUtama(): array
+    {
+        return array_values(array_filter($this->peranPenelaah(), fn (Peran $peran): bool => $peran !== Peran::AnggotaTimWbs));
+    }
+
+    /**
+     * Urutan kedudukan untuk aturan "bila terlapor lebih dari satu, kedudukan tertinggi menentukan".
+     */
+    public function tingkat(): int
+    {
+        return match ($this) {
+            self::TidakTahu => 0,
+            self::GuruPegawai => 1,
+            self::Pengurus => 2,
+            self::SpiTimWbs => 3,
+            self::Pengawas => 4,
+            self::Pembina => 5,
+        };
+    }
+
+    /**
+     * Kedudukan yang tersirat bila pejabat dengan peran ini disebut sebagai terlapor (lapis kedua UC-02 2a;
+     * anggota Dewan Pengawas diperlakukan sebagai Pengawas, Bagian 3.1).
+     */
+    public static function tersiratDariPeran(?Peran $peran): ?self
+    {
+        return match ($peran) {
+            Peran::KetuaTimWbs, Peran::AnggotaTimWbs => self::SpiTimWbs,
+            Peran::DewanPengawas => self::Pengawas,
+            Peran::KetuaPembina, Peran::Pembina => self::Pembina,
+            Peran::KetuaUmum, Peran::PengurusHarian => self::Pengurus,
+            Peran::KepalaSekolah => self::GuruPegawai,
+            default => null,
+        };
+    }
+
+    /**
      * Kolom "Penerima hasil" Bagian 3.1.
      */
     public function penerimaHasil(): string
