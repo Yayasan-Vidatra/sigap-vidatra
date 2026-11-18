@@ -16,11 +16,13 @@ use App\Models\LogAudit;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Pengaduan\PenangananPengaduan;
+use App\Services\Pengaduan\PesanLaporan;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
@@ -51,6 +53,7 @@ class ViewPengaduan extends ViewRecord
             $this->aksiDisposisi(),
             $this->aksiTolak(),
             $this->aksiTutupLewatTelepon(),
+            $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),
             Action::make('pindahKeWbs')
                 ->label('Pindah ke WBS (Hari 10/11)')
@@ -92,6 +95,40 @@ class ViewPengaduan extends ViewRecord
             ->action(fn (array $data, PenangananPengaduan $penanganan) => $this->jalankan(
                 fn (User $oleh) => $penanganan->verifikasi($this->record, $oleh, Kategori::query()->findOrFail($data['kategori_id'])),
                 'Pengaduan terverifikasi.',
+            ));
+    }
+
+    /**
+     * Pesan ke pelapor (UC-05) atau catatan internal yang tidak terlihat pelapor.
+     */
+    private function aksiKirimPesan(): Action
+    {
+        return Action::make('kirimPesan')
+            ->label('Kirim pesan')
+            ->icon(Heroicon::OutlinedChatBubbleLeftRight)
+            ->color('gray')
+            ->authorize('kelolaPengaduan')
+            ->modalHeading('Kirim pesan ke pelapor')
+            ->modalDescription('Pelapor membaca pesan di halaman Lacak Laporan. Jangan memuat identitas pihak lain.')
+            ->modalSubmitActionLabel('Kirim')
+            ->schema([
+                Textarea::make('isi')
+                    ->label('Pesan')
+                    ->required()
+                    ->rule(fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                        if (trim((string) $value) === '') {
+                            $fail('Isi pesan wajib diisi.');
+                        }
+                    })
+                    ->maxLength(PesanLaporan::MAKS_ISI)
+                    ->rows(4),
+                Toggle::make('internal')
+                    ->label('Catatan internal (tidak terlihat pelapor)')
+                    ->default(false),
+            ])
+            ->action(fn (array $data, PesanLaporan $pesan) => $this->jalankan(
+                fn (User $oleh) => $pesan->kirimDariPetugas($this->record, $oleh, (string) $data['isi'], (bool) ($data['internal'] ?? false)),
+                ($data['internal'] ?? false) ? 'Catatan internal tersimpan.' : 'Pesan terkirim ke pelapor.',
             ));
     }
 
