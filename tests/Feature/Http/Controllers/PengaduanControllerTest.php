@@ -11,6 +11,7 @@ use App\Jobs\ProsesLampiran;
 use App\Models\Kategori;
 use App\Models\Laporan;
 use App\Models\Unit;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +72,21 @@ class PengaduanControllerTest extends TestCase
             'status_baru' => StatusLaporan::Diterima->value,
             'oleh_user_id' => null,
         ]);
+    }
+
+    public function test_incident_time_is_read_as_wita_and_stored_in_utc(): void
+    {
+        // Rabu 18 Nov 2026 07.46 WITA. Kejadian 07.00 WITA belum lewat 8 jam, sehingga tidak boleh dianggap
+        // waktu di masa depan walau secara angka lebih besar dari jam UTC saat ini.
+        $this->travelTo(CarbonImmutable::parse('2026-11-17 23:46:00', 'UTC'));
+
+        $response = $this->post('/pengaduan', $this->isianSah(['waktu_kejadian' => '2026-11-18T07:00']));
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame(
+            '2026-11-17 23:00:00',
+            DB::table('laporan')->value('waktu_kejadian'),
+        );
     }
 
     public function test_complaint_content_is_stored_as_plain_text_while_identity_stays_encrypted(): void

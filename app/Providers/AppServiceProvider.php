@@ -9,6 +9,8 @@ use App\Services\Lampiran\PembersihMetadataLokal;
 use App\Services\Lampiran\PemindaiClamav;
 use App\Services\Lampiran\PemindaiLokal;
 use App\Services\Lampiran\PemindaiVirus;
+use App\Services\WaktuLokal;
+use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -51,6 +53,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+
+        // Panel menampilkan waktu dalam WITA; basis data tetap UTC (config sigap.zona_waktu).
+        FilamentTimezone::set(WaktuLokal::zona());
     }
 
     /**

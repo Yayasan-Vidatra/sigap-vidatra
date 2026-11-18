@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Laporan;
+use App\Services\WaktuLokal;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,12 +64,10 @@ class BuktiLaporController extends Controller
                 .config('sigap.bukti_lapor.masa_unduh_pdf_menit').' menit setelah laporan dikirim.');
         }
 
-        $dikirimPada = now()->setTimestamp($data['dikirim_pada'])->setTimezone(config('sigap.bukti_lapor.zona_waktu'));
-
         return Pdf::loadView('pdf.bukti-lapor', [
             'kodeLacak' => $data['kode_lacak'],
             'wbs' => $data['jenis'] === 'wbs',
-            'dikirimPada' => $dikirimPada->locale('id')->translatedFormat('l, d F Y, H.i').' '.config('sigap.bukti_lapor.label_zona_waktu'),
+            'dikirimPada' => WaktuLokal::tampilkan(now()->setTimestamp($data['dikirim_pada'])),
             'tautanLacak' => route('lacak'),
         ])->download('bukti-lapor-sigap.pdf');
     }

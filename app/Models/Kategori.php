@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\JenisLaporan;
 use App\Exceptions\PelanggaranIntegritasData;
+use App\Services\WaktuLokal;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\KategoriFactory;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Kategori pengaduan (jenis = pengaduan) atau jenis pelanggaran (jenis = wbs).
  *
- * SLA dalam hari kerja Senin–Jumat dan hanya ada pada kategori pengaduan; tenggat WBS mengikuti
+ * SLA dalam hari kerja Senin–Jumat menurut tanggal WITA dan hanya ada pada kategori pengaduan; tenggat WBS mengikuti
  * tahap (App\Enums\TahapWbs). Libur nasional belum dihitung (lihat prd/log-deviasi.md).
  */
 #[Table('kategori')]
@@ -61,7 +62,7 @@ class Kategori extends Model
      */
     public function batasTanggapan(CarbonInterface $diterimaPada): CarbonImmutable
     {
-        return CarbonImmutable::instance($diterimaPada)->addWeekdays($this->slaPengaduan('sla_tanggapan_hari'));
+        return WaktuLokal::tambahHariKerja($diterimaPada, $this->slaPengaduan('sla_tanggapan_hari'));
     }
 
     /**
@@ -69,7 +70,7 @@ class Kategori extends Model
      */
     public function batasSelesai(CarbonInterface $diterimaPada): CarbonImmutable
     {
-        return CarbonImmutable::instance($diterimaPada)->addWeekdays($this->slaPengaduan('sla_hari'));
+        return WaktuLokal::tambahHariKerja($diterimaPada, $this->slaPengaduan('sla_hari'));
     }
 
     private function slaPengaduan(string $kolom): int

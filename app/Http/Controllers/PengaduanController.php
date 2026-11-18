@@ -13,6 +13,7 @@ use App\Models\Lampiran;
 use App\Models\Laporan;
 use App\Models\Unit;
 use App\Services\Lampiran\PelampirUnggahan;
+use App\Services\WaktuLokal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -66,7 +67,7 @@ class PengaduanController extends Controller
                 'kategori_id' => $data['kategori_id'],
                 'judul' => $data['judul'],
                 'kronologi' => $data['kronologi'],
-                'waktu_kejadian' => $data['waktu_kejadian'] ?? null,
+                'waktu_kejadian' => isset($data['waktu_kejadian']) ? WaktuLokal::dariMasukan($data['waktu_kejadian']) : null,
                 'lokasi' => $data['lokasi'] ?? null,
                 'jabatan_pihak_dikeluhkan' => $data['jabatan_pihak_dikeluhkan'] ?? null,
                 'status' => StatusLaporan::Diterima,

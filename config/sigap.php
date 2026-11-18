@@ -139,14 +139,29 @@ return [
     |
     | PDF bukti lapor dibuat saat diunduh dari halaman Bukti Lapor dan tidak
     | disimpan. Kode lacak diambil dari sesi (bukan URL) dan hanya berlaku
-    | sekian menit setelah laporan dikirim. Waktu ditampilkan dalam WIB.
+    | sekian menit setelah laporan dikirim. Waktu ditampilkan dalam zona waktu
+    | tampilan (sigap.zona_waktu).
     |
     */
 
     'bukti_lapor' => [
         'masa_unduh_pdf_menit' => 10,
-        'zona_waktu' => 'Asia/Jakarta',
-        'label_zona_waktu' => 'WIB',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Zona waktu tampilan dan hari kerja
+    |--------------------------------------------------------------------------
+    |
+    | Basis data tetap menyimpan waktu dalam UTC (app.timezone). Semua tampilan
+    | (panel, PDF, surel) memakai WITA karena Yayasan berada di Bontang, dan
+    | batas waktu hari kerja dihitung dari tanggal WITA (App\Services\WaktuLokal).
+    |
+    */
+
+    'zona_waktu' => [
+        'nama' => 'Asia/Makassar',
+        'label' => 'WITA',
     ],
 
     'pengaduan' => [
