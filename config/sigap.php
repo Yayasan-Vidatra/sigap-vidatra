@@ -49,7 +49,11 @@ return [
     | layanan pihak ketiga, sehingga bisa dipakai juga di /wbs. Kunci HMAC
     | wajib diisi lewat ALTCHA_HMAC_KEY. Setiap solusi hanya berlaku sekali
     | dan kedaluwarsa setelah masa_berlaku_detik. cost dan rentang counter
-    | menentukan lama hitung di perangkat pelapor (beberapa detik).
+    | menentukan lama hitung di perangkat pelapor: kerja = counter x PBKDF2
+    | (cost iterasi), dibagi ke beberapa worker browser. Dengan cost 5000 dan
+    | counter 1.000-3.000, PBKDF2 native sekitar 2,7 ms per percobaan, jadi
+    | rata-rata 2.000 percobaan selesai sekitar 2-3 detik di laptop 4 inti
+    | (lebih lama di HP lama). Sebelumnya counter 5.000-10.000: 5-15 detik.
     |
     */
 
@@ -57,8 +61,8 @@ return [
         'hmac_key' => env('ALTCHA_HMAC_KEY'),
         'masa_berlaku_detik' => 600,
         'cost' => 5000,
-        'counter_min' => 5000,
-        'counter_maks' => 10000,
+        'counter_min' => 1000,
+        'counter_maks' => 3000,
         'batas_tantangan_per_menit' => 30,
     ],
 
