@@ -24,12 +24,16 @@ use Illuminate\Support\Facades\Gate;
  * - mencatat tindak lanjut pada disposisi unitnya, selama pengaduan Diproses;
  * - mengunggah bukti penyelesaian sebagai lampiran yang terikat pada disposisi (lampiran.disposisi_id),
  *   diperiksa, disimpan dengan nama acak di disk privat, lalu dipindai lewat queue (Rancangan r1 Bagian 8);
- * - meminta konfirmasi pelapor: Diproses → Menunggu Konfirmasi, hanya bila tindak lanjut sudah diisi.
+ * - meminta konfirmasi pelapor: Diproses → Menunggu Konfirmasi, hanya bila tindak lanjut sudah diisi, dengan
+ *   ringkasan wajib untuk pelapor. Ringkasan disimpan sebagai catatan riwayat yang tampil ke pelapor (surel
+ *   Menunggu Konfirmasi dan halaman Lacak); isian tindak lanjut tetap internal.
  *
  * Hak akses (tindakLanjutiPengaduan) diperiksa di server untuk setiap aksi.
  */
 class TindakLanjutPengaduan
 {
+    public const MAKS_RINGKASAN_PELAPOR = 500;
+
     public function __construct(
         private PengubahStatus $pengubah,
         private PemeriksaBerkas $pemeriksa,
@@ -102,9 +106,23 @@ class TindakLanjutPengaduan
         });
     }
 
-    public function mintaKonfirmasi(Laporan $laporan, User $pic): Laporan
+    /**
+     * @param  string  $ringkasanPelapor  ringkasan hasil untuk pelapor, tanpa identitas atau data internal; disimpan
+     *                                    sebagai catatan riwayat yang tampil ke pelapor (surel dan halaman Lacak)
+     */
+    public function mintaKonfirmasi(Laporan $laporan, User $pic, string $ringkasanPelapor): Laporan
     {
         Gate::forUser($pic)->authorize('tindakLanjutiPengaduan', $laporan);
+
+        $ringkasanPelapor = trim($ringkasanPelapor);
+
+        if ($ringkasanPelapor === '') {
+            throw AksiPengaduanTidakSah::ringkasanPelaporWajib();
+        }
+
+        if (mb_strlen($ringkasanPelapor) > self::MAKS_RINGKASAN_PELAPOR) {
+            throw AksiPengaduanTidakSah::ringkasanPelaporTerlaluPanjang(self::MAKS_RINGKASAN_PELAPOR);
+        }
 
         $periksaStatus = PengubahStatus::dariStatus([StatusLaporan::Diproses], 'dimintakan konfirmasi');
 
@@ -131,6 +149,7 @@ class TindakLanjutPengaduan
 
                 return null;
             },
+            catatanPelapor: $ringkasanPelapor,
         );
     }
 

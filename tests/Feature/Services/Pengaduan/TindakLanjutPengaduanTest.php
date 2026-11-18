@@ -9,7 +9,9 @@ use App\Enums\StatusPindai;
 use App\Events\StatusLaporanBerubah;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Jobs\ProsesLampiran;
+use App\Mail\StatusPengaduanBerubah;
 use App\Models\Disposisi;
+use App\Models\IdentitasPelapor;
 use App\Models\Laporan;
 use App\Models\Unit;
 use App\Models\User;
@@ -18,6 +20,7 @@ use App\Services\Pengaduan\TindakLanjutPengaduan;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -134,7 +137,7 @@ class TindakLanjutPengaduanTest extends TestCase
         [$laporan] = $this->pengaduanDiproses();
 
         try {
-            $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic);
+            $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic, 'Keran sudah diganti.');
             $this->fail('Permintaan konfirmasi tanpa tindak lanjut seharusnya ditolak.');
         } catch (AksiPengaduanTidakSah $galat) {
             $this->assertSame(AksiPengaduanTidakSah::tindakLanjutKosong()->getMessage(), $galat->getMessage());
@@ -149,7 +152,7 @@ class TindakLanjutPengaduanTest extends TestCase
         $this->travelTo(now()->setDate(2026, 11, 18)->setTime(2, 0));
         [$laporan, $disposisi] = $this->pengaduanDiproses(disposisi: ['tindak_lanjut' => 'Keran sudah diganti.']);
 
-        $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic);
+        $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic, '  Keran toilet lantai 2 sudah diganti baru.  ');
 
         $this->assertSame(StatusLaporan::MenungguKonfirmasi, $laporan->fresh()->status);
         $this->assertSame('2026-11-18 02:00', $disposisi->fresh()->selesai_pada->format('Y-m-d H:i'));
@@ -158,13 +161,57 @@ class TindakLanjutPengaduanTest extends TestCase
             'status_lama' => StatusLaporan::Diproses->value,
             'status_baru' => StatusLaporan::MenungguKonfirmasi->value,
             'oleh_user_id' => $this->pic->id,
+            'tampil_ke_pelapor' => true,
         ]);
+        $this->assertSame('Keran toilet lantai 2 sudah diganti baru.', $laporan->riwayatStatus()->latest('id')->first()->catatan);
         $this->assertDatabaseHas('log_audit', [
             'aksi' => AksiAudit::MemintaKonfirmasiPelapor->value,
             'objek' => "laporan:{$laporan->id}",
         ]);
         Event::assertDispatched(StatusLaporanBerubah::class, fn (StatusLaporanBerubah $event): bool => $event->beritahuPelapor
             && $event->riwayat->status_baru === StatusLaporan::MenungguKonfirmasi);
+    }
+
+    #[TestWith([''])]
+    #[TestWith(["  \n  "])]
+    public function test_asking_for_confirmation_requires_a_summary_for_the_reporter(string $ringkasan): void
+    {
+        [$laporan] = $this->pengaduanDiproses(disposisi: ['tindak_lanjut' => 'Keran sudah diganti.']);
+
+        $this->expectExceptionObject(AksiPengaduanTidakSah::ringkasanPelaporWajib());
+
+        try {
+            $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic, $ringkasan);
+        } finally {
+            $this->assertSame(StatusLaporan::Diproses, $laporan->fresh()->status);
+            $this->assertDatabaseCount('riwayat_status', 0);
+        }
+    }
+
+    public function test_summary_for_the_reporter_has_a_length_limit(): void
+    {
+        [$laporan] = $this->pengaduanDiproses(disposisi: ['tindak_lanjut' => 'Keran sudah diganti.']);
+
+        $this->expectExceptionObject(AksiPengaduanTidakSah::ringkasanPelaporTerlaluPanjang(TindakLanjutPengaduan::MAKS_RINGKASAN_PELAPOR));
+
+        $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic, str_repeat('a', TindakLanjutPengaduan::MAKS_RINGKASAN_PELAPOR + 1));
+    }
+
+    public function test_the_waiting_for_confirmation_email_carries_the_summary_but_not_the_internal_follow_up(): void
+    {
+        Mail::fake();
+        [$laporan] = $this->pengaduanDiproses(disposisi: ['tindak_lanjut' => 'Internal: biaya Rp450.000 dari kas unit, teknisi Pak Joko.']);
+        IdentitasPelapor::factory()->for($laporan)->create(['email' => 'rina@example.com']);
+
+        $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic, 'Keran toilet lantai 2 sudah diganti baru.');
+
+        Mail::assertQueued(StatusPengaduanBerubah::class, function (StatusPengaduanBerubah $surel): bool {
+            $surel->assertSeeInText('Keran toilet lantai 2 sudah diganti baru.');
+            $surel->assertDontSeeInText('Rp450.000');
+            $surel->assertDontSeeInText('Pak Joko');
+
+            return $surel->hasTo('rina@example.com') && $surel->riwayat->status_baru === StatusLaporan::MenungguKonfirmasi;
+        });
     }
 
     #[TestWith([StatusLaporan::Terverifikasi])]
@@ -176,7 +223,7 @@ class TindakLanjutPengaduanTest extends TestCase
         $this->expectException(AksiPengaduanTidakSah::class);
 
         try {
-            $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic);
+            $this->tindakLanjut->mintaKonfirmasi($laporan, $this->pic, 'Sudah diperbaiki.');
         } finally {
             $this->assertSame($status, $laporan->fresh()->status);
         }

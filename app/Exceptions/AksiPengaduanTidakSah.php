@@ -47,6 +47,16 @@ class AksiPengaduanTidakSah extends RuntimeException
         return new self('Isi tindak lanjut terlebih dahulu sebelum meminta konfirmasi pelapor.');
     }
 
+    public static function ringkasanPelaporWajib(): self
+    {
+        return new self('Ringkasan untuk pelapor wajib diisi.');
+    }
+
+    public static function ringkasanPelaporTerlaluPanjang(int $maks): self
+    {
+        return new self("Ringkasan untuk pelapor paling panjang {$maks} karakter.");
+    }
+
     public static function bukanDisposisiUnit(): self
     {
         return new self('Pengaduan ini tidak didisposisikan ke unit Anda.');

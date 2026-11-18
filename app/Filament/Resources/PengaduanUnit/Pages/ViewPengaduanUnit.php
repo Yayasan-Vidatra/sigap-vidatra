@@ -93,12 +93,25 @@ class ViewPengaduanUnit extends ViewRecord
             ->color('success')
             ->authorize('tindakLanjutiPengaduan')
             ->visible(fn (Laporan $record): bool => TindakLanjutPengaduan::bisaDitindaklanjuti($record))
-            ->requiresConfirmation()
             ->modalHeading('Minta konfirmasi pelapor')
             ->modalDescription('Status menjadi Menunggu Konfirmasi. Pelapor diberi 7 hari untuk mengonfirmasi atau menolak hasil; tanpa tanggapan, pengaduan selesai otomatis.')
             ->modalSubmitActionLabel('Minta konfirmasi')
-            ->action(fn (TindakLanjutPengaduan $tindakLanjut) => $this->jalankan(
-                fn (User $pic) => $tindakLanjut->mintaKonfirmasi($this->record, $pic),
+            ->schema([
+                Textarea::make('ringkasan')
+                    ->label('Ringkasan untuk pelapor')
+                    ->helperText('Dikirim ke pelapor lewat surel dan tampil di halaman Lacak. Tulis singkat apa yang sudah diperbaiki; '
+                        .'jangan memuat nama, kontak, atau catatan internal. Isian tindak lanjut tetap hanya untuk petugas.')
+                    ->required()
+                    ->rule(fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                        if (trim((string) $value) === '') {
+                            $fail('Ringkasan untuk pelapor wajib diisi.');
+                        }
+                    })
+                    ->maxLength(TindakLanjutPengaduan::MAKS_RINGKASAN_PELAPOR)
+                    ->rows(3),
+            ])
+            ->action(fn (array $data, TindakLanjutPengaduan $tindakLanjut) => $this->jalankan(
+                fn (User $pic) => $tindakLanjut->mintaKonfirmasi($this->record, $pic, (string) $data['ringkasan']),
                 'Konfirmasi pelapor diminta.',
             ));
     }

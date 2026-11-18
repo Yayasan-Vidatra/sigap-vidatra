@@ -95,8 +95,10 @@ class ViewPengaduanUnitTest extends TestCase
 
         Livewire::test(ViewPengaduanUnit::class, ['record' => $laporan->id])
             ->assertActionVisible('mintaKonfirmasi')
-            ->callAction('mintaKonfirmasi')
+            ->callAction('mintaKonfirmasi', data: ['ringkasan' => 'Keran toilet sudah diganti baru.'])
+            ->assertHasNoActionErrors()
             ->assertNotified('Konfirmasi pelapor diminta.')
+            ->assertSeeText('Keran toilet sudah diganti baru.')
             ->assertSeeText('Menunggu Konfirmasi')
             ->assertActionHidden('mintaKonfirmasi')
             ->assertActionHidden('catatTindakLanjut');
@@ -111,8 +113,21 @@ class ViewPengaduanUnitTest extends TestCase
         $this->actingAs($this->pic);
 
         Livewire::test(ViewPengaduanUnit::class, ['record' => $laporan->id])
-            ->callAction('mintaKonfirmasi')
+            ->callAction('mintaKonfirmasi', data: ['ringkasan' => 'Sudah diperbaiki.'])
             ->assertNotified('Isi tindak lanjut terlebih dahulu sebelum meminta konfirmasi pelapor.');
+
+        $this->assertSame(StatusLaporan::Diproses, $laporan->fresh()->status);
+    }
+
+    public function test_the_summary_for_the_reporter_is_required_in_the_form(): void
+    {
+        [$laporan] = $this->pengaduanDiproses(['tindak_lanjut' => 'Sudah diperbaiki.']);
+
+        $this->actingAs($this->pic);
+
+        Livewire::test(ViewPengaduanUnit::class, ['record' => $laporan->id])
+            ->callAction('mintaKonfirmasi', data: ['ringkasan' => ''])
+            ->assertHasActionErrors(['ringkasan' => 'required']);
 
         $this->assertSame(StatusLaporan::Diproses, $laporan->fresh()->status);
     }
