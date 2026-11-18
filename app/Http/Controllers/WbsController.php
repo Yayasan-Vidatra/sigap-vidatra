@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\JenisBerkas;
 use App\Enums\JenisLaporan;
 use App\Enums\KedudukanTerlapor;
-use App\Enums\StatusLaporan;
 use App\Enums\SumberLaporan;
-use App\Events\StatusLaporanBerubah;
+use App\Events\LaporanWbsPerluDitelaah;
 use App\Http\Requests\StoreWbsRequest;
 use App\Models\Kategori;
 use App\Models\Lampiran;
@@ -16,6 +15,7 @@ use App\Models\Pengaturan;
 use App\Models\Unit;
 use App\Services\Lampiran\PelampirUnggahan;
 use App\Services\WaktuLokal;
+use App\Services\Wbs\PembuatLaporanWbs;
 use App\Services\Wbs\TokenFormulirWbs;
 use App\Services\Wbs\TokenUnduhPdfWbs;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -103,52 +103,15 @@ class WbsController extends Controller
     /**
      * Menyimpan laporan WBS berstatus Diterima. Isian sensitif terenkripsi lewat cast model; lampiran dienkripsi
      * dan dibersihkan metadatanya lewat queue. Perutean akses menurut matriks tersimpan di kedudukan_terlapor.
-     * Tidak ada surel ke pelapor; notifikasi tanpa isi ke penerima menyusul bersama Ruang Kerja WBS (Hari 10).
+     * Batas telaah 5 hari kerja dihitung sejak diterima. Tidak ada surel ke pelapor; penelaah menurut matriks diberi
+     * tahu tanpa isi laporan (LaporanWbsPerluDitelaah).
      */
-    public function store(StoreWbsRequest $request, PelampirUnggahan $pelampir): JsonResponse
+    public function store(StoreWbsRequest $request, PelampirUnggahan $pelampir, PembuatLaporanWbs $pembuat): JsonResponse
     {
         $data = $request->validated();
 
-        $laporan = DB::transaction(function () use ($data, $pelampir): Laporan {
-            $laporan = Laporan::create([
-                'kode_lacak' => Laporan::buatKodeLacak(JenisLaporan::Wbs),
-                'jenis' => JenisLaporan::Wbs,
-                'sumber' => SumberLaporan::Laman,
-                'unit_id' => $data['unit_id'],
-                'kategori_id' => $data['kategori_id'],
-                'judul' => $data['judul'],
-                'kronologi' => $data['kronologi'],
-                'waktu_kejadian' => isset($data['waktu_kejadian']) ? WaktuLokal::dariMasukan($data['waktu_kejadian']) : null,
-                'lokasi' => $data['lokasi'] ?? null,
-                'saksi' => $data['saksi'] ?? null,
-                'kedudukan_terlapor' => $data['kedudukan_terlapor'],
-                'status' => StatusLaporan::Diterima,
-                'pin_hash' => $data['pin'],
-            ]);
-
-            foreach ($data['terlapor'] as $terlapor) {
-                $laporan->terlapor()->create([
-                    'nama' => trim($terlapor['nama']),
-                    'jabatan' => self::teksAtauNull($terlapor['jabatan'] ?? null),
-                ]);
-            }
-
-            if ($data['mode'] === 'bernama') {
-                $laporan->identitasPelapor()->create([
-                    'nama' => $data['nama'],
-                    'email' => self::teksAtauNull($data['email'] ?? null),
-                    'no_hp' => self::teksAtauNull($data['no_hp'] ?? null),
-                    'persetujuan_orang_tua' => false,
-                ]);
-            }
-
-            $riwayat = $laporan->riwayatStatus()->create([
-                'status_lama' => null,
-                'status_baru' => StatusLaporan::Diterima,
-            ]);
-
-            StatusLaporanBerubah::dispatch($laporan, $riwayat);
-
+        $laporan = DB::transaction(function () use ($data, $pelampir, $pembuat): Laporan {
+            $laporan = $pembuat->buat($data, SumberLaporan::Laman, $data['pin']);
             $pelampir->lampirkan($laporan, array_values($data['lampiran'] ?? []));
 
             return $laporan;

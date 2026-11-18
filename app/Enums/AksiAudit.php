@@ -36,6 +36,12 @@ enum AksiAudit: string implements HasLabel
     case PelaporMengirimPesan = 'pelapor_mengirim_pesan';
     case MembalasPesan = 'membalas_pesan';
     case PelaporMemberiPenilaian = 'pelapor_memberi_penilaian';
+    case MemulaiTelaahWbs = 'memulai_telaah_wbs';
+    case MengoreksiKedudukanTerlapor = 'mengoreksi_kedudukan_terlapor';
+    case MenghentikanLaporanWbs = 'menghentikan_laporan_wbs';
+    case MenunjukInvestigator = 'menunjuk_investigator';
+    case MenetapkanKesimpulanWbs = 'menetapkan_kesimpulan_wbs';
+    case MencatatLaporanMasuk = 'mencatat_laporan_masuk';
 
     public function getLabel(): string
     {
@@ -67,6 +73,12 @@ enum AksiAudit: string implements HasLabel
             self::PelaporMengirimPesan => 'Pelapor mengirim pesan',
             self::MembalasPesan => 'Petugas mengirim pesan',
             self::PelaporMemberiPenilaian => 'Pelapor memberi penilaian',
+            self::MemulaiTelaahWbs => 'Memulai telaah WBS',
+            self::MengoreksiKedudukanTerlapor => 'Mengoreksi kedudukan terlapor',
+            self::MenghentikanLaporanWbs => 'Menyatakan WBS tidak ditindaklanjuti',
+            self::MenunjukInvestigator => 'Menunjuk investigator WBS',
+            self::MenetapkanKesimpulanWbs => 'Menetapkan kesimpulan WBS',
+            self::MencatatLaporanMasuk => 'Mencatat laporan masuk (surel/telepon/surat)',
         };
     }
 }

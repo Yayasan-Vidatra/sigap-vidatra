@@ -70,11 +70,12 @@ class PesanLaporan
     }
 
     /**
-     * Pesan Admin Pengaduan dari H-11. Catatan internal tidak tampil di halaman Lacak.
+     * Pesan Admin Pengaduan dari H-11, atau Tim WBS/penelaah dari H-13 (tampil di Lacak sebagai "Tim WBS").
+     * Catatan internal tidak pernah tampil di halaman Lacak.
      */
     public function kirimDariPetugas(Laporan $laporan, User $petugas, string $isi, bool $internal): Pesan
     {
-        Gate::forUser($petugas)->authorize('kelolaPengaduan', $laporan);
+        Gate::forUser($petugas)->authorize($laporan->isWbs() ? 'tanganiLaporanWbs' : 'kelolaPengaduan', $laporan);
 
         $isi = $this->periksaIsi($isi);
 

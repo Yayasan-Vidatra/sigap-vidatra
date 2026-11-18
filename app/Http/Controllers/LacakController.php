@@ -303,12 +303,15 @@ class LacakController extends Controller
                 'label' => $laporan->status->getLabel(),
                 'penjelasan' => $laporan->status->penjelasanUntukPelapor($laporan->jenis),
             ],
-            'riwayat' => $laporan->riwayatStatus->sortBy('id')->values()->map(fn (RiwayatStatus $riwayat): array => [
-                'id' => $riwayat->id,
-                'waktu' => WaktuLokal::tampilkan($riwayat->waktu, 'd F Y, H.i'),
-                'status' => $riwayat->status_baru->getLabel(),
-                'catatan' => $riwayat->tampil_ke_pelapor ? $riwayat->catatan : null,
-            ])->all(),
+            // Baris tanpa perubahan status (mis. koreksi kedudukan terlapor) hanya untuk petugas.
+            'riwayat' => $laporan->riwayatStatus
+                ->reject(fn (RiwayatStatus $riwayat): bool => $riwayat->status_lama !== null && $riwayat->status_lama === $riwayat->status_baru)
+                ->sortBy('id')->values()->map(fn (RiwayatStatus $riwayat): array => [
+                    'id' => $riwayat->id,
+                    'waktu' => WaktuLokal::tampilkan($riwayat->waktu, 'd F Y, H.i'),
+                    'status' => $riwayat->status_baru->getLabel(),
+                    'catatan' => $riwayat->tampil_ke_pelapor ? $riwayat->catatan : null,
+                ])->all(),
             'pesan' => $laporan->pesanUntukPelapor->sortBy('id')->values()->map(fn (Pesan $pesan): array => [
                 'id' => $pesan->id,
                 'dari' => match ($pesan->pengirim) {
