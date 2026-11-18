@@ -9,11 +9,13 @@ use App\Services\Lampiran\PembersihMetadataLokal;
 use App\Services\Lampiran\PemindaiClamav;
 use App\Services\Lampiran\PemindaiLokal;
 use App\Services\Lampiran\PemindaiVirus;
+use App\Services\Sesi\PenanganSesiTanpaJejak;
 use App\Services\WaktuLokal;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
@@ -53,9 +55,24 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+        $this->configureSession();
 
         // Panel menampilkan waktu dalam WITA; basis data tetap UTC (config sigap.zona_waktu).
         FilamentTimezone::set(WaktuLokal::zona());
+    }
+
+    /**
+     * Driver sesi "database" diganti penangan yang tidak menyimpan IP dan user agent (aturan proyek no. 5),
+     * sehingga SESSION_DRIVER=database tetap dipakai tanpa mengubah .env.
+     */
+    private function configureSession(): void
+    {
+        Session::extend('database', fn ($app): PenanganSesiTanpaJejak => new PenanganSesiTanpaJejak(
+            $app['db']->connection($app['config']->get('session.connection')),
+            $app['config']->get('session.table'),
+            $app['config']->get('session.lifetime'),
+            $app,
+        ));
     }
 
     /**
