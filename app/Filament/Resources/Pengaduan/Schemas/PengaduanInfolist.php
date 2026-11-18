@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Pengaduan\Schemas;
 
+use App\Enums\PengirimPesan;
 use App\Enums\StatusLaporan;
 use App\Enums\StatusPindai;
 use App\Filament\Resources\Pengaduan\Tables\PengaduanTable;
 use App\Models\Lampiran;
 use App\Models\Laporan;
+use App\Models\Pesan;
 use App\Models\RiwayatStatus;
 use App\Services\WaktuLokal;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -30,6 +32,7 @@ class PengaduanInfolist
      */
     public const RELASI = [
         'unit', 'kategori', 'lampiranPelapor', 'buktiPenyelesaian', 'disposisi.unit', 'disposisi.pic', 'riwayatStatus.oleh',
+        'pesan.pengirimPetugas', 'pesan.lampiran',
     ];
 
     public static function configure(Schema $schema): Schema
@@ -42,6 +45,7 @@ class PengaduanInfolist
                 self::lampiran('lampiranPelapor', 'Lampiran pelapor', 'Tidak ada lampiran.'),
                 self::disposisi(),
                 self::lampiran('buktiPenyelesaian', 'Bukti penyelesaian dari unit', 'Belum ada bukti penyelesaian.'),
+                self::pesan(),
                 self::riwayat(denganCatatanPetugas: true),
             ]);
     }
@@ -135,6 +139,43 @@ class PengaduanInfolist
                             ->dateTime('d M Y H:i')
                             ->suffix(' '.WaktuLokal::label())
                             ->placeholder('-'),
+                    ]),
+            ]);
+    }
+
+    /**
+     * Kanal pesan dengan pelapor (UC-05), hanya untuk Admin Pengaduan; PIC Unit tidak melihatnya. Lampiran
+     * tambahan dari pelapor juga tercantum di bagian Lampiran pelapor beserta tautan unduhnya.
+     */
+    public static function pesan(): Section
+    {
+        return Section::make('Pesan dengan pelapor')
+            ->description('Catatan internal tidak terlihat pelapor.')
+            ->schema([
+                RepeatableEntry::make('pesan')
+                    ->hiddenLabel()
+                    ->placeholder('Belum ada pesan.')
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('pengirim')
+                            ->label('Dari')
+                            ->state(fn (Pesan $record): string => match ($record->pengirim) {
+                                PengirimPesan::Pelapor => 'Pelapor',
+                                PengirimPesan::Petugas => 'Petugas: '.($record->pengirimPetugas?->name ?? '-'),
+                                PengirimPesan::Sistem => 'Sistem',
+                            })
+                            ->badge()
+                            ->color(fn (Pesan $record): string => $record->pengirim === PengirimPesan::Pelapor ? 'primary' : 'gray'),
+                        TextEntry::make('dibuat_pada')->label('Waktu')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label()),
+                        TextEntry::make('internal')
+                            ->label('Terlihat pelapor')
+                            ->formatStateUsing(fn (bool $state): string => $state ? 'Tidak, catatan internal' : 'Ya'),
+                        TextEntry::make('isi')->label('Isi')->columnSpanFull(),
+                        TextEntry::make('lampiran_pesan')
+                            ->label('Lampiran')
+                            ->state(fn (Pesan $record): ?string => $record->lampiran->isEmpty() ? null : $record->lampiran->pluck('nama_asli')->implode(', '))
+                            ->placeholder('-')
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

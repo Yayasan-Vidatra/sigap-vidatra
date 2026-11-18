@@ -3,6 +3,7 @@
 namespace Tests\Feature\Filament\Resources\Pengaduan\Pages;
 
 use App\Enums\AksiAudit;
+use App\Enums\PengirimPesan;
 use App\Enums\Peran;
 use App\Enums\Prioritas;
 use App\Enums\StatusLaporan;
@@ -13,6 +14,7 @@ use App\Models\IdentitasPelapor;
 use App\Models\Kategori;
 use App\Models\Lampiran;
 use App\Models\Laporan;
+use App\Models\Pesan;
 use App\Models\Unit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -145,6 +147,43 @@ class ViewPengaduanTest extends TestCase
             ->assertSeeText('Ditolak')
             ->assertSeeText('Laporan ganda dengan PGD lain.')
             ->assertDontSeeText('Diterima');
+    }
+
+    public function test_admin_sees_reporter_messages_and_replies_from_the_detail_page(): void
+    {
+        $laporan = Laporan::factory()->create();
+        Pesan::factory()->for($laporan)->create(['isi' => 'Apakah sudah ada kabar?']);
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->assertSeeText('Apakah sudah ada kabar?')
+            ->callAction('kirimPesan', data: ['isi' => 'Sedang kami periksa bersama unit.', 'internal' => false])
+            ->assertHasNoActionErrors()
+            ->assertNotified('Pesan terkirim ke pelapor.')
+            ->assertSeeText('Sedang kami periksa bersama unit.')
+            ->callAction('kirimPesan', data: ['isi' => 'Pelapor sudah dua kali menanyakan.', 'internal' => true])
+            ->assertNotified('Catatan internal tersimpan.')
+            ->assertSeeText('Tidak, catatan internal');
+
+        $balasan = $laporan->pesan()->where('pengirim', PengirimPesan::Petugas->value)->orderBy('id')->get();
+        $this->assertCount(2, $balasan);
+        $this->assertSame($this->admin->id, $balasan[0]->pengirim_user_id);
+        $this->assertFalse($balasan[0]->internal);
+        $this->assertTrue($balasan[1]->internal);
+    }
+
+    public function test_an_empty_message_is_rejected_in_the_form(): void
+    {
+        $laporan = Laporan::factory()->create();
+
+        $this->actingAs($this->admin);
+
+        Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])
+            ->callAction('kirimPesan', data: ['isi' => ''])
+            ->assertHasActionErrors(['isi' => 'required']);
+
+        $this->assertDatabaseCount('pesan', 0);
     }
 
     public function test_admin_closes_a_phone_confirmed_complaint_with_a_required_note(): void

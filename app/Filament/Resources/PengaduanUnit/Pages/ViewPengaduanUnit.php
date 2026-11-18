@@ -93,6 +93,10 @@ class ViewPengaduanUnit extends ViewRecord
             ->color('success')
             ->authorize('tindakLanjutiPengaduan')
             ->visible(fn (Laporan $record): bool => TindakLanjutPengaduan::bisaDitindaklanjuti($record))
+            ->disabled(fn (): bool => blank($this->disposisiSaya()?->tindak_lanjut))
+            ->tooltip(fn (): ?string => blank($this->disposisiSaya()?->tindak_lanjut)
+                ? 'Isi tindak lanjut terlebih dahulu lewat tombol Catat tindak lanjut.'
+                : null)
             ->modalHeading('Minta konfirmasi pelapor')
             ->modalDescription('Status menjadi Menunggu Konfirmasi. Pelapor diberi 7 hari untuk mengonfirmasi atau menolak hasil; tanpa tanggapan, pengaduan selesai otomatis.')
             ->modalSubmitActionLabel('Minta konfirmasi')

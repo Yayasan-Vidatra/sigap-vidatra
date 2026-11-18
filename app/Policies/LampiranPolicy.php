@@ -29,7 +29,8 @@ class LampiranPolicy
 
         return match ($user->peran) {
             Peran::AdminPengaduan => $user->can('kelolaPengaduan', $laporan),
-            Peran::PicUnit => $user->can('tindakLanjutiPengaduan', $laporan),
+            // PIC tidak melihat kanal pesan (UC-05), termasuk lampiran tambahan yang dikirim lewat pesan.
+            Peran::PicUnit => $lampiran->pesan_id === null && $user->can('tindakLanjutiPengaduan', $laporan),
             default => false,
         };
     }

@@ -182,6 +182,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Lacak Laporan (H-06, H-07; US-08)
+    |--------------------------------------------------------------------------
+    |
+    | Setelah maks_gagal kode salah dalam masa_gagal_menit, percobaan berikutnya
+    | wajib CAPTCHA dan harus menunggu jeda_detik sejak kegagalan terakhir.
+    | Izin membuka detail berakhir setelah masa_sesi_menit tidak aktif.
+    |
+    */
+
+    'lacak' => [
+        'maks_gagal' => 5,
+        'masa_gagal_menit' => 15,
+        'jeda_detik' => 60,
+        'masa_sesi_menit' => 15,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Akun uji lokal (AkunUjiSeeder)
     |--------------------------------------------------------------------------
     |

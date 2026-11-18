@@ -305,6 +305,16 @@ class Laporan extends Model
     }
 
     /**
+     * Pesan yang boleh dibaca pelapor: tanpa catatan internal petugas (US-09).
+     *
+     * @return HasMany<Pesan, $this>
+     */
+    public function pesanUntukPelapor(): HasMany
+    {
+        return $this->pesan()->where('internal', false);
+    }
+
+    /**
      * @return HasMany<RiwayatStatus, $this>
      */
     public function riwayatStatus(): HasMany

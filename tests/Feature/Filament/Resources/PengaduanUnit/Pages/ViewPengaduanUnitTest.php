@@ -9,8 +9,10 @@ use App\Filament\Resources\PengaduanUnit\Pages\ViewPengaduanUnit;
 use App\Models\Disposisi;
 use App\Models\IdentitasPelapor;
 use App\Models\Laporan;
+use App\Models\Pesan;
 use App\Models\Unit;
 use App\Models\User;
+use Filament\Actions\Action;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -106,15 +108,19 @@ class ViewPengaduanUnitTest extends TestCase
         $this->assertSame(StatusLaporan::MenungguKonfirmasi, $laporan->fresh()->status);
     }
 
-    public function test_asking_for_confirmation_without_follow_up_shows_the_reason_and_keeps_the_status(): void
+    public function test_confirmation_button_is_disabled_with_a_tooltip_until_the_follow_up_is_filled(): void
     {
         [$laporan] = $this->pengaduanDiproses();
 
         $this->actingAs($this->pic);
 
         Livewire::test(ViewPengaduanUnit::class, ['record' => $laporan->id])
+            ->assertActionVisible('mintaKonfirmasi')
+            ->assertActionDisabled('mintaKonfirmasi')
+            ->assertActionExists('mintaKonfirmasi', fn (Action $action): bool => $action->getTooltip() === 'Isi tindak lanjut terlebih dahulu lewat tombol Catat tindak lanjut.')
             ->callAction('mintaKonfirmasi', data: ['ringkasan' => 'Sudah diperbaiki.'])
-            ->assertNotified('Isi tindak lanjut terlebih dahulu sebelum meminta konfirmasi pelapor.');
+            ->callAction('catatTindakLanjut', data: ['tindak_lanjut' => 'Keran sudah diganti.'])
+            ->assertActionEnabled('mintaKonfirmasi');
 
         $this->assertSame(StatusLaporan::Diproses, $laporan->fresh()->status);
     }
@@ -130,6 +136,18 @@ class ViewPengaduanUnitTest extends TestCase
             ->assertHasActionErrors(['ringkasan' => 'required']);
 
         $this->assertSame(StatusLaporan::Diproses, $laporan->fresh()->status);
+    }
+
+    public function test_pic_does_not_see_the_message_channel(): void
+    {
+        [$laporan] = $this->pengaduanDiproses();
+        Pesan::factory()->for($laporan)->create(['isi' => 'Pesan pelapor untuk Admin.']);
+
+        $this->actingAs($this->pic);
+
+        Livewire::test(ViewPengaduanUnit::class, ['record' => $laporan->id])
+            ->assertDontSeeText('Pesan pelapor untuk Admin.')
+            ->assertDontSeeText('Pesan dengan pelapor');
     }
 
     public function test_admin_only_notes_are_hidden_from_pic(): void
