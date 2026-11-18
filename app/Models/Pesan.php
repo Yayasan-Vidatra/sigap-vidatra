@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Pesan dua arah dengan pelapor; internal = true adalah catatan internal petugas. Isi terenkripsi.
  */
 #[Table('pesan')]
-#[Fillable(['laporan_id', 'pengirim', 'isi', 'internal'])]
+#[Fillable(['laporan_id', 'pengirim', 'pengirim_user_id', 'isi', 'internal'])]
 class Pesan extends Model
 {
     /** @use HasFactory<PesanFactory> */
@@ -43,6 +43,16 @@ class Pesan extends Model
     public function laporan(): BelongsTo
     {
         return $this->belongsTo(Laporan::class);
+    }
+
+    /**
+     * Petugas pengirim; kosong untuk pesan pelapor dan sistem.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function pengirimPetugas(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pengirim_user_id');
     }
 
     /**

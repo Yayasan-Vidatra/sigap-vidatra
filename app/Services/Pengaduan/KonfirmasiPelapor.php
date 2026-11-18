@@ -8,25 +8,58 @@ use App\Enums\StatusLaporan;
 use App\Events\HasilDitolakPelapor;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Models\Laporan;
+use App\Models\LogAudit;
 use App\Models\RiwayatStatus;
 use App\Services\WaktuLokal;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Tanggapan pelapor atas hasil tindak lanjut (UC-06, US-13; Rancangan r1 Bagian 6) dan penutupan otomatis:
  * - konfirmasi: Menunggu Konfirmasi → Selesai;
  * - tolak hasil dengan alasan: Menunggu Konfirmasi → Diproses, lalu Admin diberi tahu (HasilDitolakPelapor);
- * - tanpa tanggapan selama 7 hari kalender WITA: Selesai oleh sistem.
+ * - tanpa tanggapan selama 7 hari kalender WITA: Selesai oleh sistem;
+ * - penilaian kepuasan 1–5 setelah Selesai, sekali per pengaduan.
  *
- * Halaman Lacak (H-07, Hari 8) memanggil konfirmasi() dan tolakHasil() setelah pelapor membuktikan kode
- * lacaknya; layanan ini tidak memeriksa sesi pelapor.
+ * Halaman Lacak (H-07) memanggil layanan ini setelah pelapor membuktikan kode lacaknya; layanan ini tidak
+ * memeriksa sesi pelapor.
  */
 class KonfirmasiPelapor
 {
     public const CATATAN_TUTUP_OTOMATIS = 'Ditutup otomatis karena tidak ada tanggapan pelapor dalam 7 hari.';
 
     public function __construct(private PengubahStatus $pengubah) {}
+
+    public static function bisaDinilai(Laporan $laporan): bool
+    {
+        return $laporan->jenis === JenisLaporan::Pengaduan
+            && $laporan->status === StatusLaporan::Selesai
+            && $laporan->penilaian === null;
+    }
+
+    /**
+     * Menyimpan penilaian kepuasan. Baris laporan dikunci agar dua kiriman bersamaan tidak sama-sama tersimpan.
+     */
+    public function beriPenilaian(Laporan $laporan, int $nilai): Laporan
+    {
+        if ($nilai < 1 || $nilai > 5) {
+            throw AksiPengaduanTidakSah::penilaianDiLuarRentang();
+        }
+
+        return DB::transaction(function () use ($laporan, $nilai): Laporan {
+            $terkunci = Laporan::query()->lockForUpdate()->findOrFail($laporan->getKey());
+
+            if (! self::bisaDinilai($terkunci)) {
+                throw AksiPengaduanTidakSah::penilaianTidakTersedia();
+            }
+
+            $terkunci->forceFill(['penilaian' => $nilai])->save();
+            LogAudit::catat(null, AksiAudit::PelaporMemberiPenilaian, $terkunci);
+
+            return $terkunci;
+        });
+    }
 
     public function konfirmasi(Laporan $laporan): Laporan
     {

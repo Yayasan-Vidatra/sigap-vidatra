@@ -57,6 +57,21 @@ class AksiPengaduanTidakSah extends RuntimeException
         return new self("Ringkasan untuk pelapor paling panjang {$maks} karakter.");
     }
 
+    public static function pesanKosong(): self
+    {
+        return new self('Isi pesan wajib diisi.');
+    }
+
+    public static function penilaianTidakTersedia(): self
+    {
+        return new self('Penilaian hanya bisa diberikan sekali, setelah pengaduan selesai.');
+    }
+
+    public static function penilaianDiLuarRentang(): self
+    {
+        return new self('Pilih penilaian 1 sampai 5.');
+    }
+
     public static function bukanDisposisiUnit(): self
     {
         return new self('Pengaduan ini tidak didisposisikan ke unit Anda.');

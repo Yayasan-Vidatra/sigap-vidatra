@@ -10,6 +10,7 @@ use App\Models\Disposisi;
 use App\Models\Lampiran;
 use App\Models\Laporan;
 use App\Models\LogAudit;
+use App\Models\Pesan;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Lampiran\PenyimpananLampiran;
@@ -134,6 +135,18 @@ class UnduhLampiranControllerTest extends TestCase
         $lampiran = $this->lampiran($laporan, $this->pdfUji());
 
         $this->actingAs($pic)->get($lampiran->tautanUnduhSementara())->assertOk();
+    }
+
+    public function test_pic_unit_cannot_download_attachments_sent_through_reporter_messages(): void
+    {
+        $unit = Unit::factory()->create();
+        $pic = User::factory()->peran(Peran::PicUnit)->for($unit)->denganMfa()->create();
+        $laporan = Laporan::factory()->for($unit)->create();
+        Disposisi::factory()->for($laporan)->for($unit)->create(['pic_user_id' => $pic->id]);
+        $lampiran = $this->lampiran($laporan, $this->pdfUji());
+        $lampiran->update(['pesan_id' => Pesan::factory()->for($laporan)->create()->id]);
+
+        $this->actingAs($pic)->get($lampiran->tautanUnduhSementara())->assertForbidden();
     }
 
     public function test_pic_unit_cannot_download_attachments_of_a_complaint_not_yet_disposed(): void

@@ -6,6 +6,7 @@ use App\Enums\StatusPindai;
 use App\Jobs\ProsesLampiran;
 use App\Models\Lampiran;
 use App\Models\Laporan;
+use App\Models\Pesan;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -23,9 +24,10 @@ class PelampirUnggahan
 
     /**
      * @param  list<string>  $idUnggahan
+     * @param  Pesan|null  $pesan  pesan pelapor yang membawa lampiran tambahan (UC-05)
      * @return list<Lampiran>
      */
-    public function lampirkan(Laporan $laporan, array $idUnggahan): array
+    public function lampirkan(Laporan $laporan, array $idUnggahan, ?Pesan $pesan = null): array
     {
         $lampiran = [];
 
@@ -36,6 +38,7 @@ class PelampirUnggahan
             $pathAcak = $this->penyimpanan->simpan($siap['path'], enkripsi: $laporan->isWbs());
 
             $lampiran[] = $laporan->lampiran()->create([
+                'pesan_id' => $pesan?->getKey(),
                 'nama_asli' => $siap['nama_asli'],
                 'path_acak' => $pathAcak,
                 'mime' => $siap['mime'],

@@ -32,6 +32,10 @@ enum AksiAudit: string implements HasLabel
     case MenutupPengaduanOtomatis = 'menutup_pengaduan_otomatis';
     case MengirimPengingatBatasWaktu = 'mengirim_pengingat_batas_waktu';
     case MengirimEskalasiBatasWaktu = 'mengirim_eskalasi_batas_waktu';
+    case PelaporMembukaLaporan = 'pelapor_membuka_laporan';
+    case PelaporMengirimPesan = 'pelapor_mengirim_pesan';
+    case MembalasPesan = 'membalas_pesan';
+    case PelaporMemberiPenilaian = 'pelapor_memberi_penilaian';
 
     public function getLabel(): string
     {
@@ -59,6 +63,10 @@ enum AksiAudit: string implements HasLabel
             self::MenutupPengaduanOtomatis => 'Menutup pengaduan otomatis (7 hari tanpa tanggapan)',
             self::MengirimPengingatBatasWaktu => 'Mengirim pengingat batas waktu',
             self::MengirimEskalasiBatasWaktu => 'Mengirim eskalasi batas waktu',
+            self::PelaporMembukaLaporan => 'Pelapor membuka laporan (Lacak)',
+            self::PelaporMengirimPesan => 'Pelapor mengirim pesan',
+            self::MembalasPesan => 'Petugas mengirim pesan',
+            self::PelaporMemberiPenilaian => 'Pelapor memberi penilaian',
         };
     }
 }

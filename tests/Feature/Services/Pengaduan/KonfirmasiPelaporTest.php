@@ -91,6 +91,51 @@ class KonfirmasiPelaporTest extends TestCase
         $this->assertDatabaseCount('riwayat_status', 0);
     }
 
+    public function test_rating_is_saved_once_after_the_complaint_is_finished(): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Selesai)->create();
+
+        $this->konfirmasi->beriPenilaian($laporan, 4);
+
+        $this->assertSame(4, $laporan->fresh()->penilaian);
+        $this->assertDatabaseHas('log_audit', ['user_id' => null, 'aksi' => AksiAudit::PelaporMemberiPenilaian->value]);
+
+        $this->expectExceptionObject(AksiPengaduanTidakSah::penilaianTidakTersedia());
+
+        try {
+            $this->konfirmasi->beriPenilaian($laporan, 1);
+        } finally {
+            $this->assertSame(4, $laporan->fresh()->penilaian);
+        }
+    }
+
+    #[TestWith([StatusLaporan::Diproses])]
+    #[TestWith([StatusLaporan::MenungguKonfirmasi])]
+    #[TestWith([StatusLaporan::Ditolak])]
+    public function test_rating_is_only_possible_after_the_complaint_is_finished(StatusLaporan $status): void
+    {
+        $laporan = Laporan::factory()->berstatus($status)->create();
+
+        $this->expectExceptionObject(AksiPengaduanTidakSah::penilaianTidakTersedia());
+
+        try {
+            $this->konfirmasi->beriPenilaian($laporan, 5);
+        } finally {
+            $this->assertNull($laporan->fresh()->penilaian);
+        }
+    }
+
+    #[TestWith([0])]
+    #[TestWith([6])]
+    public function test_rating_must_be_between_one_and_five(int $nilai): void
+    {
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Selesai)->create();
+
+        $this->expectExceptionObject(AksiPengaduanTidakSah::penilaianDiLuarRentang());
+
+        $this->konfirmasi->beriPenilaian($laporan, $nilai);
+    }
+
     public function test_a_wbs_report_cannot_be_confirmed_through_the_complaint_flow(): void
     {
         $wbs = Laporan::factory()->wbs()->berstatus(StatusLaporan::Diterima)->create();
