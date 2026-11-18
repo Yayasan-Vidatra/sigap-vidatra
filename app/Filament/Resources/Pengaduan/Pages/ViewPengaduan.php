@@ -8,6 +8,7 @@ use App\Enums\Peran;
 use App\Enums\Prioritas;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Filament\Concerns\MencatatPembukaanLaporan;
+use App\Filament\Concerns\MengalihkanLaporan;
 use App\Filament\Resources\Pengaduan\PengaduanResource;
 use App\Filament\Resources\Pengaduan\Schemas\PengaduanInfolist;
 use App\Models\Kategori;
@@ -35,14 +36,15 @@ use Filament\Support\Icons\Heroicon;
  * Detail pengaduan di Kotak Masuk (H-11). Setiap pembukaan halaman dicatat di log audit (US-27).
  *
  * Aksi mengikuti alur Rancangan r1 Bagian 6 dan dijalankan lewat PenangananPengaduan, yang memeriksa
- * ulang hak akses dan status di server. Pindah ke WBS (UC-09 1a) dan pengalihan ke Kepala Sekolah/Komite
- * Etik (UC-19) belum dikerjakan; tombolnya disembunyikan sampai fiturnya ada.
+ * ulang hak akses dan status di server. Pengalihan ke Kepala Sekolah/Komite Etik (UC-19) tampil hanya pada status
+ * yang belum akhir. Pindah ke WBS (UC-09 1a) belum dikerjakan; tombolnya disembunyikan.
  *
  * @property Laporan $record
  */
 class ViewPengaduan extends ViewRecord
 {
     use MencatatPembukaanLaporan;
+    use MengalihkanLaporan;
 
     protected static string $resource = PengaduanResource::class;
 
@@ -55,16 +57,11 @@ class ViewPengaduan extends ViewRecord
             $this->aksiTutupLewatTelepon(),
             $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),
-            // Pindah ke WBS (UC-09 1a) dan pengalihan (UC-19, Hari 11) belum dikerjakan, sehingga tombolnya
-            // disembunyikan untuk semua status. Saat dikerjakan, tombol tidak boleh tampil pada status akhir
-            // (Selesai, Ditolak, Dipindah ke WBS, Dialihkan).
+            $this->aksiAlihkan(fn (Closure $aksi, string $pesan) => $this->jalankan($aksi, $pesan)),
+            // Pindah ke WBS (UC-09 1a) belum dijadwalkan; tombolnya disembunyikan sampai fiturnya ada.
             Action::make('pindahKeWbs')
                 ->label('Pindah ke WBS')
                 ->icon(Heroicon::OutlinedShieldExclamation)
-                ->hidden(),
-            Action::make('alihkan')
-                ->label('Alihkan ke Kepala Sekolah/Komite Etik')
-                ->icon(Heroicon::OutlinedArrowUturnRight)
                 ->hidden(),
         ];
     }

@@ -42,6 +42,15 @@ enum AksiAudit: string implements HasLabel
     case MenunjukInvestigator = 'menunjuk_investigator';
     case MenetapkanKesimpulanWbs = 'menetapkan_kesimpulan_wbs';
     case MencatatLaporanMasuk = 'mencatat_laporan_masuk';
+    case MengajukanPerpanjangan = 'mengajukan_perpanjangan';
+    case MenyetujuiPerpanjangan = 'menyetujui_perpanjangan';
+    case MenolakPerpanjangan = 'menolak_perpanjangan';
+    case MembukaHasilWbs = 'membuka_hasil_wbs';
+    case MenandaiHasilDitindaklanjuti = 'menandai_hasil_ditindaklanjuti';
+    case MengalihkanLaporan = 'mengalihkan_laporan';
+    case MembukaPengalihan = 'membuka_pengalihan';
+    case MengonfirmasiPengalihan = 'mengonfirmasi_pengalihan';
+    case MencatatTindakLanjutPengalihan = 'mencatat_tindak_lanjut_pengalihan';
 
     public function getLabel(): string
     {
@@ -79,6 +88,15 @@ enum AksiAudit: string implements HasLabel
             self::MenunjukInvestigator => 'Menunjuk investigator WBS',
             self::MenetapkanKesimpulanWbs => 'Menetapkan kesimpulan WBS',
             self::MencatatLaporanMasuk => 'Mencatat laporan masuk (surel/telepon/surat)',
+            self::MengajukanPerpanjangan => 'Mengajukan perpanjangan investigasi',
+            self::MenyetujuiPerpanjangan => 'Menyetujui perpanjangan investigasi',
+            self::MenolakPerpanjangan => 'Menolak perpanjangan investigasi',
+            self::MembukaHasilWbs => 'Membuka hasil WBS',
+            self::MenandaiHasilDitindaklanjuti => 'Menandai hasil WBS sudah ditindaklanjuti',
+            self::MengalihkanLaporan => 'Mengalihkan laporan',
+            self::MembukaPengalihan => 'Membuka laporan dialihkan',
+            self::MengonfirmasiPengalihan => 'Mengonfirmasi terima pengalihan',
+            self::MencatatTindakLanjutPengalihan => 'Mencatat tindak lanjut pengalihan',
         };
     }
 }

@@ -35,7 +35,8 @@ use Random\Randomizer;
     'kode_lacak', 'jenis', 'sumber', 'jenis_pelapor', 'unit_id', 'kategori_id', 'judul', 'kronologi',
     'waktu_kejadian', 'lokasi', 'jabatan_pihak_dikeluhkan', 'saksi', 'kedudukan_terlapor', 'status',
     'prioritas', 'batas_waktu', 'penilaian', 'kesimpulan', 'dialihkan_ke', 'perpanjangan_disetujui_oleh',
-    'pin_hash', 'investigator_user_id', 'rekomendasi',
+    'pin_hash', 'investigator_user_id', 'rekomendasi', 'perpanjangan_diajukan_pada', 'hasil_ditindaklanjuti_pada',
+    'hasil_ditindaklanjuti_oleh',
 ])]
 #[Hidden(['pin_hash'])]
 class Laporan extends Model
@@ -58,7 +59,10 @@ class Laporan extends Model
     /**
      * @var list<string>
      */
-    public const KOLOM_KHUSUS_WBS = ['kesimpulan', 'investigator_user_id', 'rekomendasi'];
+    public const KOLOM_KHUSUS_WBS = [
+        'kesimpulan', 'investigator_user_id', 'rekomendasi', 'perpanjangan_diajukan_pada', 'hasil_ditindaklanjuti_pada',
+        'hasil_ditindaklanjuti_oleh',
+    ];
 
     protected static function booted(): void
     {
@@ -130,6 +134,8 @@ class Laporan extends Model
             'dialihkan_ke' => TujuanPengalihan::class,
             'pin_hash' => 'hashed',
             'rekomendasi' => 'encrypted',
+            'perpanjangan_diajukan_pada' => 'datetime',
+            'hasil_ditindaklanjuti_pada' => 'datetime',
         ];
     }
 

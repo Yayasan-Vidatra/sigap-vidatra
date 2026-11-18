@@ -89,6 +89,32 @@ enum KedudukanTerlapor: string implements HasLabel
     }
 
     /**
+     * Peran penerima hasil menurut kolom "Penerima hasil" Bagian 3.1: menerima kesimpulan dan rekomendasi, dan menyetujui
+     * perpanjangan investigasi (UC-13 1a). Rapat Pembina dijalankan Ketua Pembina dan Pembina. Untuk terlapor tidak
+     * diketahui, perpanjangan disetujui Dewan Pengawas (Bagian 3.1, paragraf terakhir).
+     *
+     * @return list<Peran>
+     */
+    public function peranPenerimaHasil(): array
+    {
+        return match ($this) {
+            self::GuruPegawai, self::TidakTahu => [Peran::DewanPengawas],
+            self::Pengurus => [Peran::KetuaPembina],
+            self::SpiTimWbs, self::Pengawas, self::Pembina => [Peran::KetuaPembina, Peran::Pembina],
+        };
+    }
+
+    /**
+     * Penerima tembusan hasil untuk tindak lanjut, tanpa wewenang menyetujui perpanjangan (Bagian 3.1, A7).
+     *
+     * @return list<Peran>
+     */
+    public function peranTembusanHasil(): array
+    {
+        return $this === self::GuruPegawai ? [Peran::KetuaUmum] : [];
+    }
+
+    /**
      * Kolom "Penerima hasil" Bagian 3.1.
      */
     public function penerimaHasil(): string

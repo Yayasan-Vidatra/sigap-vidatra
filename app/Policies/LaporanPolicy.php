@@ -118,6 +118,32 @@ class LaporanPolicy
         return $user->peran === Peran::KetuaTimWbs;
     }
 
+    /**
+     * H-16 Hasil WBS untuk Saya (US-21): penerima hasil menurut matriks dan Ketua Umum (tembusan).
+     */
+    public function lihatHasilWbs(User $user): bool
+    {
+        return in_array($user->peran, [Peran::DewanPengawas, Peran::KetuaPembina, Peran::Pembina, Peran::KetuaUmum], true);
+    }
+
+    /**
+     * Membuka ringkasan hasil di H-16: laporan yang sudah sampai ke penerima (hasil atau pengajuan perpanjangan) dan
+     * ditujukan kepadanya menurut matriks. Tembusan hanya untuk hasil, bukan pengajuan perpanjangan.
+     */
+    public function bukaHasilWbs(User $user, Laporan $laporan): bool
+    {
+        return AksesWbs::sudahUntukPenerima($laporan)
+            && AksesWbs::penerimaHasil($user, $laporan, denganTembusan: $laporan->kesimpulan !== null);
+    }
+
+    /**
+     * Persetujuan perpanjangan investigasi (UC-13 1a) dan penandaan tindak lanjut hasil: penerima hasil utama.
+     */
+    public function putuskanHasilWbs(User $user, Laporan $laporan): bool
+    {
+        return AksesWbs::penerimaHasil($user, $laporan, denganTembusan: false);
+    }
+
     public function viewAny(User $user): bool
     {
         return false;

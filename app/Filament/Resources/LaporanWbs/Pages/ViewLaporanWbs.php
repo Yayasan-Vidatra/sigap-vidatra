@@ -7,6 +7,7 @@ use App\Enums\KedudukanTerlapor;
 use App\Enums\KesimpulanWbs;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Filament\Concerns\MencatatPembukaanLaporan;
+use App\Filament\Concerns\MengalihkanLaporan;
 use App\Filament\Resources\LaporanWbs\LaporanWbsResource;
 use App\Filament\Resources\LaporanWbs\Schemas\LaporanWbsInfolist;
 use App\Models\Laporan;
@@ -39,6 +40,7 @@ use Illuminate\Support\Facades\Gate;
 class ViewLaporanWbs extends ViewRecord
 {
     use MencatatPembukaanLaporan;
+    use MengalihkanLaporan;
 
     protected static string $resource = LaporanWbsResource::class;
 
@@ -49,7 +51,22 @@ class ViewLaporanWbs extends ViewRecord
             $this->aksiMulaiInvestigasi(),
             $this->aksiTidakDitindaklanjuti(),
             $this->aksiSimpulkan(),
+            Action::make('ajukanPerpanjangan')
+                ->label('Ajukan perpanjangan')
+                ->icon(Heroicon::OutlinedClock)
+                ->color('warning')
+                ->authorize('simpulkanLaporanWbs')
+                ->visible(fn (Laporan $record): bool => PenangananWbs::bisa('ajukanPerpanjangan', $record))
+                ->modalDescription('Perpanjangan 30 hari kerja berlaku setelah disetujui penerima hasil menurut matriks. Penerima diberi tahu lewat surel tanpa isi laporan.')
+                ->schema([
+                    Textarea::make('alasan')->label('Alasan perpanjangan')->required()->rule($this->tidakKosong('Alasan perpanjangan'))->maxLength(PenangananWbs::MAKS_CATATAN)->rows(3),
+                ])
+                ->action(fn (array $data, PenangananWbs $penanganan) => $this->jalankan(
+                    fn (User $oleh) => $penanganan->ajukanPerpanjangan($this->record, $oleh, (string) $data['alasan']),
+                    'Perpanjangan diajukan kepada penerima hasil.',
+                )),
             $this->aksiKoreksiKedudukan(),
+            $this->aksiAlihkan(fn (Closure $aksi, string $pesan) => $this->jalankan($aksi, $pesan)),
             $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),
         ];

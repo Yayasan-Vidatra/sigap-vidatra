@@ -98,6 +98,70 @@ class AksesWbs
     }
 
     /**
+     * Penerima hasil menurut matriks (US-21): penerima utama, atau penerima tembusan bila $denganTembusan. Pejabat yang
+     * disebut sebagai terlapor tidak pernah menjadi penerima.
+     */
+    public static function penerimaHasil(User $user, Laporan $laporan, bool $denganTembusan = true): bool
+    {
+        if (! $laporan->isWbs() || $user->peran === null || self::disebutSebagaiTerlapor($user, $laporan)) {
+            return false;
+        }
+
+        $kedudukan = self::kedudukanEfektif($laporan);
+        $peran = [...$kedudukan->peranPenerimaHasil(), ...($denganTembusan ? $kedudukan->peranTembusanHasil() : [])];
+
+        return in_array($user->peran, $peran, true);
+    }
+
+    /**
+     * Laporan yang sudah sampai ke penerima hasil: hasil sudah dikirim, atau perpanjangan pernah diajukan.
+     */
+    public static function sudahUntukPenerima(Laporan $laporan): bool
+    {
+        return $laporan->kesimpulan !== null || $laporan->perpanjangan_diajukan_pada !== null || $laporan->perpanjangan_disetujui_oleh !== null;
+    }
+
+    /**
+     * Id laporan untuk halaman Hasil WBS untuk Saya (H-16).
+     *
+     * @return list<int>
+     */
+    public static function idHasilUntuk(User $user): array
+    {
+        if (! in_array($user->peran, [Peran::DewanPengawas, Peran::KetuaPembina, Peran::Pembina, Peran::KetuaUmum], true)) {
+            return [];
+        }
+
+        return Laporan::query()
+            ->where('jenis', JenisLaporan::Wbs->value)
+            ->where(fn ($query) => $query->whereNotNull('kesimpulan')->orWhereNotNull('perpanjangan_diajukan_pada')->orWhereNotNull('perpanjangan_disetujui_oleh'))
+            ->with('terlapor')
+            ->get()
+            ->filter(fn (Laporan $laporan): bool => self::penerimaHasil($user, $laporan, denganTembusan: $laporan->kesimpulan !== null))
+            ->map(fn (Laporan $laporan): int => $laporan->getKey())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Penerima hasil yang aktif, untuk notifikasi hasil (dengan tembusan) atau pengajuan perpanjangan (tanpa tembusan).
+     *
+     * @return Collection<int, User>
+     */
+    public static function penerimaHasilAktif(Laporan $laporan, bool $denganTembusan): Collection
+    {
+        $kedudukan = self::kedudukanEfektif($laporan);
+        $peran = [...$kedudukan->peranPenerimaHasil(), ...($denganTembusan ? $kedudukan->peranTembusanHasil() : [])];
+
+        return User::query()
+            ->whereIn('peran', array_map(fn (Peran $peran): string => $peran->value, $peran))
+            ->whereNull('terkunci_pada')
+            ->get()
+            ->reject(fn (User $user): bool => self::disebutSebagaiTerlapor($user, $laporan))
+            ->values();
+    }
+
+    /**
      * Penelaah utama yang aktif untuk laporan ini, penerima notifikasi laporan baru.
      *
      * @return Collection<int, User>
