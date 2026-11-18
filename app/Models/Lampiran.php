@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\URL;
  * bisa memuat nama orang.
  */
 #[Table('lampiran')]
-#[Fillable(['laporan_id', 'pesan_id', 'nama_asli', 'path_acak', 'mime', 'ukuran', 'hash_sha256', 'status_pindai'])]
+#[Fillable(['laporan_id', 'pesan_id', 'disposisi_id', 'nama_asli', 'path_acak', 'mime', 'ukuran', 'hash_sha256', 'status_pindai'])]
 class Lampiran extends Model
 {
     /** @use HasFactory<LampiranFactory> */
@@ -68,6 +68,16 @@ class Lampiran extends Model
     public function laporan(): BelongsTo
     {
         return $this->belongsTo(Laporan::class);
+    }
+
+    /**
+     * Disposisi yang dibuktikan, bila lampiran ini bukti penyelesaian PIC Unit (UC-10).
+     *
+     * @return BelongsTo<Disposisi, $this>
+     */
+    public function disposisi(): BelongsTo
+    {
+        return $this->belongsTo(Disposisi::class);
     }
 
     /**

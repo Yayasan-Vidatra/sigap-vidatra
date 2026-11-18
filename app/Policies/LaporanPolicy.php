@@ -9,7 +9,8 @@ use App\Models\User;
 /**
  * Hak akses laporan. Setiap halaman laporan petugas memakai ability-nya sendiri agar aturan tiap
  * kanal tidak tercampur: Kotak Masuk Pengaduan (H-11) memakai lihatKotakMasukPengaduan dan
- * kelolaPengaduan. Halaman PIC Unit (H-12) dan Ruang Kerja WBS (H-13) menambah ability sendiri.
+ * kelolaPengaduan; Pengaduan Unit Saya (H-12) memakai lihatPengaduanUnit dan tindakLanjutiPengaduan.
+ * Ruang Kerja WBS (H-13) menambah ability sendiri.
  *
  * Ability bawaan Filament (viewAny, view, create, update, delete, ...) sengaja ditolak, sehingga
  * resource laporan baru tidak terbuka tanpa sengaja sebelum aturannya ditulis.
@@ -40,6 +41,23 @@ class LaporanPolicy
     public function lihatIdentitasPelapor(User $user, Laporan $laporan): bool
     {
         return $this->kelolaPengaduan($user, $laporan);
+    }
+
+    /**
+     * H-12 Pengaduan Unit Saya hanya untuk PIC Unit.
+     */
+    public function lihatPengaduanUnit(User $user): bool
+    {
+        return $user->peran === Peran::PicUnit && $user->unit_id !== null;
+    }
+
+    /**
+     * Membuka dan menindaklanjuti pengaduan yang didisposisikan ke unit PIC (UC-10). Aturannya sama
+     * dengan scope Laporan::pengaduanUnitPic().
+     */
+    public function tindakLanjutiPengaduan(User $user, Laporan $laporan): bool
+    {
+        return Laporan::query()->pengaduanUnitPic($user)->whereKey($laporan->getKey())->exists();
     }
 
     public function viewAny(User $user): bool

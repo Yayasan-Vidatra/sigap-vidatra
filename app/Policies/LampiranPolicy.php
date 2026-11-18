@@ -8,12 +8,13 @@ use App\Models\Laporan;
 use App\Models\User;
 
 /**
- * Siapa yang boleh membuka lampiran laporan (Rancangan r1 Bagian 3, 3.1, dan 8). Sementara halaman
- * laporan petugas (H-11 sampai H-13) belum ada, aturannya sengaja sempit:
- * - pengaduan: Admin Pengaduan yayasan; Admin Sekolah dan PIC Unit hanya untuk unitnya;
+ * Siapa yang boleh membuka lampiran laporan (Rancangan r1 Bagian 3, 3.1, dan 8):
+ * - pengaduan: mengikuti LaporanPolicy. Admin Pengaduan yayasan semua unit, Admin Sekolah hanya unitnya
+ *   (kelolaPengaduan), PIC Unit hanya pengaduan yang sudah didisposisikan ke unitnya
+ *   (tindakLanjutiPengaduan), termasuk bukti penyelesaiannya;
  * - WBS: Ketua Tim WBS, hanya untuk laporan yang terbuka baginya menurut matriks.
- * Peran lain ditolak, termasuk Super Admin untuk WBS (aturan proyek no. 3). Diperhalus bersama policy
- * laporan saat halaman laporan dibuat (penunjukan investigator, penelaah pengganti, pengalihan).
+ * Peran lain ditolak, termasuk Super Admin untuk WBS (aturan proyek no. 3). Aturan WBS diperhalus bersama
+ * Ruang Kerja WBS (penunjukan investigator, penelaah pengganti, pengalihan).
  */
 class LampiranPolicy
 {
@@ -27,8 +28,8 @@ class LampiranPolicy
         }
 
         return match ($user->peran) {
-            Peran::AdminPengaduan => $user->isAdminYayasan() || $user->unit_id === $laporan->unit_id,
-            Peran::PicUnit => $user->unit_id !== null && $user->unit_id === $laporan->unit_id,
+            Peran::AdminPengaduan => $user->can('kelolaPengaduan', $laporan),
+            Peran::PicUnit => $user->can('tindakLanjutiPengaduan', $laporan),
             default => false,
         };
     }
