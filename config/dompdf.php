@@ -110,7 +110,7 @@ return [
         /**
          * Whether to enable font subsetting or not.
          */
-        'enable_font_subsetting' => false,
+        'enable_font_subsetting' => true, // SIGAP: hanya glif yang dipakai; PDF bukti lapor 858 KB -> 21 KB
 
         /**
          * The PDF rendering backend to use

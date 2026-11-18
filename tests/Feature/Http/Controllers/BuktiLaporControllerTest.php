@@ -43,6 +43,16 @@ class BuktiLaporControllerTest extends TestCase
         $this->assertStringContainsString('Simpan dokumen ini', $teks);
     }
 
+    public function test_receipt_pdf_embeds_only_the_glyphs_it_uses(): void
+    {
+        $this->kirimPengaduan();
+
+        $pdf = $this->get('/selesai/pdf')->getContent();
+
+        // Tanpa font subsetting, DejaVu Sans tertanam utuh dan PDF berukuran sekitar 860 KB.
+        $this->assertLessThan(100 * 1024, strlen($pdf));
+    }
+
     public function test_receipt_pdf_contains_no_identity_or_report_content(): void
     {
         $this->kirimPengaduan();
