@@ -102,6 +102,18 @@ class PanelPanelProviderTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_dashboard_shows_the_account_card_but_not_the_filament_info_widget(): void
+    {
+        $user = User::factory()->peran(Peran::AdminPengaduan)->denganMfa()->create(['name' => 'Dewi Admin']);
+
+        $response = $this->actingAs($user)->get('/panel');
+
+        $response->assertOk();
+        $response->assertSee('Dewi Admin');
+        $response->assertDontSee('filamentphp.com', false);
+        $response->assertDontSee('github.com/filamentphp', false);
+    }
+
     public function test_officer_without_2fa_can_still_log_out(): void
     {
         $user = User::factory()->peran(Peran::KetuaTimWbs)->create();
