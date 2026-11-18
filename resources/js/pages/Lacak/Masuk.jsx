@@ -8,7 +8,7 @@ const gayaIsian =
 
 /*
  * H-06 Lacak Laporan. Kode tidak ada dan kode salah mendapat pesan yang sama dari server. Setelah 5 kali
- * gagal, server meminta CAPTCHA dan jeda; isian PIN untuk WBS disiapkan (kanal WBS dibuat Hari 9).
+ * gagal, server meminta CAPTCHA dan jeda. Kode WBS dibuka bersama PIN.
  */
 export default function Masuk({ perluCaptcha, sisaJeda, pesan }) {
     const { data, setData, post, processing, errors } = useForm({ kode: '', pin: '', altcha: '' });
@@ -85,14 +85,13 @@ export default function Masuk({ perluCaptcha, sisaJeda, pesan }) {
                             name="pin"
                             type="password"
                             inputMode="numeric"
+                            maxLength={6}
                             autoComplete="off"
                             value={data.pin}
                             onChange={(e) => setData('pin', e.target.value)}
                             className={gayaIsian}
                         />
-                        <p className="text-sm text-slate-600">
-                            Laporan pelanggaran (WBS) dilacak dengan kode dan PIN. Kanal WBS sedang disiapkan.
-                        </p>
+                        <p className="text-sm text-slate-600">PIN 6 angka yang Anda buat saat mengirim laporan WBS.</p>
                     </div>
                 )}
 

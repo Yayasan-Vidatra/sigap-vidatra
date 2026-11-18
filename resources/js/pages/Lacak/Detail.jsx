@@ -161,7 +161,7 @@ function Penilaian() {
     );
 }
 
-function Pesan({ pesan, bolehKirimPesan, aturanLampiran }) {
+function Pesan({ pesan, bolehKirimPesan, aturanLampiran, wbs, tokenUnggahWbs }) {
     const form = useForm({ isi: '', lampiran: [] });
     const [sedangMengunggah, setSedangMengunggah] = useState(false);
     const [kunciUnggah, setKunciUnggah] = useState(0);
@@ -178,7 +178,7 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran }) {
     }
 
     return (
-        <Bagian judul="Pesan dengan petugas">
+        <Bagian judul={wbs ? 'Pesan dengan Tim WBS' : 'Pesan dengan petugas'}>
             {pesan.length === 0 ? (
                 <p className="text-slate-600">Belum ada pesan.</p>
             ) : (
@@ -206,7 +206,9 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran }) {
 
             {!bolehKirimPesan ? (
                 <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700">
-                    Laporan sudah ditutup. Bila ada masalah baru, silakan buat pengaduan baru.
+                    {wbs
+                        ? 'Laporan sudah ditutup. Bila ada pelanggaran lain, silakan buat laporan baru.'
+                        : 'Laporan sudah ditutup. Bila ada masalah baru, silakan buat pengaduan baru.'}
                 </p>
             ) : (
             <form onSubmit={kirim} noValidate className="flex flex-col gap-3">
@@ -224,7 +226,8 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran }) {
                 <Galat pesan={form.errors.isi} />
                 <UnggahLampiran
                     key={kunciUnggah}
-                    kanal="pengaduan"
+                    kanal={wbs ? 'wbs' : 'pengaduan'}
+                    ambilToken={wbs ? () => tokenUnggahWbs : null}
                     aturan={aturanLampiran}
                     onChange={(id, berjalan) => {
                         form.setData('lampiran', id);
@@ -251,7 +254,7 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran }) {
  */
 export default function Detail(props) {
     const { kodeLacak, judul, unit, kategori, dibuatPada, status, riwayat, pesan, bolehMenanggapi, batasTanggapan } = props;
-    const { bolehMenilai, penilaian, masaSesiMenit, berhasil, aturanLampiran, bolehKirimPesan } = props;
+    const { bolehMenilai, penilaian, masaSesiMenit, berhasil, aturanLampiran, bolehKirimPesan, wbs, tokenUnggahWbs } = props;
 
     useKeluarOtomatis(masaSesiMenit);
 
@@ -297,7 +300,7 @@ export default function Detail(props) {
                         )}
                         {kategori && (
                             <div>
-                                <dt className="text-slate-600">Kategori</dt>
+                                <dt className="text-slate-600">{wbs ? 'Jenis pelanggaran' : 'Kategori'}</dt>
                                 <dd className="text-slate-900">{kategori}</dd>
                             </div>
                         )}
@@ -333,7 +336,13 @@ export default function Detail(props) {
                     </ol>
                 </Bagian>
 
-                <Pesan pesan={pesan} bolehKirimPesan={bolehKirimPesan} aturanLampiran={aturanLampiran} />
+                <Pesan
+                    pesan={pesan}
+                    bolehKirimPesan={bolehKirimPesan}
+                    aturanLampiran={aturanLampiran}
+                    wbs={wbs}
+                    tokenUnggahWbs={tokenUnggahWbs}
+                />
             </div>
         </PublicLayout>
     );

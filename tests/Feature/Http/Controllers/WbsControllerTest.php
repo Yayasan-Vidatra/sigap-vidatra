@@ -12,13 +12,17 @@ use App\Models\Pengaturan;
 use App\Models\Unit;
 use App\Services\Wbs\TokenFormulirWbs;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use ReflectionProperty;
 use Tests\Concerns\MembacaPdf;
 use Tests\Concerns\MembuatBerkasUji;
 use Tests\Concerns\MemecahkanAltcha;
@@ -294,10 +298,15 @@ class WbsControllerTest extends TestCase
         $this->post('/wbs/bukti/pdf', ['token' => 'tidak-sah'])->assertStatus(410);
     }
 
-    public function test_whole_wbs_flow_sets_no_cookie_and_leaves_no_session_row(): void
+    public function test_whole_wbs_flow_sets_no_cookie_and_leaves_no_ip_in_sessions_cache_or_logs(): void
     {
         config(['session.driver' => 'database']);
         Storage::fake('lampiran');
+        $catatan = [];
+        Event::listen(MessageLogged::class, function (MessageLogged $pesan) use (&$catatan): void {
+            $catatan[] = $pesan->message.' '.json_encode($pesan->context);
+        });
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.77'])->withHeader('User-Agent', 'AgenUjiWbs/9.9');
 
         $respons = [
             $this->get('/wbs'),
@@ -315,6 +324,12 @@ class WbsControllerTest extends TestCase
         }
 
         $this->assertSame(0, DB::table('sessions')->count());
+        $kunciCache = array_keys((new ReflectionProperty(Cache::store()->getStore(), 'storage'))->getValue(Cache::store()->getStore()));
+        foreach ([...$catatan, ...$kunciCache] as $baris) {
+            foreach (['203.0.113.77', 'AgenUjiWbs', hash('sha256', '203.0.113.77'), sha1('203.0.113.77'), md5('203.0.113.77')] as $jejak) {
+                $this->assertStringNotContainsString($jejak, $baris);
+            }
+        }
     }
 
     /**
