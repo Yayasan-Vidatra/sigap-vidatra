@@ -51,6 +51,8 @@ enum AksiAudit: string implements HasLabel
     case MembukaPengalihan = 'membuka_pengalihan';
     case MengonfirmasiPengalihan = 'mengonfirmasi_pengalihan';
     case MencatatTindakLanjutPengalihan = 'mencatat_tindak_lanjut_pengalihan';
+    case MemindahkanPengaduanKeWbs = 'memindahkan_pengaduan_ke_wbs';
+    case MembuatPinSementaraPelapor = 'membuat_pin_sementara_pelapor';
 
     public function getLabel(): string
     {
@@ -97,6 +99,8 @@ enum AksiAudit: string implements HasLabel
             self::MembukaPengalihan => 'Membuka laporan dialihkan',
             self::MengonfirmasiPengalihan => 'Mengonfirmasi terima pengalihan',
             self::MencatatTindakLanjutPengalihan => 'Mencatat tindak lanjut pengalihan',
+            self::MemindahkanPengaduanKeWbs => 'Memindahkan pengaduan ke WBS',
+            self::MembuatPinSementaraPelapor => 'Membuat PIN sementara pelapor',
         };
     }
 }

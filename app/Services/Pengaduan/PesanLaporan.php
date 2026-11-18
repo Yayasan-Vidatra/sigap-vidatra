@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Gate;
  * memakai kanal yang sama dari halaman Lacak; balasan Tim WBS menyusul bersama Ruang Kerja WBS (Hari 10).
  * Pelapor boleh menyertakan lampiran tambahan lewat unggah bertahap yang sudah ada (dipindai lewat queue).
  * Admin boleh menulis catatan internal yang tidak terlihat pelapor. PIC Unit tidak melihat kanal ini.
- * Setelah Selesai atau Ditolak, pelapor tidak bisa mengirim pesan lagi; Admin tetap bisa. Setiap pesan
+ * Setelah Selesai atau Ditolak, pelapor tidak bisa mengirim pesan lagi; Admin tetap bisa. Pengaduan yang dipindah ke
+ * WBS tertutup bagi pelapor dan Admin, karena percakapannya ikut pindah ke laporan WBS. Setiap pesan
  * memicu PesanLaporanTerkirim untuk surel pemberitahuan tanpa isi pesan.
  */
 class PesanLaporan
@@ -32,7 +33,9 @@ class PesanLaporan
      *
      * @var list<StatusLaporan>
      */
-    public const STATUS_TERTUTUP_BAGI_PELAPOR = [StatusLaporan::Selesai, StatusLaporan::Ditolak, StatusLaporan::TidakDitindaklanjuti];
+    public const STATUS_TERTUTUP_BAGI_PELAPOR = [
+        StatusLaporan::Selesai, StatusLaporan::Ditolak, StatusLaporan::TidakDitindaklanjuti, StatusLaporan::DipindahKeWbs,
+    ];
 
     public function __construct(private PelampirUnggahan $pelampir) {}
 
@@ -78,6 +81,10 @@ class PesanLaporan
         Gate::forUser($petugas)->authorize($laporan->isWbs() ? 'tanganiLaporanWbs' : 'kelolaPengaduan', $laporan);
 
         $isi = $this->periksaIsi($isi);
+
+        if (! $laporan->isWbs() && ($laporan->fresh() ?? $laporan)->status === StatusLaporan::DipindahKeWbs) {
+            throw AksiPengaduanTidakSah::laporanDitutup();
+        }
 
         return DB::transaction(function () use ($laporan, $petugas, $isi, $internal): Pesan {
             $pesan = $laporan->pesan()->create([

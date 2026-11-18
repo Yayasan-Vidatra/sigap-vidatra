@@ -4,8 +4,10 @@ namespace App\Filament\Resources\Pengaduan\Pages;
 
 use App\Enums\AksiAudit;
 use App\Enums\JenisLaporan;
+use App\Enums\KedudukanTerlapor;
 use App\Enums\Peran;
 use App\Enums\Prioritas;
+use App\Enums\StatusLaporan;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Filament\Concerns\MencatatPembukaanLaporan;
 use App\Filament\Concerns\MengalihkanLaporan;
@@ -18,11 +20,14 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\Pengaduan\PenangananPengaduan;
 use App\Services\Pengaduan\PesanLaporan;
+use App\Services\Wbs\PemindahPengaduanKeWbs;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -37,7 +42,7 @@ use Filament\Support\Icons\Heroicon;
  *
  * Aksi mengikuti alur Rancangan r1 Bagian 6 dan dijalankan lewat PenangananPengaduan, yang memeriksa
  * ulang hak akses dan status di server. Pengalihan ke Kepala Sekolah/Komite Etik (UC-19) tampil hanya pada status
- * yang belum akhir. Pindah ke WBS (UC-09 1a) belum dikerjakan; tombolnya disembunyikan.
+ * yang belum akhir, begitu juga Pindah ke WBS (UC-09 1a), yang dijalankan PemindahPengaduanKeWbs.
  *
  * @property Laporan $record
  */
@@ -58,12 +63,59 @@ class ViewPengaduan extends ViewRecord
             $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),
             $this->aksiAlihkan(fn (Closure $aksi, string $pesan) => $this->jalankan($aksi, $pesan)),
-            // Pindah ke WBS (UC-09 1a) belum dijadwalkan; tombolnya disembunyikan sampai fiturnya ada.
-            Action::make('pindahKeWbs')
-                ->label('Pindah ke WBS')
-                ->icon(Heroicon::OutlinedShieldExclamation)
-                ->hidden(),
+            $this->aksiPindahKeWbs(),
         ];
+    }
+
+    /**
+     * Pindah ke WBS (UC-09 1a). Kode lacak WBS baru tidak ditampilkan ke Admin; Tim WBS menyampaikannya kepada
+     * pelapor melalui saluran asal.
+     */
+    private function aksiPindahKeWbs(): Action
+    {
+        return Action::make('pindahKeWbs')
+            ->label('Pindah ke WBS')
+            ->icon(Heroicon::OutlinedShieldExclamation)
+            ->color('danger')
+            ->authorize('kelolaPengaduan')
+            ->visible(fn (Laporan $record): bool => PemindahPengaduanKeWbs::bisa($record))
+            ->modalHeading('Pindah ke kanal WBS')
+            ->modalDescription('Untuk pengaduan berisi dugaan pelanggaran serius. Isi, percakapan, dan lampiran pelapor dipindah '
+                .'ke kanal WBS dan disimpan terenkripsi; setelah itu Anda dan PIC Unit tidak dapat membacanya lagi. Laporan WBS '
+                .'ditangani penelaah menurut kedudukan terlapor, dan Tim WBS menyampaikan kode lacak baru kepada pelapor.')
+            ->modalSubmitActionLabel('Pindah ke WBS')
+            ->fillForm(fn (Laporan $record): array => [
+                'terlapor' => [['nama' => '', 'jabatan' => $record->jabatan_pihak_dikeluhkan]],
+            ])
+            ->schema([
+                Select::make('kategori_id')
+                    ->label('Jenis pelanggaran')
+                    ->options(fn (): array => Kategori::query()->where('jenis', JenisLaporan::Wbs->value)->orderBy('id')->pluck('nama', 'id')->all())
+                    ->required(),
+                Repeater::make('terlapor')
+                    ->label('Pihak terlapor')
+                    ->schema([
+                        TextInput::make('nama')->label('Nama')->required()->maxLength(150),
+                        TextInput::make('jabatan')->label('Jabatan')->maxLength(150),
+                    ])
+                    ->columns(2)
+                    ->minItems(1)
+                    ->maxItems((int) config('sigap.wbs.maks_terlapor'))
+                    ->addActionLabel('Tambah terlapor'),
+                Select::make('kedudukan_terlapor')
+                    ->label('Kedudukan terlapor')
+                    ->options(KedudukanTerlapor::class)
+                    ->helperText('Menentukan penerima laporan menurut matriks. Bila terlapor lebih dari satu, pilih kedudukan tertinggi.')
+                    ->required(),
+            ])
+            ->action(fn (array $data, PemindahPengaduanKeWbs $pemindah) => $this->jalankan(
+                fn (User $oleh) => $pemindah->pindahkan($this->record, $oleh, [
+                    'kategori_id' => $data['kategori_id'],
+                    'kedudukan_terlapor' => $data['kedudukan_terlapor'],
+                    'terlapor' => array_values($data['terlapor'] ?? []),
+                ]),
+                'Pengaduan dipindah ke kanal WBS. Tim WBS akan menyampaikan kode lacak baru kepada pelapor.',
+            ));
     }
 
     private function aksiVerifikasi(): Action
@@ -104,6 +156,7 @@ class ViewPengaduan extends ViewRecord
             ->icon(Heroicon::OutlinedChatBubbleLeftRight)
             ->color('gray')
             ->authorize('kelolaPengaduan')
+            ->visible(fn (Laporan $record): bool => $record->status !== StatusLaporan::DipindahKeWbs)
             ->modalHeading('Kirim pesan ke pelapor')
             ->modalDescription('Pelapor membaca pesan di halaman Lacak Laporan. Jangan memuat identitas pihak lain.')
             ->modalSubmitActionLabel('Kirim')

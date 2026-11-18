@@ -76,8 +76,7 @@ class CatatLaporanMasuk extends CreateRecord
                     ->schema([
                         Select::make('sumber')
                             ->label('Sumber laporan')
-                            ->options(collect(SumberLaporan::cases())
-                                ->reject(fn (SumberLaporan $sumber): bool => $sumber === SumberLaporan::Laman)
+                            ->options(collect(SumberLaporan::saluranLaporanMasuk())
                                 ->mapWithKeys(fn (SumberLaporan $sumber): array => [$sumber->value => $sumber->getLabel()])
                                 ->all())
                             ->required(),
