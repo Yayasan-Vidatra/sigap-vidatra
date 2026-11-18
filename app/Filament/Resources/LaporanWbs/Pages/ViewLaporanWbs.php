@@ -15,6 +15,7 @@ use App\Models\LogAudit;
 use App\Models\User;
 use App\Services\Pengaduan\PesanLaporan;
 use App\Services\Wbs\AksesWbs;
+use App\Services\Wbs\PemindahPengaduanKeWbs;
 use App\Services\Wbs\PenangananWbs;
 use Closure;
 use Filament\Actions\Action;
@@ -44,6 +45,14 @@ class ViewLaporanWbs extends ViewRecord
 
     protected static string $resource = LaporanWbsResource::class;
 
+    /**
+     * Kode lacak dan PIN sementara untuk pelapor pengaduan yang dipindah ke WBS, hanya di state halaman ini (tidak di
+     * sesi), seperti hasil Catat Laporan Masuk (H-14).
+     *
+     * @var array{kode_lacak: string, pin: string}|null
+     */
+    public ?array $aksesPelapor = null;
+
     protected function getHeaderActions(): array
     {
         return [
@@ -69,7 +78,54 @@ class ViewLaporanWbs extends ViewRecord
             $this->aksiAlihkan(fn (Closure $aksi, string $pesan) => $this->jalankan($aksi, $pesan)),
             $this->aksiKirimPesan(),
             $this->aksiLihatIdentitas(),
+            $this->aksiBuatAksesPelapor(),
         ];
+    }
+
+    /**
+     * Laporan pindahan dari Pengaduan (UC-09 1a): pelapor belum punya PIN. Penelaah utama membuat PIN sementara,
+     * melihatnya sekali, lalu menyampaikannya kepada pelapor melalui saluran asal (seperti UC-18 langkah 3).
+     */
+    private function aksiBuatAksesPelapor(): Action
+    {
+        return Action::make('buatAksesPelapor')
+            ->label('Kode akses pelapor')
+            ->icon(Heroicon::OutlinedKey)
+            ->color('gray')
+            ->authorize('telaahLaporanWbs')
+            ->visible(fn (Laporan $record): bool => PemindahPengaduanKeWbs::bisaBuatAksesPelapor($record))
+            ->requiresConfirmation()
+            ->modalHeading('Buat PIN sementara untuk pelapor')
+            ->modalDescription('Laporan ini dipindah dari kanal Pengaduan, sehingga pelapor belum memegang PIN. PIN baru '
+                .'ditampilkan sekali; PIN sebelumnya tidak berlaku lagi. Sampaikan kode lacak dan PIN kepada pelapor melalui '
+                .'kontak di identitas pelapor. Pembuatan PIN tercatat di log audit.')
+            ->modalSubmitActionLabel('Buat PIN')
+            ->action(function (PemindahPengaduanKeWbs $pemindah): void {
+                $user = Filament::auth()->user();
+                abort_unless($user instanceof User, 403);
+
+                $this->aksesPelapor = [
+                    'kode_lacak' => $this->record->kode_lacak,
+                    'pin' => $pemindah->buatAksesPelapor($this->record, $user),
+                ];
+
+                $this->replaceMountedAction('tampilkanAksesPelapor');
+            });
+    }
+
+    public function tampilkanAksesPelaporAction(): Action
+    {
+        return Action::make('tampilkanAksesPelapor')
+            ->visible(fn (): bool => $this->aksesPelapor !== null)
+            ->modalHeading('Kode akses pelapor')
+            ->modalDescription('Catat dan sampaikan sekarang. PIN tidak dapat ditampilkan lagi setelah jendela ini ditutup.')
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Tutup')
+            ->schema([
+                TextEntry::make('kode_lacak')->label('Kode lacak')->state(fn (): ?string => $this->aksesPelapor['kode_lacak'] ?? null)->copyable(),
+                TextEntry::make('pin')->label('PIN sementara')->state(fn (): ?string => $this->aksesPelapor['pin'] ?? null)->copyable(),
+            ])
+            ->after(fn () => $this->aksesPelapor = null);
     }
 
     private function aksiMulaiTelaah(): Action

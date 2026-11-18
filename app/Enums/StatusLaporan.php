@@ -62,6 +62,8 @@ enum StatusLaporan: string implements HasLabel
                 .'pengaduan dianggap selesai.',
             self::Selesai => 'Penanganan pengaduan Anda sudah selesai. Terima kasih atas laporan Anda.',
             self::Ditolak => 'Pengaduan Anda tidak dapat ditindaklanjuti.',
+            self::DipindahKeWbs => 'Pengaduan Anda menyangkut dugaan pelanggaran serius dan dipindah ke kanal Pelaporan Pelanggaran (WBS). '
+                .'Tim WBS akan menghubungi Anda melalui kontak yang Anda berikan untuk menyampaikan kode lacak dan PIN baru.',
             self::DialihkanKeSekolah => 'Pengaduan Anda menyangkut kekerasan dan diteruskan ke Kepala Sekolah selaku penanggung jawab BSAN.',
             self::DirujukKePokjaBsan => 'Pengaduan Anda dirujuk ke Pokja BSAN.',
             self::DialihkanKeKomiteEtik => 'Pengaduan Anda menyangkut kode etik atau kepegawaian dan dialihkan ke Komite Etik.',

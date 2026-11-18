@@ -77,7 +77,11 @@ class PembuatLaporanWbs
             'status_lama' => null,
             'status_baru' => StatusLaporan::Diterima,
             'oleh_user_id' => $pencatat?->getKey(),
-            'catatan' => $pencatat !== null ? "Dicatat dari saluran {$sumber->getLabel()}." : null,
+            'catatan' => match (true) {
+                $pencatat === null => null,
+                $sumber === SumberLaporan::Pengaduan => 'Dipindah dari kanal Pengaduan oleh Admin Pengaduan.',
+                default => "Dicatat dari saluran {$sumber->getLabel()}.",
+            },
             'tampil_ke_pelapor' => false,
         ]);
 
@@ -102,7 +106,7 @@ class PembuatLaporanWbs
     {
         Gate::forUser($pencatat)->authorize('catatLaporanMasuk', Laporan::class);
 
-        if ($sumber === SumberLaporan::Laman) {
+        if (! in_array($sumber, SumberLaporan::saluranLaporanMasuk(), true)) {
             throw new AksiWbsTidakSah('Sumber laporan masuk harus surel, telepon/WhatsApp, atau surat.');
         }
 

@@ -371,21 +371,25 @@ class ViewPengaduanTest extends TestCase
     }
 
     /**
-     * Temuan uji: tombol Alihkan tidak boleh tampil pada status akhir. Pindah ke WBS belum dikerjakan, sehingga
-     * tersembunyi untuk semua status.
+     * Temuan uji: tombol Alihkan dan Pindah ke WBS tidak boleh tampil pada status akhir. Pindah ke WBS juga boleh dari
+     * Menunggu Konfirmasi, yang belum akhir.
      */
-    public function test_redirect_button_shows_only_for_open_statuses_and_move_to_wbs_stays_hidden(): void
+    public function test_redirect_and_move_to_wbs_buttons_show_only_for_open_statuses(): void
     {
         $this->actingAs($this->admin);
         $terbuka = [StatusLaporan::Diterima, StatusLaporan::Terverifikasi, StatusLaporan::Diproses];
 
         foreach (StatusLaporan::untuk(JenisLaporan::Pengaduan) as $status) {
             $laporan = Laporan::factory()->berstatus($status)->create();
-            $halaman = Livewire::test(ViewPengaduan::class, ['record' => $laporan->id])->assertActionHidden('pindahKeWbs');
+            $halaman = Livewire::test(ViewPengaduan::class, ['record' => $laporan->id]);
 
             in_array($status, $terbuka, true)
                 ? $halaman->assertActionVisible('alihkan')
                 : $halaman->assertActionHidden('alihkan');
+
+            in_array($status, [...$terbuka, StatusLaporan::MenungguKonfirmasi], true)
+                ? $halaman->assertActionVisible('pindahKeWbs')
+                : $halaman->assertActionHidden('pindahKeWbs');
         }
     }
 }
