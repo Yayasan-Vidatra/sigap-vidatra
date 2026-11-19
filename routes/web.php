@@ -3,6 +3,7 @@
 use App\Http\Controllers\AltchaController;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\BuktiLaporController;
+use App\Http\Controllers\HalamanInformasiController;
 use App\Http\Controllers\LacakController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\UnggahLampiranController;
@@ -49,15 +50,9 @@ Route::prefix('lacak/laporan')->name('lacak.')->group(function (): void {
     Route::post('/penilaian', [LacakController::class, 'nilai'])->name('penilaian');
 });
 
-// Halaman sementara; isinya dikerjakan sesuai jadwal TOR (H-08 Hari 13).
-Route::inertia('/faq', 'Sementara', [
-    'judul' => 'Tanya Jawab (FAQ)',
-    'keterangan' => 'Tanya jawab umum dan target waktu penanganan sedang disiapkan.',
-])->name('faq');
-Route::inertia('/privasi', 'Sementara', [
-    'judul' => 'Kebijakan Privasi',
-    'keterangan' => 'Kebijakan privasi (data yang disimpan, lama penyimpanan, hak pelapor dan terlapor) sedang disiapkan.',
-])->name('privasi');
+// H-08 FAQ dan Kebijakan Privasi; teksnya dikelola di Pengaturan > Konten Publik (H-19).
+Route::get('/faq', [HalamanInformasiController::class, 'faq'])->name('faq');
+Route::get('/privasi', [HalamanInformasiController::class, 'privasi'])->name('privasi');
 
 /*
  * Middleware yang memasang cookie: sesi, token CSRF, dan cookie terenkripsi. Dilepas dari jalur /wbs* dan
