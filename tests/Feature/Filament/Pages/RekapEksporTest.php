@@ -4,6 +4,7 @@ namespace Tests\Feature\Filament\Pages;
 
 use App\Enums\AksiAudit;
 use App\Enums\Peran;
+use App\Enums\StatusLaporan;
 use App\Filament\Pages\RekapEkspor;
 use App\Models\IdentitasPelapor;
 use App\Models\Kategori;
@@ -12,6 +13,7 @@ use App\Models\Pesan;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Rekap\EksporRekap;
+use App\Services\Rekap\RekapLaporan;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,6 +21,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use OpenSpout\Reader\XLSX\Reader;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\MembacaPdf;
 use Tests\TestCase;
 
 /**
@@ -26,7 +29,7 @@ use Tests\TestCase;
  */
 class RekapEksporTest extends TestCase
 {
-    use RefreshDatabase;
+    use MembacaPdf, RefreshDatabase;
 
     private Unit $sd;
 
@@ -113,6 +116,26 @@ class RekapEksporTest extends TestCase
             ->assertDontSee('Budi Bendahara')
             ->assertDontSee('Atap kelas bocor')
             ->assertDontSee('Sari Pelapor');
+    }
+
+    public function test_average_days_use_a_decimal_comma_on_screen_and_in_the_pdf(): void
+    {
+        $kategori = Kategori::factory()->create(['nama' => 'Kebersihan']);
+        $cepat = Laporan::factory()->berstatus(StatusLaporan::Selesai)->for($this->sd)->for($kategori)->create(['dibuat_pada' => '2026-11-10 00:00:00']);
+        $cepat->riwayatStatus()->create(['status_baru' => StatusLaporan::Selesai, 'tampil_ke_pelapor' => false])->forceFill(['waktu' => '2026-11-10 04:48:00'])->save();
+        $user = $this->pengguna(Peran::AdminPengaduan);
+        $this->actingAs($user);
+
+        Livewire::test(RekapEkspor::class)
+            ->assertSeeHtml('>0,2</td>')
+            ->assertDontSeeHtml('>0.2</td>')
+            ->assertSee(RekapLaporan::CATATAN_PINDAH_WBS);
+
+        $html = view('pdf.rekap', [...app(EksporRekap::class)->data($user, $this->periode()), 'minimal' => 3])->render();
+        $this->assertStringContainsString('>0,2<', $html);
+        $this->assertStringNotContainsString('0.2', $html);
+        $this->assertStringContainsString(RekapLaporan::CATATAN_PINDAH_WBS, $html);
+        $this->assertStringContainsString('0,2', $this->teksPdf(app(EksporRekap::class)->pdf($user, $this->periode())));
     }
 
     public function test_excel_export_holds_only_numbers_and_is_logged(): void

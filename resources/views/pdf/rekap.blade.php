@@ -32,13 +32,14 @@
                 <tr>
                     <td>{{ $baris['unit'] }}</td><td>{{ $baris['kategori'] }}</td>
                     <td class="angka">{{ $baris['jumlah'] }}</td><td class="angka">{{ $baris['selesai'] }}</td>
-                    <td class="angka">{{ $baris['rata_rata_hari'] ?? '-' }}</td><td class="angka">{{ $baris['lewat_sla'] }}</td>
+                    <td class="angka">{{ \App\Services\Rekap\RekapLaporan::angka($baris['rata_rata_hari']) }}</td><td class="angka">{{ $baris['lewat_sla'] }}</td>
                 </tr>
             @empty
                 <tr><td colspan="6">Tidak ada pengaduan pada periode ini.</td></tr>
             @endforelse
         </tbody>
     </table>
+    <p class="sub">{{ \App\Services\Rekap\RekapLaporan::CATATAN_PINDAH_WBS }}</p>
 
     @if ($wbs !== null)
         <h2>Laporan WBS per kategori per triwulan {{ $tahun_wbs }}</h2>

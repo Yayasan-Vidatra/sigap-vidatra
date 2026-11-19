@@ -169,6 +169,27 @@ class RekapLaporanTest extends TestCase
         $this->assertSame([], $this->rekap->rekapPengaduan($adminSd, ['dari' => '2026-11-01', 'sampai' => '2026-11-30', 'unit_id' => $this->smp->id]));
     }
 
+    public function test_complaints_moved_to_wbs_are_not_counted_as_unfinished_complaints(): void
+    {
+        $kategori = Kategori::factory()->create(['nama' => 'Fasilitas']);
+        Laporan::factory()->berstatus(StatusLaporan::Diproses)->for($this->sd)->for($kategori)->create(['dibuat_pada' => '2026-11-02 00:00:00', 'batas_waktu' => '2026-11-10 00:00:00']);
+        Laporan::factory()->berstatus(StatusLaporan::DipindahKeWbs)->for($this->sd)->for($kategori)->create(['dibuat_pada' => '2026-11-03 00:00:00', 'batas_waktu' => '2026-11-04 00:00:00']);
+        Laporan::factory()->berstatus(StatusLaporan::DipindahKeWbs)->for($this->smp)->for($kategori)->create(['dibuat_pada' => '2026-11-03 00:00:00']);
+
+        $admin = User::factory()->peran(Peran::AdminPengaduan)->create();
+        $baris = $this->rekap->rekapPengaduan($admin, ['dari' => '2026-11-01', 'sampai' => '2026-11-30']);
+
+        $this->assertSame([['unit' => 'SD YPVDP', 'kategori' => 'Fasilitas', 'jumlah' => 1, 'selesai' => 0, 'rata_rata_hari' => null, 'lewat_sla' => 1]], $baris);
+    }
+
+    public function test_decimals_use_the_indonesian_format(): void
+    {
+        $this->assertSame('0,2', RekapLaporan::angka(0.2));
+        $this->assertSame('1.234,5', RekapLaporan::angka(1234.5));
+        $this->assertSame('3,0', RekapLaporan::angka(3.0));
+        $this->assertSame('-', RekapLaporan::angka(null));
+    }
+
     private function kartu(User $user, string $label): ?int
     {
         return collect($this->rekap->ringkasan($user))->firstWhere('label', $label)['nilai'] ?? null;

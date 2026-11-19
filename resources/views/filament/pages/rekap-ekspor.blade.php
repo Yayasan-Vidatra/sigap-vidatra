@@ -8,7 +8,7 @@
             <p class="text-sm text-danger-600">Periode tidak sah. Periksa tanggal awal dan akhir.</p>
         </x-filament::section>
     @else
-        <x-filament::section heading="Pengaduan" description="Periode {{ $rekap['periode'] }}. {{ $rekap['unit'] }}; {{ strtolower($rekap['kategori']) }}. Rata-rata dihitung dalam hari kalender sejak masuk sampai Selesai.">
+        <x-filament::section heading="Pengaduan" description="Periode {{ $rekap['periode'] }}. {{ $rekap['unit'] }}; {{ strtolower($rekap['kategori']) }}. Rata-rata dihitung dalam hari kalender sejak masuk sampai Selesai. {{ \App\Services\Rekap\RekapLaporan::CATATAN_PINDAH_WBS }}">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
@@ -28,7 +28,7 @@
                                 <td class="py-2 pe-4">{{ $baris['kategori'] }}</td>
                                 <td class="py-2 pe-4 text-end tabular-nums">{{ $baris['jumlah'] }}</td>
                                 <td class="py-2 pe-4 text-end tabular-nums">{{ $baris['selesai'] }}</td>
-                                <td class="py-2 pe-4 text-end tabular-nums">{{ $baris['rata_rata_hari'] ?? '-' }}</td>
+                                <td class="py-2 pe-4 text-end tabular-nums">{{ \App\Services\Rekap\RekapLaporan::angka($baris['rata_rata_hari']) }}</td>
                                 <td class="py-2 pe-4 text-end tabular-nums">{{ $baris['lewat_sla'] }}</td>
                             </tr>
                         @empty
