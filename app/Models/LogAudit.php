@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Log audit yang hanya bisa ditambah (NF-07). Model menolak update dan delete; trigger di basis data
@@ -100,5 +101,15 @@ class LogAudit extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Nilai lama dan baru untuk baris `mengubah_pengaturan` (H-19).
+     *
+     * @return HasMany<RiwayatPengaturan, $this>
+     */
+    public function riwayatPengaturan(): HasMany
+    {
+        return $this->hasMany(RiwayatPengaturan::class);
     }
 }

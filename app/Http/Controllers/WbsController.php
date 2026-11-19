@@ -167,7 +167,8 @@ class WbsController extends Controller
     {
         $path = Pengaturan::nilai(Pengaturan::WBS_BERKAS_JAMINAN);
 
-        return $path !== null && Storage::disk('local')->exists($path) ? $path : null;
+        return $path !== null && str_starts_with($path, 'pengaturan/') && ! str_contains($path, '..')
+            && Storage::disk('local')->exists($path) ? $path : null;
     }
 
     private static function teksAtauNull(mixed $nilai): ?string

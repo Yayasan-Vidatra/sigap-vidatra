@@ -42,21 +42,21 @@ class BerandaControllerTest extends TestCase
     /**
      * @return array<string, array{string, string}>
      */
-    public static function halamanSementara(): array
+    public static function halamanTertaut(): array
     {
         return [
-            'faq' => ['/faq', 'Tanya Jawab (FAQ)'],
-            'privasi' => ['/privasi', 'Kebijakan Privasi'],
+            'faq' => ['/faq', 'Informasi/Faq'],
+            'privasi' => ['/privasi', 'Informasi/Privasi'],
         ];
     }
 
-    #[DataProvider('halamanSementara')]
-    public function test_linked_pages_exist_as_temporary_pages(string $alamat, string $judul): void
+    #[DataProvider('halamanTertaut')]
+    public function test_linked_pages_exist(string $alamat, string $komponen): void
     {
         $response = $this->get($alamat);
 
         $response->assertOk();
-        $response->assertInertia(fn (Assert $page) => $page->component('Sementara')->where('judul', $judul));
+        $response->assertInertia(fn (Assert $page) => $page->component($komponen));
     }
 
     public function test_wbs_path_sets_no_cookies(): void
