@@ -84,6 +84,15 @@ enum Peran: string implements HasLabel
     }
 
     /**
+     * Peran Tim WBS, penerima hasil, dan Super Admin: diberikan, dicabut, dan 2FA-nya diatur ulang hanya dengan
+     * persetujuan tertulis Ketua Dewan Pengawas, lewat `php artisan sigap:peran-khusus` (Rancangan r1 Bagian 9).
+     */
+    public function butuhPersetujuanPengawas(): bool
+    {
+        return ! $this->dikelolaLewatPengaturan();
+    }
+
+    /**
      * Peran yang wajib terikat pada satu unit (A4, dan Kepala Sekolah pada A8).
      */
     public function wajibUnit(): bool

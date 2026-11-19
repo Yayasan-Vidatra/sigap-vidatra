@@ -9,7 +9,7 @@ use App\Models\User;
 use BackedEnum;
 
 /**
- * Mencatat perubahan Pengaturan (H-19): satu baris log audit `mengubah_pengaturan` per objek yang berubah, dengan
+ * Mencatat perubahan Pengaturan (H-19): satu baris log audit (bawaan `mengubah_pengaturan`) per objek yang berubah, dengan
  * nilai lama dan baru setiap kolom di riwayat_pengaturan. Kolom rahasia hanya tercatat bahwa ia diubah.
  * Dipanggil di dalam transaksi yang sama dengan perubahannya.
  */
@@ -19,9 +19,10 @@ class PencatatPerubahanPengaturan
      * @param  string  $objek  rujukan berformat "{tabel}:{id}" atau "pengaturan:{kunci}"
      * @param  array<string, mixed>  $lama
      * @param  array<string, mixed>  $baru
-     * @param  list<string>  $rahasia  kolom yang nilainya tidak boleh disimpan (kata sandi)
+     * @param  list<string>  $rahasia  kolom yang nilainya tidak boleh disimpan (kata sandi, rahasia 2FA)
+     * @param  User|null  $oleh  null bila dijalankan lewat perintah artisan di server
      */
-    public function catat(User $oleh, string $objek, array $lama, array $baru, array $rahasia = []): ?LogAudit
+    public function catat(?User $oleh, string $objek, array $lama, array $baru, array $rahasia = [], AksiAudit $aksi = AksiAudit::MengubahPengaturan): ?LogAudit
     {
         $berubah = [];
 
@@ -47,7 +48,7 @@ class PencatatPerubahanPengaturan
             return null;
         }
 
-        $log = LogAudit::catatObjek($oleh, AksiAudit::MengubahPengaturan, $objek);
+        $log = LogAudit::catatObjek($oleh, $aksi, $objek);
 
         foreach ($berubah as $kolom => [$nilaiLama, $nilaiBaru]) {
             $log->riwayatPengaturan()->create([

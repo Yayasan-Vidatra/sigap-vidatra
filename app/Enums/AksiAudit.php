@@ -54,6 +54,9 @@ enum AksiAudit: string implements HasLabel
     case MemindahkanPengaduanKeWbs = 'memindahkan_pengaduan_ke_wbs';
     case MembuatPinSementaraPelapor = 'membuat_pin_sementara_pelapor';
     case MengubahPengaturan = 'mengubah_pengaturan';
+    case MemberiPeranKhusus = 'memberi_peran_khusus';
+    case MencabutPeranKhusus = 'mencabut_peran_khusus';
+    case MengaturUlang2fa = 'mengatur_ulang_2fa';
 
     public function getLabel(): string
     {
@@ -103,6 +106,9 @@ enum AksiAudit: string implements HasLabel
             self::MemindahkanPengaduanKeWbs => 'Memindahkan pengaduan ke WBS',
             self::MembuatPinSementaraPelapor => 'Membuat PIN sementara pelapor',
             self::MengubahPengaturan => 'Mengubah pengaturan',
+            self::MemberiPeranKhusus => 'Memberi peran Tim WBS/penerima hasil/Super Admin',
+            self::MencabutPeranKhusus => 'Mencabut peran Tim WBS/penerima hasil/Super Admin',
+            self::MengaturUlang2fa => 'Mengatur ulang 2FA',
         };
     }
 }
