@@ -4,6 +4,7 @@ use App\Http\Controllers\AltchaController;
 use App\Http\Controllers\BerandaController;
 use App\Http\Controllers\BuktiLaporController;
 use App\Http\Controllers\HalamanInformasiController;
+use App\Http\Controllers\KesehatanController;
 use App\Http\Controllers\LacakController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\UnggahLampiranController;
@@ -65,6 +66,12 @@ $tanpaCookie = [
     ShareErrorsFromSession::class,
     PreventRequestForgery::class,
 ];
+
+// Pemeriksaan kesehatan untuk pemantau uptime (NF-04), tanpa sesi dan cookie.
+Route::get('/kesehatan', KesehatanController::class)
+    ->withoutMiddleware($tanpaCookie)
+    ->middleware('throttle:60,1')
+    ->name('kesehatan');
 
 Route::get('/altcha/tantangan', AltchaController::class)
     ->withoutMiddleware($tanpaCookie)
