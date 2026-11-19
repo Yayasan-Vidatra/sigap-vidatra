@@ -53,6 +53,7 @@ enum AksiAudit: string implements HasLabel
     case MencatatTindakLanjutPengalihan = 'mencatat_tindak_lanjut_pengalihan';
     case MemindahkanPengaduanKeWbs = 'memindahkan_pengaduan_ke_wbs';
     case MembuatPinSementaraPelapor = 'membuat_pin_sementara_pelapor';
+    case MengeksporRekap = 'mengekspor_rekap';
     case MengubahPengaturan = 'mengubah_pengaturan';
     case MemberiPeranKhusus = 'memberi_peran_khusus';
     case MencabutPeranKhusus = 'mencabut_peran_khusus';
@@ -108,6 +109,7 @@ enum AksiAudit: string implements HasLabel
             self::MencatatTindakLanjutPengalihan => 'Mencatat tindak lanjut pengalihan',
             self::MemindahkanPengaduanKeWbs => 'Memindahkan pengaduan ke WBS',
             self::MembuatPinSementaraPelapor => 'Membuat PIN sementara pelapor',
+            self::MengeksporRekap => 'Mengekspor rekap',
             self::MengubahPengaturan => 'Mengubah pengaturan',
             self::MemberiPeranKhusus => 'Memberi peran Tim WBS/penerima hasil/Super Admin',
             self::MencabutPeranKhusus => 'Mencabut peran Tim WBS/penerima hasil/Super Admin',
