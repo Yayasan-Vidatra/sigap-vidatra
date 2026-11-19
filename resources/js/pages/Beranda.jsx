@@ -169,7 +169,13 @@ function PilihJalur({ targetPengaduan, targetWbs }) {
     );
 }
 
-function Darurat({ kontakDarurat }) {
+/*
+ * Kontak darurat per unit dari Pengaturan. Unit yang kontaknya belum diisi mendapat kalimat cadangan dari server
+ * (Unit::KONTAK_DARURAT_CADANGAN), bukan ajakan menghubungi nomor yang tidak tampil.
+ */
+function Darurat({ kontakDarurat, unitTanpaKontakDarurat, kontakDaruratCadangan }) {
+    const adaKontak = kontakDarurat.length > 0;
+
     return (
         <section aria-labelledby="darurat" className="mx-auto max-w-[1200px] px-4 pt-6 sm:px-6">
             <div className="flex flex-wrap items-center gap-x-8 gap-y-5 rounded-[20px] border border-darurat-200 bg-darurat-50 px-5 py-6 sm:px-7">
@@ -190,12 +196,12 @@ function Darurat({ kontakDarurat }) {
                             Ada kekerasan atau bahaya di sekolah?
                         </h2>
                         <p className="mt-1 text-[15px] leading-relaxed text-darurat-900">
-                            Jangan menunggu. Hubungi kontak darurat unit{kontakDarurat.length > 0 ? ' di samping' : ' sekolah'}. Laporan
+                            Jangan menunggu. {adaKontak ? 'Hubungi kontak darurat unit di samping.' : kontakDaruratCadangan} Laporan
                             kekerasan segera diteruskan ke Kepala Sekolah.
                         </p>
                     </div>
                 </div>
-                {kontakDarurat.length > 0 && (
+                {adaKontak && (
                     <ul className="grid min-w-0 flex-[2_1_480px] grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
                         {kontakDarurat.map((item) => {
                             const tel = tautanTelepon(item.kontak);
@@ -218,6 +224,12 @@ function Darurat({ kontakDarurat }) {
                                 </li>
                             );
                         })}
+                        {unitTanpaKontakDarurat.length > 0 && (
+                            <li className="min-h-11 rounded-xl border border-darurat-200 bg-white px-3.5 py-3 text-slate-900">
+                                <span className="block text-[13px] text-slate-600">{unitTanpaKontakDarurat.join(', ')}</span>
+                                <span className="text-[15px] font-bold">{kontakDaruratCadangan}</span>
+                            </li>
+                        )}
                     </ul>
                 )}
             </div>
@@ -338,14 +350,14 @@ function TanyaJawab({ tanyaJawab }) {
  * H-01 Beranda (US-01, F-01). Angka dan kontak tidak ditanam di kode: kontak darurat dari Pengaturan (units),
  * target Pengaduan dari SLA kategori, target telaah WBS dari config, tanya jawab dari Pengaturan.
  */
-export default function Beranda({ kontakDarurat, targetPengaduan, targetWbs, tanyaJawab = [] }) {
+export default function Beranda({ kontakDarurat, unitTanpaKontakDarurat = [], kontakDaruratCadangan, targetPengaduan, targetWbs, tanyaJawab = [] }) {
     return (
         <PublicLayout polos>
             <Head title="Beranda" />
             <div className="bg-white">
                 <Hero />
                 <PilihJalur targetPengaduan={targetPengaduan} targetWbs={targetWbs} />
-                <Darurat kontakDarurat={kontakDarurat} />
+                <Darurat kontakDarurat={kontakDarurat} unitTanpaKontakDarurat={unitTanpaKontakDarurat} kontakDaruratCadangan={kontakDaruratCadangan} />
                 <CaraKerja />
                 <Perlindungan />
                 <TanyaJawab tanyaJawab={tanyaJawab} />

@@ -104,6 +104,8 @@ class WbsControllerTest extends TestCase
             ->has('kedudukan', count(KedudukanTerlapor::cases()))
             ->where('kedudukan.5', ['value' => 'tidak_tahu', 'label' => 'Tidak tahu'])
             ->where('kontakDarurat', [['unit' => 'SMA YPVDP', 'kontak' => '0812-1111-2222']])
+            ->where('kontakDaruratCadangan', 'Segera hubungi wali kelas atau kantor sekolah.')
+            ->where('targetTelaah', (int) config('sigap.wbs.telaah_hari_kerja'))
             ->where('token', fn (string $token): bool => TokenFormulirWbs::nonce($token) !== null));
         $this->assertSame([], $response->headers->getCookies());
     }

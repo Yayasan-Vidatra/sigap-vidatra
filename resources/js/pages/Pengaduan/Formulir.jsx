@@ -151,7 +151,7 @@ function PilihanJenisPelapor({ jenisPelapor, nilai, onChange, galat }) {
     );
 }
 
-function Samping({ unitDipilih, kategoriDipilih, unit, kategori }) {
+function Samping({ unitDipilih, kategoriDipilih, unit, kategori, kontakDaruratCadangan }) {
     const tanggapan = kategoriDipilih ? `${kategoriDipilih.sla_tanggapan_hari}` : rentang(kategori.map((item) => item.sla_tanggapan_hari));
     const kontak = unitDipilih ? (unitDipilih.kontak_darurat ? [unitDipilih] : []) : unit.filter((item) => item.kontak_darurat);
 
@@ -174,16 +174,20 @@ function Samping({ unitDipilih, kategoriDipilih, unit, kategori }) {
                     <li>Unit sekolah menindaklanjuti dan meminta konfirmasi Anda.</li>
                 </ol>
             </div>
-            {kontak.length > 0 && (
-                <div className="flex flex-col gap-1.5 rounded-[18px] border border-darurat-200 bg-darurat-50 p-5 sm:p-6">
-                    <h2 className="text-[17px] font-extrabold text-darurat-900">Menyangkut keselamatan siswa?</h2>
-                    {kontak.map((item) => (
-                        <p key={item.id} className="text-sm leading-relaxed text-darurat-900">
-                            Hubungi kontak darurat {item.nama}: <strong className="break-words">{item.kontak_darurat}</strong>
-                        </p>
-                    ))}
-                </div>
-            )}
+            {/* Kontak dari Pengaturan; bila unit belum punya kontak darurat, kalimat cadangan dari server. */}
+            <div className="flex flex-col gap-1.5 rounded-[18px] border border-darurat-200 bg-darurat-50 p-5 sm:p-6">
+                <h2 className="text-[17px] font-extrabold text-darurat-900">Menyangkut keselamatan siswa?</h2>
+                {kontak.map((item) => (
+                    <p key={item.id} className="text-sm leading-relaxed text-darurat-900">
+                        Hubungi kontak darurat {item.nama}: <strong className="break-words">{item.kontak_darurat}</strong>
+                    </p>
+                ))}
+                {(kontak.length === 0 || (!unitDipilih && kontak.length < unit.length)) && (
+                    <p className="text-sm leading-relaxed text-darurat-900">
+                        {kontak.length > 0 ? `Unit lain: ${kontakDaruratCadangan.charAt(0).toLowerCase()}${kontakDaruratCadangan.slice(1)}` : kontakDaruratCadangan}
+                    </p>
+                )}
+            </div>
         </aside>
     );
 }
@@ -192,7 +196,7 @@ function Samping({ unitDipilih, kategoriDipilih, unit, kategori }) {
  * H-02 Formulir Pengaduan (US-02, US-03, US-04). Target waktu dan kontak darurat dari props (SLA kategori dan
  * Pengaturan), berubah mengikuti unit dan kategori yang dipilih.
  */
-export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, aturanLampiran, maksKronologi }) {
+export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, aturanLampiran, maksKronologi, kontakDaruratCadangan }) {
     const [sedangMengunggah, setSedangMengunggah] = useState(false);
     const form = useForm(isianAwal);
     const { data, setData, errors, processing } = form;
@@ -456,7 +460,7 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, a
                     </div>
                 </form>
 
-                <Samping unitDipilih={unitDipilih} kategoriDipilih={kategoriDipilih} unit={unit} kategori={kategori} />
+                <Samping unitDipilih={unitDipilih} kategoriDipilih={kategoriDipilih} unit={unit} kategori={kategori} kontakDaruratCadangan={kontakDaruratCadangan} />
             </div>
         </PublicLayout>
     );

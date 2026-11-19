@@ -24,10 +24,13 @@ class BerandaController extends Controller
             'kontakDarurat' => Unit::query()
                 ->where('aktif', true)
                 ->whereNotNull('kontak_darurat')
+                ->where('kontak_darurat', '!=', '')
                 ->orderBy('id')
                 ->get(['nama', 'kontak_darurat'])
                 ->map(fn (Unit $unit): array => ['unit' => $unit->nama, 'kontak' => $unit->kontak_darurat])
                 ->all(),
+            'unitTanpaKontakDarurat' => Unit::tanpaKontakDarurat(),
+            'kontakDaruratCadangan' => Unit::KONTAK_DARURAT_CADANGAN,
             'targetPengaduan' => self::ringkasanTarget(Kategori::targetPengaduan()),
             'targetWbs' => ['telaah' => (int) config('sigap.wbs.telaah_hari_kerja')],
             'tanyaJawab' => array_slice(Pengaturan::daftar(Pengaturan::PUBLIK_FAQ), 0, self::JUMLAH_TANYA_JAWAB),

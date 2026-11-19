@@ -77,7 +77,7 @@ class KontenPublikSeeder extends Seeder
         ],
         [
             'judul' => 'Siapa yang dapat melihat laporan Anda',
-            'isi' => "Pengaduan dibaca Admin Pengaduan dan petugas unit yang menangani. Laporan kekerasan juga diteruskan kepada Kepala Sekolah atau Pokja BSAN.\n\nLaporan pelanggaran dibaca Ketua Tim WBS, atau penelaah pengganti bila laporan menyangkut Tim WBS, Pengawas, atau Pembina, serta investigator yang ditunjuk. Pimpinan yang menerima hasil penanganan tidak menerima identitas pelapor.",
+            'isi' => "Pengaduan dibaca Admin Pengaduan dan petugas unit yang menangani. Laporan kekerasan juga diteruskan kepada Kepala Sekolah atau Pokja BSAN.\n\nLaporan pelanggaran dibaca penelaah yang berwenang menurut aturan (penelaah lain bila laporan menyangkut Tim WBS, Pengawas, atau Pembina), serta investigator yang ditunjuk. Pimpinan yang menerima hasil penanganan tidak menerima identitas pelapor.",
         ],
         [
             'judul' => 'Lama penyimpanan',

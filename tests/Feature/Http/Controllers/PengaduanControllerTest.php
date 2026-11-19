@@ -47,6 +47,7 @@ class PengaduanControllerTest extends TestCase
             ->where('unit', [['id' => $unit->id, 'nama' => 'SMP YPVDP', 'kontak_darurat' => '0811-2222-3333']])
             ->where('kategori', [['id' => $kategori->id, 'nama' => 'Kebersihan', 'sla_tanggapan_hari' => 2, 'sla_hari' => 10]])
             ->where('maksKronologi', StorePengaduanRequest::MAKS_KRONOLOGI)
+            ->where('kontakDaruratCadangan', 'Segera hubungi wali kelas atau kantor sekolah.')
             ->has('jenisPelapor', 4)
             ->has('kataKunciWbs'));
     }

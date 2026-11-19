@@ -22,6 +22,27 @@ class Unit extends Model
     public const UPDATED_AT = 'diperbarui_pada';
 
     /**
+     * Kalimat untuk unit yang kontak daruratnya belum diisi di Pengaturan, agar halaman publik tidak mengajak
+     * menghubungi nomor yang tidak tampil.
+     */
+    public const KONTAK_DARURAT_CADANGAN = 'Segera hubungi wali kelas atau kantor sekolah.';
+
+    /**
+     * Nama unit aktif yang kontak daruratnya belum diisi.
+     *
+     * @return list<string>
+     */
+    public static function tanpaKontakDarurat(): array
+    {
+        return self::query()
+            ->where('aktif', true)
+            ->where(fn ($query) => $query->whereNull('kontak_darurat')->orWhere('kontak_darurat', ''))
+            ->orderBy('id')
+            ->pluck('nama')
+            ->all();
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

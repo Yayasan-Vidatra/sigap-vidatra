@@ -14,7 +14,7 @@ function TeksBawaan() {
                 <h3 className="font-semibold text-slate-900">Identitas Anda dilindungi</h3>
                 <p>
                     Anda boleh melapor tanpa nama. Bila Anda menulis nama, identitas disimpan terpisah dan terenkripsi,
-                    dan hanya dapat dibuka Ketua Tim WBS (atau penelaah pengganti bila Ketua tidak menangani laporan).
+                    dan hanya dapat dibuka penelaah yang berwenang.
                     Setiap pembukaan identitas tercatat. Halaman WBS tidak mencatat alamat IP, tidak memasang cookie,
                     dan tidak memuat analitik.
                 </p>

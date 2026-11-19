@@ -75,6 +75,48 @@ class BerandaControllerTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page->where('kontakDarurat', []));
     }
 
+    public function test_units_without_an_emergency_contact_get_a_useful_fallback_instead_of_a_missing_number(): void
+    {
+        Unit::factory()->create(['nama' => 'SD YPVDP', 'kontak_darurat' => '0811-1111-1111']);
+        Unit::factory()->create(['nama' => 'SMP YPVDP', 'kontak_darurat' => null]);
+        Unit::factory()->create(['nama' => 'SMA YPVDP', 'kontak_darurat' => '']);
+        Unit::factory()->nonaktif()->create(['nama' => 'Unit Lama', 'kontak_darurat' => null]);
+
+        $this->get('/')->assertInertia(fn (Assert $page) => $page
+            ->where('kontakDarurat', [['unit' => 'SD YPVDP', 'kontak' => '0811-1111-1111']])
+            ->where('unitTanpaKontakDarurat', ['SMP YPVDP', 'SMA YPVDP'])
+            ->where('kontakDaruratCadangan', 'Segera hubungi wali kelas atau kantor sekolah.'));
+    }
+
+    public function test_when_no_unit_has_an_emergency_contact_every_unit_gets_the_fallback(): void
+    {
+        Unit::factory()->count(2)->create(['kontak_darurat' => null]);
+
+        $this->get('/')->assertInertia(fn (Assert $page) => $page
+            ->where('kontakDarurat', [])
+            ->has('unitTanpaKontakDarurat', 2)
+            ->where('kontakDaruratCadangan', Unit::KONTAK_DARURAT_CADANGAN));
+    }
+
+    public function test_public_pages_show_the_fallback_and_never_point_to_a_number_that_is_not_shown(): void
+    {
+        $halaman = [
+            'Beranda.jsx' => 'Hubungi kontak darurat unit di samping',
+            'Pengaduan/Formulir.jsx' => 'Hubungi kontak darurat',
+            'Wbs/Formulir.jsx' => 'segera minta bantuan',
+        ];
+
+        foreach ($halaman as $berkas => $ajakan) {
+            $sumber = file_get_contents(resource_path("js/pages/{$berkas}"));
+
+            $this->assertStringContainsString('kontakDaruratCadangan', $sumber, $berkas);
+            $this->assertStringContainsString($ajakan, $sumber, $berkas);
+            $this->assertStringNotContainsString('belum tersedia', $sumber, $berkas);
+        }
+
+        $this->assertStringNotContainsString('{kontak.length > 0 && (', file_get_contents(resource_path('js/pages/Pengaduan/Formulir.jsx')));
+    }
+
     /**
      * @return array<string, array{string, string}>
      */

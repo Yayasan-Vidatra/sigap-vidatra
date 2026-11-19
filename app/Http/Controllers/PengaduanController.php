@@ -35,6 +35,7 @@ class PengaduanController extends Controller
                 ->where('jenis', JenisLaporan::Pengaduan)
                 ->orderBy('nama')
                 ->get(['id', 'nama', 'sla_tanggapan_hari', 'sla_hari']),
+            'kontakDaruratCadangan' => Unit::KONTAK_DARURAT_CADANGAN,
             'maksKronologi' => StorePengaduanRequest::MAKS_KRONOLOGI,
             'jenisPelapor' => collect(JenisPelapor::cases())
                 ->map(fn (JenisPelapor $jenis): array => ['value' => $jenis->value, 'label' => $jenis->getLabel()])
