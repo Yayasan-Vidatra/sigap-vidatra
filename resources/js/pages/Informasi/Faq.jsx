@@ -4,7 +4,7 @@ import PublicLayout from '../../layouts/PublicLayout';
 
 export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
     return (
-        <PublicLayout>
+        <PublicLayout lebar="sedang">
             <Head title="Tanya Jawab (FAQ)" />
 
             <div className="flex flex-col gap-6">
@@ -14,14 +14,14 @@ export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
                 </header>
 
                 {pertanyaan.length === 0 ? (
-                    <p className="rounded-xl border border-slate-200 bg-white p-5 text-slate-600">
+                    <p className="rounded-2xl border border-garis bg-white p-5 sm:p-7 text-slate-600">
                         Tanya jawab sedang disiapkan.
                     </p>
                 ) : (
                     <section className="flex flex-col gap-3">
                         {pertanyaan.map((butir, i) => (
                             <details key={i} className="group rounded-xl border border-slate-200 bg-white p-4" open={i === 0}>
-                                <summary className="cursor-pointer list-none font-semibold text-slate-900 marker:hidden">
+                                <summary className="flex min-h-11 cursor-pointer list-none items-center font-semibold text-slate-900 marker:hidden">
                                     <span className="flex items-start justify-between gap-3">
                                         {butir.pertanyaan}
                                         <span aria-hidden="true" className="text-slate-400 group-open:rotate-45">
@@ -37,11 +37,11 @@ export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
                     </section>
                 )}
 
-                <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5">
-                    <h2 className="text-lg font-semibold">Target waktu penanganan</h2>
+                <section className="flex flex-col gap-3 rounded-2xl border border-garis bg-white p-5 sm:p-7">
+                    <h2 className="text-lg font-extrabold">Target waktu penanganan</h2>
                     <p className="text-sm text-slate-600">Dihitung dalam hari kerja (Senin sampai Jumat).</p>
 
-                    <h3 className="font-semibold text-teal-800">Pengaduan</h3>
+                    <h3 className="font-semibold text-pengaduan-800">Pengaduan</h3>
                     {targetPengaduan.length === 0 ? (
                         <p className="text-slate-600">Belum ada kategori pengaduan.</p>
                     ) : (
@@ -67,7 +67,7 @@ export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
                         </div>
                     )}
 
-                    <h3 className="font-semibold text-indigo-800">Pelaporan Pelanggaran (WBS)</h3>
+                    <h3 className="font-semibold text-wbs-800">Pelaporan Pelanggaran (WBS)</h3>
                     <ul className="list-disc space-y-1 pl-5 text-slate-700">
                         <li>Telaah awal: {targetWbs.telaah} hari kerja sejak laporan diterima.</li>
                         <li>
@@ -79,7 +79,7 @@ export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
 
                 <p className="text-sm text-slate-600">
                     Baca juga{' '}
-                    <Link href="/privasi" className="font-medium text-teal-700 hover:underline">
+                    <Link href="/privasi" className="font-medium text-pengaduan-700 hover:underline">
                         Kebijakan Privasi
                     </Link>
                     .

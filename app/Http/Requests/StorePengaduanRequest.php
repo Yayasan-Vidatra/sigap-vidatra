@@ -22,6 +22,9 @@ use Illuminate\Validation\Validator;
  */
 class StorePengaduanRequest extends FormRequest
 {
+    /** Panjang maksimum kronologi; juga dipakai penghitung karakter di formulir. */
+    public const MAKS_KRONOLOGI = 5000;
+
     public function authorize(): bool
     {
         return true;
@@ -44,7 +47,7 @@ class StorePengaduanRequest extends FormRequest
             'kontak_orang_tua' => ["exclude_unless:jenis_pelapor,{$siswa}", 'required', 'string', 'max:150'],
             'persetujuan_orang_tua' => ["exclude_unless:jenis_pelapor,{$siswa}", 'accepted'],
             'judul' => ['required', 'string', 'max:200'],
-            'kronologi' => ['required', 'string', 'min:20', 'max:5000'],
+            'kronologi' => ['required', 'string', 'min:20', 'max:'.self::MAKS_KRONOLOGI],
             // Isian datetime-local tidak membawa zona; pelapor mengisi waktu WITA (App\Services\WaktuLokal).
             'waktu_kejadian' => ['nullable', 'date', 'before_or_equal:'.WaktuLokal::sekarangSebagaiMasukan()],
             'lokasi' => ['nullable', 'string', 'max:200'],

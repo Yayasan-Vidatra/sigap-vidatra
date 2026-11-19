@@ -19,6 +19,7 @@ use App\Rules\UnggahanLampiranSiap;
 use App\Services\Lacak\IzinLacak;
 use App\Services\Lacak\PembatasPercobaanLacak;
 use App\Services\Lacak\PembatasPercobaanLacakWbs;
+use App\Services\Lacak\TahapanLaporan;
 use App\Services\Pengaduan\KonfirmasiPelapor;
 use App\Services\Pengaduan\PesanLaporan;
 use App\Services\WaktuLokal;
@@ -333,6 +334,11 @@ class LacakController extends Controller
                 'waktu' => WaktuLokal::tampilkan($pesan->dibuat_pada, 'd F Y, H.i'),
                 'lampiran' => $pesan->lampiran->map(fn (Lampiran $lampiran): string => $lampiran->nama_asli)->all(),
             ])->all(),
+            'tahapan' => TahapanLaporan::untuk($laporan),
+            // Batas waktu SLA kategori yang dihitung saat disposisi; hanya tampil selama unit memproses pengaduan.
+            'targetSelesai' => ! $wbs && $laporan->status === StatusLaporan::Diproses && $laporan->batas_waktu !== null
+                ? WaktuLokal::keLokal($laporan->batas_waktu)->locale('id')->translatedFormat('d M Y')
+                : null,
             'bolehMenanggapi' => $laporan->status === StatusLaporan::MenungguKonfirmasi,
             'bolehKirimPesan' => PesanLaporan::pelaporBolehMengirim($laporan),
             'batasTanggapan' => ($batas = KonfirmasiPelapor::batasTanggapan($laporan))

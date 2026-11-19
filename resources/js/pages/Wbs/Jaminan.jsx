@@ -62,8 +62,8 @@ function SaluranAlternatif({ saluran }) {
     const ada = saluran.surel || saluran.telepon || saluran.surat;
 
     return (
-        <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold">Saluran lain</h2>
+        <section className="flex flex-col gap-3 rounded-2xl border border-garis bg-white p-5 sm:p-7">
+            <h2 className="text-lg font-extrabold">Saluran lain</h2>
             <p className="text-slate-700">Selain formulir ini, laporan pelanggaran dapat disampaikan langsung kepada SPI.</p>
             {ada ? (
                 <dl className="grid gap-3 sm:grid-cols-3">
@@ -99,19 +99,19 @@ function SaluranAlternatif({ saluran }) {
 
 export default function Jaminan({ berkasJaminan, saluran }) {
     return (
-        <PublicLayout>
+        <PublicLayout lebar="sedang">
             <Head title="Jaminan Kerahasiaan WBS" />
 
             <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-bold">Pelaporan Pelanggaran (WBS)</h1>
+                    <h1 className="text-[28px] leading-tight font-extrabold tracking-tight sm:text-[34px]">Pelaporan Pelanggaran (WBS)</h1>
                     <p className="text-slate-600">
                         Baca jaminan kerahasiaan dan perlindungan pelapor berikut sebelum melapor.
                     </p>
                 </div>
 
-                <section className="flex flex-col gap-4 rounded-xl border border-indigo-200 bg-white p-5">
-                    <h2 className="text-lg font-semibold">Jaminan kerahasiaan dan perlindungan pelapor</h2>
+                <section className="flex flex-col gap-4 rounded-2xl border border-wbs-200 bg-white p-5 sm:p-7">
+                    <h2 className="text-lg font-extrabold">Jaminan kerahasiaan dan perlindungan pelapor</h2>
                     {berkasJaminan ? <PenampilBerkas src={berkasJaminan} judul="Dokumen jaminan kerahasiaan WBS" /> : <TeksBawaan />}
                 </section>
 
@@ -120,11 +120,11 @@ export default function Jaminan({ berkasJaminan, saluran }) {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <Link
                         href="/wbs/lapor?mengerti=1"
-                        className="rounded-lg bg-indigo-700 px-4 py-3 text-center font-semibold text-white hover:bg-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-700"
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-wbs-700 px-5 py-3 text-center font-bold text-white hover:bg-wbs-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wbs-700"
                     >
                         Saya mengerti, lanjut melapor
                     </Link>
-                    <Link href="/" className="text-center font-medium text-slate-700 hover:underline">
+                    <Link href="/" className="inline-flex min-h-11 items-center justify-center font-semibold text-slate-700 underline underline-offset-2">
                         Kembali ke Beranda
                     </Link>
                 </div>

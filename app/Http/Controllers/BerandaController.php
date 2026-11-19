@@ -3,16 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kategori;
+use App\Models\Pengaturan;
 use App\Models\Unit;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * H-01 Beranda (US-01, F-01). Kontak darurat diambil dari units.kontak_darurat yang diisi lewat
- * Pengaturan, dan target waktu Pengaduan dari SLA kategori, bukan ditanam di kode (aturan proyek no. 7).
+ * Pengaturan, target waktu Pengaduan dari SLA kategori, target telaah WBS dari config, dan tanya jawab dari
+ * Pengaturan, bukan ditanam di kode (aturan proyek no. 7).
  */
 class BerandaController extends Controller
 {
+    /** Banyaknya tanya jawab dari Pengaturan yang ditampilkan di Beranda; selengkapnya di /faq. */
+    private const JUMLAH_TANYA_JAWAB = 4;
+
     public function __invoke(): Response
     {
         return Inertia::render('Beranda', [
@@ -24,6 +29,8 @@ class BerandaController extends Controller
                 ->map(fn (Unit $unit): array => ['unit' => $unit->nama, 'kontak' => $unit->kontak_darurat])
                 ->all(),
             'targetPengaduan' => self::ringkasanTarget(Kategori::targetPengaduan()),
+            'targetWbs' => ['telaah' => (int) config('sigap.wbs.telaah_hari_kerja')],
+            'tanyaJawab' => array_slice(Pengaturan::daftar(Pengaturan::PUBLIK_FAQ), 0, self::JUMLAH_TANYA_JAWAB),
         ]);
     }
 

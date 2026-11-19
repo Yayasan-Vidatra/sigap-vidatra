@@ -29,11 +29,13 @@ class PengaduanController extends Controller
     public function create(): Response
     {
         return Inertia::render('Pengaduan/Formulir', [
-            'unit' => Unit::query()->where('aktif', true)->orderBy('id')->get(['id', 'nama']),
+            // Kontak darurat dan SLA dari Pengaturan/Kategori: formulir menampilkannya sesuai unit dan kategori yang dipilih.
+            'unit' => Unit::query()->where('aktif', true)->orderBy('id')->get(['id', 'nama', 'kontak_darurat']),
             'kategori' => Kategori::query()
                 ->where('jenis', JenisLaporan::Pengaduan)
                 ->orderBy('nama')
-                ->get(['id', 'nama']),
+                ->get(['id', 'nama', 'sla_tanggapan_hari', 'sla_hari']),
+            'maksKronologi' => StorePengaduanRequest::MAKS_KRONOLOGI,
             'jenisPelapor' => collect(JenisPelapor::cases())
                 ->map(fn (JenisPelapor $jenis): array => ['value' => $jenis->value, 'label' => $jenis->getLabel()])
                 ->all(),

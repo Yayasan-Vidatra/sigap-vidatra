@@ -3,6 +3,7 @@
 namespace Tests\Feature\Http\Controllers;
 
 use App\Models\Kategori;
+use App\Models\Pengaturan;
 use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -92,6 +93,37 @@ class BerandaControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page->component($komponen));
+    }
+
+    public function test_beranda_takes_the_wbs_review_target_from_config_and_four_questions_from_settings(): void
+    {
+        config(['sigap.wbs.telaah_hari_kerja' => 7]);
+        $faq = collect(range(1, 6))->map(fn (int $i): array => ['pertanyaan' => "Pertanyaan {$i}?", 'jawaban' => "Jawaban {$i}."])->all();
+        Pengaturan::factory()->create(['kunci' => Pengaturan::PUBLIK_FAQ, 'nilai' => json_encode($faq)]);
+
+        $this->get('/')->assertInertia(fn (Assert $page) => $page
+            ->where('targetWbs', ['telaah' => 7])
+            ->has('tanyaJawab', 4)
+            ->where('tanyaJawab.0.pertanyaan', 'Pertanyaan 1?'));
+    }
+
+    public function test_public_pages_load_fonts_and_images_only_from_this_site(): void
+    {
+        $css = file_get_contents(resource_path('css/app.css'));
+        $vite = file_get_contents(base_path('vite.config.js'));
+
+        $this->assertDoesNotMatchRegularExpression('#url\(\s*[\'"]?https?:#i', $css);
+        $this->assertStringNotContainsString('bunny', $vite);
+        $this->assertFileExists(resource_path('fonts/plus-jakarta-sans/OFL.txt'));
+        $this->assertFileExists(public_path('img/foto-siswa-1800.jpg'));
+
+        foreach (['/', '/wbs', '/pengaduan', '/lacak'] as $alamat) {
+            $html = $this->get($alamat)->assertOk()->getContent();
+            $this->assertDoesNotMatchRegularExpression('#(src|href)="https?://(?!localhost)#i', $html, $alamat);
+            $this->assertStringNotContainsString('fonts.googleapis', $html);
+        }
+
+        $this->assertStringContainsString("font-src 'self'", $this->get('/wbs')->headers->get('Content-Security-Policy'));
     }
 
     public function test_wbs_path_sets_no_cookies(): void
