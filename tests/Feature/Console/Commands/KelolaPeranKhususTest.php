@@ -5,10 +5,16 @@ namespace Tests\Feature\Console\Commands;
 use App\Enums\AksiAudit;
 use App\Enums\Peran;
 use App\Mail\PemberitahuanPeranKhusus;
+use App\Mail\TautanBuatKataSandi;
 use App\Models\LogAudit;
+use App\Models\RiwayatPengaturan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -50,13 +56,52 @@ class KelolaPeranKhususTest extends TestCase
         });
     }
 
-    public function test_a_new_local_account_can_be_created_with_the_role(): void
+    public function test_a_new_account_gets_a_password_link_and_its_random_password_is_never_shown_or_recorded(): void
     {
-        $this->artisan('sigap:peran-khusus', ['aksi' => 'beri', 'email' => 'pengawas@contoh.test', 'peran' => 'dewan_pengawas', '--nama' => 'Ibu Pengawas', ...self::DASAR])
-            ->assertSuccessful()
-            ->expectsOutputToContain('Kata sandi awal');
+        Log::spy();
+        Str::createRandomStringsUsing(fn (int $panjang): string => substr(str_repeat('RahasiaAcakUji9', 10), 0, $panjang));
 
-        $this->assertSame(Peran::DewanPengawas, User::query()->where('email', 'pengawas@contoh.test')->sole()->peran);
+        $kode = Artisan::call('sigap:peran-khusus', ['aksi' => 'beri', 'email' => 'pengawas@contoh.test', 'peran' => 'dewan_pengawas', '--nama' => 'Ibu Pengawas', ...self::DASAR]);
+        $keluaran = Artisan::output();
+        $kataSandi = substr(str_repeat('RahasiaAcakUji9', 10), 0, 64);
+        Str::createRandomStringsNormally();
+
+        $this->assertSame(0, $kode);
+        $pengguna = User::query()->where('email', 'pengawas@contoh.test')->sole();
+        $this->assertSame(Peran::DewanPengawas, $pengguna->peran);
+        $this->assertTrue(Hash::check($kataSandi, $pengguna->password));
+
+        $this->assertStringContainsString('Tautan dikirim ke pengawas@contoh.test', $keluaran);
+        $this->assertStringNotContainsString('RahasiaAcakUji9', $keluaran);
+        $this->assertStringNotContainsString('Kata sandi', $keluaran);
+
+        foreach (RiwayatPengaturan::query()->get() as $riwayat) {
+            $this->assertStringNotContainsString('RahasiaAcakUji9', (string) $riwayat->nilai_baru);
+            $this->assertStringNotContainsString($pengguna->password, (string) $riwayat->nilai_baru);
+        }
+        $this->assertSame([], LogAudit::query()->where('objek', 'like', '%RahasiaAcakUji9%')->pluck('id')->all());
+        Log::shouldNotHaveReceived('info');
+        Log::shouldNotHaveReceived('debug');
+        $this->assertDatabaseHas('log_audit', ['aksi' => AksiAudit::MengirimTautanKataSandi->value, 'objek' => "users:{$pengguna->id}"]);
+
+        Mail::assertSent(TautanBuatKataSandi::class, function (TautanBuatKataSandi $surel) use ($pengguna): bool {
+            return $surel->hasTo($pengguna->email)
+                && str_contains($surel->tautan, '/panel/password-reset/reset')
+                && ! str_contains($surel->render(), 'RahasiaAcakUji9');
+        });
+    }
+
+    public function test_the_password_link_can_be_resent_with_an_approval(): void
+    {
+        $user = User::factory()->peran(Peran::Pembina)->create();
+
+        $this->artisan('sigap:peran-khusus', ['aksi' => 'kirim-tautan', 'email' => $user->email])->assertFailed();
+        Mail::assertNothingSent();
+
+        $this->artisan('sigap:peran-khusus', ['aksi' => 'kirim-tautan', 'email' => $user->email, ...self::DASAR])
+            ->expectsOutputToContain("Tautan dikirim ke {$user->email}")
+            ->assertSuccessful();
+        Mail::assertSent(TautanBuatKataSandi::class, fn (TautanBuatKataSandi $surel): bool => $surel->hasTo($user->email));
     }
 
     /**

@@ -19,12 +19,12 @@ use InvalidArgumentException;
  * persetujuan di dalam sistem menyusul di Tahap 2.
  */
 #[Signature('sigap:peran-khusus
-    {aksi : beri, cabut, atau atur-ulang-2fa}
+    {aksi : beri, cabut, atur-ulang-2fa, atau kirim-tautan}
     {email : Surel akun lokal}
     {peran? : Peran yang diberikan (hanya untuk beri), misalnya ketua_tim_wbs}
     {--nomor-persetujuan= : Nomor persetujuan tertulis Ketua Dewan Pengawas}
     {--tanggal-persetujuan= : Tanggal persetujuan, format YYYY-MM-DD}
-    {--nama= : Untuk beri: buat akun lokal baru dengan nama ini bila surel belum terdaftar}')]
+    {--nama= : Untuk beri: buat akun lokal baru dengan nama ini bila surel belum terdaftar; tautan buat kata sandi dikirim ke surelnya}')]
 #[Description('Memberi/mencabut peran Tim WBS, penerima hasil, Super Admin, atau mengatur ulang 2FA-nya, dengan persetujuan Ketua Dewan Pengawas')]
 class KelolaPeranKhusus extends Command
 {
@@ -40,7 +40,8 @@ class KelolaPeranKhusus extends Command
                 'beri' => $this->beri($pengelola, $email, $dasar, $pelaksana),
                 'cabut' => $pengelola->cabut($this->akun($email), $dasar, $pelaksana),
                 'atur-ulang-2fa' => $pengelola->aturUlang2fa($this->akun($email), $dasar, $pelaksana),
-                default => throw new InvalidArgumentException('Aksi harus beri, cabut, atau atur-ulang-2fa.'),
+                'kirim-tautan' => $this->kirimTautan($pengelola, $this->akun($email), $dasar, $pelaksana),
+                default => throw new InvalidArgumentException('Aksi harus beri, cabut, atur-ulang-2fa, atau kirim-tautan.'),
             };
         } catch (InvalidArgumentException $galat) {
             $this->error($galat->getMessage());
@@ -64,24 +65,31 @@ class KelolaPeranKhusus extends Command
         }
 
         $pengguna = User::query()->where('email', $email)->first();
-        $kataSandiAwal = null;
+        $akunBaru = $pengguna === null;
 
-        if ($pengguna === null) {
+        if ($akunBaru) {
             $nama = trim((string) $this->option('nama'));
 
             if ($nama === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
                 throw new InvalidArgumentException('Akun belum terdaftar. Isi --nama dan surel yang sah untuk membuat akun lokal baru.');
             }
 
-            $kataSandiAwal = Str::password(20);
-            $pengguna = new User(['name' => $nama, 'email' => $email, 'password' => $kataSandiAwal, 'jenis_akun' => JenisAkun::Lokal]);
+            // Kata sandi acak yang tidak pernah ditampilkan atau dicatat; pemegang akun membuat kata sandinya lewat tautan.
+            $pengguna = new User(['name' => $nama, 'email' => $email, 'password' => Str::random(64), 'jenis_akun' => JenisAkun::Lokal]);
         }
 
         $pengelola->beri($pengguna, $peran, $dasar, $pelaksana);
 
-        if ($kataSandiAwal !== null) {
-            $this->warn("Akun baru dibuat. Kata sandi awal (tampil sekali, serahkan langsung kepada pemegang akun): {$kataSandiAwal}");
+        if ($akunBaru) {
+            $this->kirimTautan($pengelola, $pengguna, $dasar, $pelaksana);
         }
+    }
+
+    private function kirimTautan(PengelolaPeranKhusus $pengelola, User $pengguna, DasarPersetujuan $dasar, string $pelaksana): void
+    {
+        $pengelola->kirimTautanKataSandi($pengguna, $dasar, $pelaksana);
+
+        $this->info("Tautan dikirim ke {$pengguna->email}.");
     }
 
     private function akun(string $email): User

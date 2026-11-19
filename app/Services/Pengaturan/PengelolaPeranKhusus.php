@@ -6,9 +6,12 @@ use App\Enums\AksiAudit;
 use App\Enums\JenisAkun;
 use App\Enums\Peran;
 use App\Mail\PemberitahuanPeranKhusus;
+use App\Mail\TautanBuatKataSandi;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
@@ -63,6 +66,34 @@ class PengelolaPeranKhusus
             $pengguna->forceFill(['app_authentication_secret' => null, 'app_authentication_recovery_codes' => null])->save();
             self::putuskanSesi($pengguna);
         });
+    }
+
+    /**
+     * Mengirim tautan sekali pakai untuk membuat kata sandi (broker kata sandi Laravel, halaman buat kata sandi Filament).
+     * Tautan dan tokennya tidak ditampilkan maupun dicatat; log audit hanya mencatat bahwa tautan dikirim.
+     */
+    public function kirimTautanKataSandi(User $pengguna, DasarPersetujuan $dasar, string $pelaksana): void
+    {
+        self::pastikanAkunLokal($pengguna);
+        self::pastikanPemegangPeranKhusus($pengguna);
+
+        DB::transaction(function () use ($pengguna, $dasar, $pelaksana): void {
+            $this->pencatat->catat(
+                null,
+                'users:'.$pengguna->getKey(),
+                [],
+                ['dasar_persetujuan' => $dasar->teks(), 'pelaksana' => $pelaksana],
+                aksi: AksiAudit::MengirimTautanKataSandi,
+            );
+        });
+
+        $token = Password::broker()->createToken($pengguna);
+
+        Mail::to($pengguna->email)->send(new TautanBuatKataSandi(
+            $pengguna->peran,
+            Filament::getPanel('panel')->getResetPasswordUrl($token, $pengguna),
+            (int) config('auth.passwords.users.expire'),
+        ));
     }
 
     /**
