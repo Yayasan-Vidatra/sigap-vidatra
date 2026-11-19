@@ -89,4 +89,25 @@ class Kategori extends Model
     {
         return $this->hasMany(Laporan::class);
     }
+
+    /**
+     * Target waktu setiap kategori pengaduan dalam hari kerja, untuk halaman publik (/faq dan Beranda), agar angka
+     * yang tampil selalu sama dengan SLA yang dipakai sistem.
+     *
+     * @return list<array{kategori: string, tanggapan: int, selesai: int}>
+     */
+    public static function targetPengaduan(): array
+    {
+        return self::query()
+            ->where('jenis', JenisLaporan::Pengaduan->value)
+            ->orderBy('nama')
+            ->get(['nama', 'sla_tanggapan_hari', 'sla_hari'])
+            ->map(fn (Kategori $kategori): array => [
+                'kategori' => $kategori->nama,
+                'tanggapan' => (int) $kategori->sla_tanggapan_hari,
+                'selesai' => (int) $kategori->sla_hari,
+            ])
+            ->values()
+            ->all();
+    }
 }

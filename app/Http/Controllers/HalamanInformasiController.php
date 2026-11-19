@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\JenisLaporan;
 use App\Models\Kategori;
 use App\Models\Pengaturan;
 use Inertia\Inertia;
@@ -19,16 +18,7 @@ class HalamanInformasiController extends Controller
     {
         return Inertia::render('Informasi/Faq', [
             'pertanyaan' => Pengaturan::daftar(Pengaturan::PUBLIK_FAQ),
-            'targetPengaduan' => Kategori::query()
-                ->where('jenis', JenisLaporan::Pengaduan->value)
-                ->orderBy('nama')
-                ->get(['nama', 'sla_tanggapan_hari', 'sla_hari'])
-                ->map(fn (Kategori $kategori): array => [
-                    'kategori' => $kategori->nama,
-                    'tanggapan' => $kategori->sla_tanggapan_hari,
-                    'selesai' => $kategori->sla_hari,
-                ])
-                ->all(),
+            'targetPengaduan' => Kategori::targetPengaduan(),
             'targetWbs' => [
                 'telaah' => (int) config('sigap.wbs.telaah_hari_kerja'),
                 'investigasi' => (int) config('sigap.wbs.investigasi_hari_kerja'),
