@@ -96,7 +96,8 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            // Tautan buat kata sandi dari sigap:peran-khusus: berlaku singkat dan sekali pakai (Rancangan r1 Bagian 9).
+            'expire' => 30,
             'throttle' => 60,
         ],
     ],

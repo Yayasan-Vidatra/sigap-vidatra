@@ -54,6 +54,13 @@ enum AksiAudit: string implements HasLabel
     case MemindahkanPengaduanKeWbs = 'memindahkan_pengaduan_ke_wbs';
     case MembuatPinSementaraPelapor = 'membuat_pin_sementara_pelapor';
     case MengeksporRekap = 'mengekspor_rekap';
+    case MengubahPengaturan = 'mengubah_pengaturan';
+    case MemberiPeranKhusus = 'memberi_peran_khusus';
+    case MencabutPeranKhusus = 'mencabut_peran_khusus';
+    case MengaturUlang2fa = 'mengatur_ulang_2fa';
+    case MengirimTautanKataSandi = 'mengirim_tautan_kata_sandi';
+    case MengaturKataSandiLewatTautan = 'mengatur_kata_sandi_lewat_tautan';
+    case MengubahKataSandi = 'mengubah_kata_sandi';
 
     public function getLabel(): string
     {
@@ -103,6 +110,13 @@ enum AksiAudit: string implements HasLabel
             self::MemindahkanPengaduanKeWbs => 'Memindahkan pengaduan ke WBS',
             self::MembuatPinSementaraPelapor => 'Membuat PIN sementara pelapor',
             self::MengeksporRekap => 'Mengekspor rekap',
+            self::MengubahPengaturan => 'Mengubah pengaturan',
+            self::MemberiPeranKhusus => 'Memberi peran Tim WBS/penerima hasil/Super Admin',
+            self::MencabutPeranKhusus => 'Mencabut peran Tim WBS/penerima hasil/Super Admin',
+            self::MengaturUlang2fa => 'Mengatur ulang 2FA',
+            self::MengirimTautanKataSandi => 'Mengirim tautan buat kata sandi',
+            self::MengaturKataSandiLewatTautan => 'Membuat kata sandi lewat tautan',
+            self::MengubahKataSandi => 'Mengubah kata sandi sendiri',
         };
     }
 }

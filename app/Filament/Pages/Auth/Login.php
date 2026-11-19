@@ -6,6 +6,7 @@ use App\Enums\JenisAkun;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Auth\Pages\Login as BaseLogin;
+use Filament\Schemas\Components\Component;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +21,14 @@ class Login extends BaseLogin
         return parent::isUserAllowedToAccessPanel($user)
             && $user instanceof User
             && $user->jenis_akun === JenisAkun::Lokal;
+    }
+
+    /**
+     * Tanpa tautan "lupa kata sandi": permintaan mandiri dimatikan (MintaTautanKataSandi).
+     */
+    protected function getPasswordFormComponent(): Component
+    {
+        return parent::getPasswordFormComponent()->hint(null);
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\MintaTautanKataSandi;
+use App\Filament\Pages\Auth\ProfilPetugas;
 use App\Filament\Pages\Auth\VerifikasiSso;
 use App\Http\Controllers\Auth\LoginGoogleController;
 use App\Http\Controllers\UnduhLampiranController;
@@ -34,6 +36,9 @@ class PanelPanelProvider extends PanelProvider
             ->id('panel')
             ->path('panel')
             ->login(Login::class)
+            // Tautan buat kata sandi hanya dari sigap:peran-khusus; permintaan mandiri dimatikan (Bagian 9).
+            ->passwordReset(MintaTautanKataSandi::class)
+            ->profile(ProfilPetugas::class, isSimple: false)
             ->multiFactorAuthentication([
                 AppAuthentication::make()->recoverable(),
             ], isRequired: true)

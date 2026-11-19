@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\LogAudits\Tables;
 
 use App\Enums\AksiAudit;
+use App\Models\LogAudit;
+use App\Models\RiwayatPengaturan;
 use App\Services\WaktuLokal;
 use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
@@ -10,9 +12,11 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 /**
- * Tabel log audit tanpa aksi ubah atau hapus (NF-07). Ekspor menyusul bersama Rekap dan Ekspor (H-18).
+ * Tabel log audit tanpa aksi ubah atau hapus (NF-07). Baris `mengubah_pengaturan` menampilkan nilai lama dan baru
+ * dari riwayat_pengaturan (H-19). Ekspor menyusul bersama Rekap dan Ekspor (H-18).
  */
 class LogAuditsTable
 {
@@ -34,6 +38,16 @@ class LogAuditsTable
                 TextColumn::make('objek')
                     ->label('Objek')
                     ->searchable(),
+                TextColumn::make('rincian')
+                    ->label('Nilai lama → baru')
+                    ->state(fn (LogAudit $record): array => $record->riwayatPengaturan
+                        ->map(fn (RiwayatPengaturan $riwayat): string => $riwayat->kolom.': '
+                            .Str::limit($riwayat->nilai_lama ?? '(kosong)', 80).' → '
+                            .Str::limit($riwayat->nilai_baru ?? '(kosong)', 80))
+                        ->all())
+                    ->listWithLineBreaks()
+                    ->placeholder('-')
+                    ->wrap(),
             ])
             ->defaultSort('waktu', 'desc')
             ->filters([

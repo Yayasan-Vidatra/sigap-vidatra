@@ -66,6 +66,33 @@ enum Peran: string implements HasLabel
     }
 
     /**
+     * Peran pemegang data jabatan yang dikelola Super Admin di Pengaturan (H-19, US-24): Admin, PIC, Kepala Sekolah,
+     * dan Komite Etik. Peran Tim WBS, penerima hasil, dan Super Admin tidak diberikan lewat Pengaturan karena
+     * pemberiannya memerlukan persetujuan Ketua Dewan Pengawas (Rancangan r1 Bagian 9).
+     */
+    public function dikelolaLewatPengaturan(): bool
+    {
+        return in_array($this, self::kelolaanPengaturan(), true);
+    }
+
+    /**
+     * @return list<self>
+     */
+    public static function kelolaanPengaturan(): array
+    {
+        return [self::AdminPengaduan, self::PicUnit, self::KepalaSekolah, self::KomiteEtik];
+    }
+
+    /**
+     * Peran Tim WBS, penerima hasil, dan Super Admin: diberikan, dicabut, dan 2FA-nya diatur ulang hanya dengan
+     * persetujuan tertulis Ketua Dewan Pengawas, lewat `php artisan sigap:peran-khusus` (Rancangan r1 Bagian 9).
+     */
+    public function butuhPersetujuanPengawas(): bool
+    {
+        return ! $this->dikelolaLewatPengaturan();
+    }
+
+    /**
      * Peran yang wajib terikat pada satu unit (A4, dan Kepala Sekolah pada A8).
      */
     public function wajibUnit(): bool

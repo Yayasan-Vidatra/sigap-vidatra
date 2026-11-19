@@ -72,4 +72,16 @@ class PelanggaranIntegritasData extends LogicException
     {
         return new self('Log audit hanya bisa ditambah, tidak bisa diubah atau dihapus (NF-07).');
     }
+
+    public static function riwayatPengaturanHanyaBisaDitambah(): self
+    {
+        return new self('Riwayat perubahan pengaturan hanya bisa ditambah, tidak bisa diubah atau dihapus (NF-07).');
+    }
+
+    public static function peranDiLuarPengaturan(?Peran $peran): self
+    {
+        $nama = $peran?->getLabel() ?? 'tanpa peran';
+
+        return new self("Peran {$nama} tidak dikelola lewat Pengaturan; pemberian peran Tim WBS, penerima hasil, dan Super Admin memerlukan persetujuan Ketua Dewan Pengawas (Rancangan r1 Bagian 9).");
+    }
 }
