@@ -7,6 +7,7 @@ use App\Enums\JenisPelapor;
 use App\Enums\StatusLaporan;
 use App\Enums\StatusPindai;
 use App\Enums\SumberLaporan;
+use App\Http\Requests\StorePengaduanRequest;
 use App\Jobs\ProsesLampiran;
 use App\Models\Kategori;
 use App\Models\Laporan;
@@ -33,9 +34,9 @@ class PengaduanControllerTest extends TestCase
 
     public function test_form_offers_only_active_units_and_pengaduan_categories(): void
     {
-        $unit = Unit::factory()->create(['nama' => 'SMP YPVDP']);
+        $unit = Unit::factory()->create(['nama' => 'SMP YPVDP', 'kontak_darurat' => '0811-2222-3333']);
         Unit::factory()->nonaktif()->create();
-        $kategori = Kategori::factory()->create(['nama' => 'Kebersihan']);
+        $kategori = Kategori::factory()->create(['nama' => 'Kebersihan', 'sla_tanggapan_hari' => 2, 'sla_hari' => 10]);
         Kategori::factory()->wbs()->create();
 
         $response = $this->get('/pengaduan');
@@ -43,10 +44,26 @@ class PengaduanControllerTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Pengaduan/Formulir')
-            ->where('unit', [['id' => $unit->id, 'nama' => 'SMP YPVDP']])
-            ->where('kategori', [['id' => $kategori->id, 'nama' => 'Kebersihan']])
+            ->where('unit', [['id' => $unit->id, 'nama' => 'SMP YPVDP', 'kontak_darurat' => '0811-2222-3333']])
+            ->where('kategori', [['id' => $kategori->id, 'nama' => 'Kebersihan', 'sla_tanggapan_hari' => 2, 'sla_hari' => 10]])
+            ->where('maksKronologi', StorePengaduanRequest::MAKS_KRONOLOGI)
+            ->where('kontakDaruratCadangan', 'Segera hubungi wali kelas atau kantor sekolah.')
             ->has('jenisPelapor', 4)
             ->has('kataKunciWbs'));
+    }
+
+    public function test_changing_a_category_sla_or_emergency_contact_changes_the_form_without_code(): void
+    {
+        $unit = Unit::factory()->create(['kontak_darurat' => '0811-1111-1111']);
+        $kategori = Kategori::factory()->create(['sla_tanggapan_hari' => 2, 'sla_hari' => 14]);
+
+        $unit->update(['kontak_darurat' => '0822-9999-0000']);
+        $kategori->update(['sla_tanggapan_hari' => 1, 'sla_hari' => 5]);
+
+        $this->get('/pengaduan')->assertInertia(fn (Assert $page) => $page
+            ->where('unit.0.kontak_darurat', '0822-9999-0000')
+            ->where('kategori.0.sla_tanggapan_hari', 1)
+            ->where('kategori.0.sla_hari', 5));
     }
 
     public function test_valid_complaint_is_stored_as_received_and_shows_the_tracking_code(): void

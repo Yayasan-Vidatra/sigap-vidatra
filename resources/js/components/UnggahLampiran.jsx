@@ -214,7 +214,7 @@ export default function UnggahLampiran({ kanal, aturan, onChange, galat, ambilTo
                 type="button"
                 onClick={() => masukan.current?.click()}
                 disabled={penuh}
-                className="self-start rounded-lg border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-50"
+                className="self-start inline-flex min-h-11 items-center justify-center rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-2.5 font-bold text-slate-800 hover:bg-slate-100 disabled:opacity-50"
             >
                 Pilih berkas
             </button>
@@ -241,17 +241,17 @@ export default function UnggahLampiran({ kanal, aturan, onChange, galat, ambilTo
                                         aria-valuemax={100}
                                         aria-label={`Mengunggah ${item.nama}`}
                                     >
-                                        <div className="h-full bg-teal-600 transition-all" style={{ width: `${item.progres}%` }} />
+                                        <div className="h-full bg-pengaduan-600 transition-all" style={{ width: `${item.progres}%` }} />
                                     </div>
                                 )}
-                                {item.status === 'siap' && <span className="text-xs text-teal-700">Siap dikirim</span>}
+                                {item.status === 'siap' && <span className="text-xs text-pengaduan-700">Siap dikirim</span>}
                                 {item.status === 'gagal' && <span className="text-xs text-rose-700">{item.pesan}</span>}
                             </div>
                             <button
                                 type="button"
                                 onClick={() => hapus(item)}
                                 disabled={item.status === 'mengunggah'}
-                                className="shrink-0 rounded-lg px-2 py-1 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                                className="shrink-0 inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-40"
                                 aria-label={`Hapus ${item.nama}`}
                             >
                                 Hapus

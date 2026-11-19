@@ -60,6 +60,27 @@ class LacakControllerTest extends TestCase
         ]);
     }
 
+    public function test_the_detail_shows_the_status_stages_and_the_target_date_while_the_unit_works_on_it(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-18 00:55:00', 'UTC'));
+        $laporan = Laporan::factory()->berstatus(StatusLaporan::Diproses)->create([
+            'kode_lacak' => 'PGD-2611-ABC234',
+            'batas_waktu' => CarbonImmutable::parse('2026-12-08 08:00:00', 'UTC'),
+        ]);
+        $laporan->riwayatStatus()->create(['status_lama' => StatusLaporan::Diterima, 'status_baru' => StatusLaporan::Terverifikasi])->forceFill(['waktu' => '2026-11-18 04:47:00'])->save();
+        $laporan->riwayatStatus()->create(['status_lama' => StatusLaporan::Terverifikasi, 'status_baru' => StatusLaporan::Diproses])->forceFill(['waktu' => '2026-11-18 05:00:00'])->save();
+
+        $this->post('/lacak', ['kode' => 'PGD-2611-ABC234']);
+
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page
+            ->where('targetSelesai', '08 Des 2026')
+            ->where('tahapan.0', ['label' => 'Diterima', 'waktu' => '18 Nov, 08.55 WITA', 'keadaan' => 'selesai'])
+            ->where('tahapan.1', ['label' => 'Diperiksa admin', 'waktu' => '18 Nov, 12.47 WITA', 'keadaan' => 'selesai'])
+            ->where('tahapan.2.keadaan', 'berjalan')
+            ->where('tahapan.3', ['label' => 'Konfirmasi Anda', 'waktu' => null, 'keadaan' => 'menunggu'])
+            ->where('tahapan.4.keadaan', 'menunggu'));
+    }
+
     #[TestWith(['PGD-2611-ZZZZZZ'])]
     #[TestWith(['asal-tebak'])]
     #[TestWith(['WBS-7KQ2-M9PA'])]

@@ -82,10 +82,13 @@ class WbsController extends Controller
             'kontakDarurat' => Unit::query()
                 ->where('aktif', true)
                 ->whereNotNull('kontak_darurat')
+                ->where('kontak_darurat', '!=', '')
                 ->orderBy('id')
                 ->get(['nama', 'kontak_darurat'])
                 ->map(fn (Unit $unit): array => ['unit' => $unit->nama, 'kontak' => $unit->kontak_darurat])
                 ->all(),
+            'kontakDaruratCadangan' => Unit::KONTAK_DARURAT_CADANGAN,
+            'targetTelaah' => (int) config('sigap.wbs.telaah_hari_kerja'),
             'kataKunciKekerasan' => config('sigap.wbs.kata_kunci_kekerasan'),
             'maksTerlapor' => (int) config('sigap.wbs.maks_terlapor'),
             'aturanLampiran' => self::aturanLampiran(),

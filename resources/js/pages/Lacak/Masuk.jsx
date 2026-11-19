@@ -4,7 +4,7 @@ import Altcha from '../../components/Altcha';
 import PublicLayout from '../../layouts/PublicLayout';
 
 const gayaIsian =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/30 aria-invalid:border-rose-500';
+    'w-full min-h-12 rounded-xl border-[1.5px] border-slate-300 bg-white px-3.5 py-3 text-base text-slate-900 focus:border-pengaduan-600 focus:outline-none focus:ring-2 focus:ring-pengaduan-600/30 aria-invalid:border-rose-500';
 
 /*
  * H-06 Lacak Laporan. Kode tidak ada dan kode salah mendapat pesan yang sama dari server. Setelah 5 kali
@@ -37,13 +37,13 @@ export default function Masuk({ perluCaptcha, sisaJeda, pesan }) {
             <Head title="Lacak Laporan" />
 
             <div className="mx-auto flex max-w-lg flex-col gap-2">
-                <h1 className="text-2xl font-bold">Lacak Laporan</h1>
+                <h1 className="text-[28px] leading-tight font-extrabold tracking-tight sm:text-[34px]">Lacak Laporan</h1>
                 <p className="text-slate-600">
                     Masukkan kode lacak dari bukti lapor untuk melihat status, riwayat, dan pesan dari petugas.
                 </p>
             </div>
 
-            <form onSubmit={kirim} noValidate className="mx-auto mt-6 flex max-w-lg flex-col gap-5 rounded-xl border border-slate-200 bg-white p-5">
+            <form onSubmit={kirim} noValidate className="mx-auto mt-6 flex max-w-lg flex-col gap-5 rounded-2xl border border-garis bg-white p-5 sm:p-7">
                 {pesan && (
                     <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                         {pesan}
@@ -105,14 +105,14 @@ export default function Masuk({ perluCaptcha, sisaJeda, pesan }) {
                 <button
                     type="submit"
                     disabled={processing || jeda > 0}
-                    className="rounded-lg bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-pengaduan-700 px-5 py-3 font-bold text-white hover:bg-pengaduan-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
                     {jeda > 0 ? `Coba lagi dalam ${jeda} detik` : processing ? 'Memeriksa…' : 'Lacak'}
                 </button>
 
                 <p className="text-sm text-slate-600">
                     Belum punya kode lacak?{' '}
-                    <Link href="/pengaduan" className="font-medium text-teal-700 hover:underline">
+                    <Link href="/pengaduan" className="font-medium text-pengaduan-700 hover:underline">
                         Buat pengaduan
                     </Link>
                     .

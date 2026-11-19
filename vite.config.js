@@ -1,19 +1,17 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 
+/*
+ * Huruf Plus Jakarta Sans disimpan di resources/fonts dan dimuat lewat app.css (tanpa layanan huruf luar), agar
+ * halaman /wbs* tidak memanggil domain lain.
+ */
 export default defineConfig({
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.jsx'],
             refresh: true,
-            fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                }),
-            ],
         }),
         tailwindcss(),
         react(),
