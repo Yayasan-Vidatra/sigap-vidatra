@@ -7,6 +7,7 @@ use App\Enums\JenisBerkas;
 use App\Enums\JenisLaporan;
 use App\Enums\PengirimPesan;
 use App\Enums\StatusLaporan;
+use App\Enums\SumberLaporan;
 use App\Exceptions\AksiPengaduanTidakSah;
 use App\Models\Lampiran;
 use App\Models\Laporan;
@@ -290,6 +291,14 @@ class LacakController extends Controller
     {
         $laporan->load(['unit', 'kategori', 'riwayatStatus', 'pesanUntukPelapor.lampiran']);
         $wbs = $laporan->isWbs();
+        // Laporan WBS pindahan (UC-09 1a): pesan yang ikut dipindah dari pengaduan dikirim sebelum laporan WBS ini
+        // dibuat, sehingga pengirimnya petugas Pengaduan, bukan Tim WBS. Nama petugas tetap tidak ditampilkan.
+        $pindahanPada = $wbs && $laporan->sumber === SumberLaporan::Pengaduan ? $laporan->dibuat_pada : null;
+        $labelPetugas = fn (Pesan $pesan): string => match (true) {
+            ! $wbs => 'Petugas',
+            $pindahanPada !== null && $pesan->dibuat_pada->lessThanOrEqualTo($pindahanPada) => 'Petugas Pengaduan',
+            default => 'Tim WBS',
+        };
 
         return [
             'wbs' => $wbs,
@@ -316,7 +325,7 @@ class LacakController extends Controller
                 'id' => $pesan->id,
                 'dari' => match ($pesan->pengirim) {
                     PengirimPesan::Pelapor => 'Anda',
-                    PengirimPesan::Petugas => $wbs ? 'Tim WBS' : 'Petugas',
+                    PengirimPesan::Petugas => $labelPetugas($pesan),
                     PengirimPesan::Sistem => 'Sistem',
                 },
                 'milikPelapor' => $pesan->pengirim === PengirimPesan::Pelapor,

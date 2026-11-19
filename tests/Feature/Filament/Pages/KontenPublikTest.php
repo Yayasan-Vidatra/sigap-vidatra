@@ -65,6 +65,18 @@ class KontenPublikTest extends TestCase
         ]);
     }
 
+    public function test_repeaters_have_clear_indonesian_labels(): void
+    {
+        $this->actingAs($this->superAdmin);
+
+        $this->get('/panel/pengaturan/konten-publik')
+            ->assertOk()
+            ->assertSee('Daftar pertanyaan (FAQ)')
+            ->assertSee('Bagian kebijakan privasi')
+            ->assertDontSee('>Faq<', false)
+            ->assertDontSee('>Privasi<', false);
+    }
+
     public function test_a_non_pdf_file_is_rejected(): void
     {
         $this->actingAs($this->superAdmin);

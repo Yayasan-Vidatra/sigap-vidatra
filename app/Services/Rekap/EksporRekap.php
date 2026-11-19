@@ -47,6 +47,9 @@ class EksporRekap
             ]));
         }
 
+        $writer->addRow(Row::fromValues([]));
+        $writer->addRow(Row::fromValues([RekapLaporan::CATATAN_PINDAH_WBS]));
+
         if ($data['wbs'] !== null) {
             $writer->addNewSheetAndMakeItCurrent()->setName('WBS');
             $writer->addRow(Row::fromValues(["Laporan WBS per kategori per triwulan {$data['tahun_wbs']}"]));

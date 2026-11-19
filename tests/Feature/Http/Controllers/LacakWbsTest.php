@@ -4,10 +4,13 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Enums\AksiAudit;
 use App\Enums\PengirimPesan;
+use App\Enums\Peran;
 use App\Enums\StatusLaporan;
+use App\Enums\SumberLaporan;
 use App\Http\Controllers\LacakController;
 use App\Models\Laporan;
 use App\Models\Pesan;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -232,6 +235,38 @@ class LacakWbsTest extends TestCase
         $this->assertSame(PengirimPesan::Pelapor, $pesan->pengirim);
         $lampiran = $pesan->lampiran()->sole();
         $this->assertStringStartsWith('SIGAPENC1', Storage::disk('lampiran')->get($lampiran->path_acak));
+    }
+
+    public function test_messages_moved_from_a_complaint_are_labelled_as_complaint_staff_and_later_ones_as_the_wbs_team(): void
+    {
+        $laporan = $this->laporanWbs();
+        $laporan->forceFill(['sumber' => SumberLaporan::Pengaduan, 'dibuat_pada' => '2026-11-18 03:00:00'])->save();
+        $admin = User::factory()->peran(Peran::AdminPengaduan)->create(['name' => 'Bu Admin Pengaduan']);
+        $ketua = User::factory()->peran(Peran::KetuaTimWbs)->create(['name' => 'Pak Ketua SPI']);
+        Pesan::factory()->for($laporan)->create(['pengirim' => PengirimPesan::Petugas, 'pengirim_user_id' => $admin->id, 'isi' => 'Mohon foto kerusakan.', 'dibuat_pada' => '2026-11-17 01:00:00']);
+        Pesan::factory()->for($laporan)->create(['pengirim' => PengirimPesan::Pelapor, 'isi' => 'Ini fotonya.', 'dibuat_pada' => '2026-11-17 02:00:00']);
+        Pesan::factory()->for($laporan)->create(['pengirim' => PengirimPesan::Petugas, 'pengirim_user_id' => $ketua->id, 'isi' => 'Laporan Anda kami telaah.', 'dibuat_pada' => '2026-11-18 05:00:00']);
+
+        $this->post('/lacak', ['kode' => 'WBS-7KQ2-M9PA', 'pin' => '582904']);
+
+        $this->get('/lacak/laporan')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('pesan', 3)
+                ->where('pesan.0.dari', 'Petugas Pengaduan')
+                ->where('pesan.1.dari', 'Anda')
+                ->where('pesan.2.dari', 'Tim WBS'))
+            ->assertDontSee('Bu Admin Pengaduan')
+            ->assertDontSee('Pak Ketua SPI');
+    }
+
+    public function test_messages_on_a_wbs_report_submitted_directly_stay_labelled_as_the_wbs_team(): void
+    {
+        $laporan = $this->laporanWbs();
+        Pesan::factory()->for($laporan)->create(['pengirim' => PengirimPesan::Petugas, 'isi' => 'Halo.', 'dibuat_pada' => $laporan->dibuat_pada->subMinute()]);
+
+        $this->post('/lacak', ['kode' => 'WBS-7KQ2-M9PA', 'pin' => '582904']);
+
+        $this->get('/lacak/laporan')->assertInertia(fn (Assert $page) => $page->where('pesan.0.dari', 'Tim WBS'));
     }
 
     private function laporanWbs(): Laporan

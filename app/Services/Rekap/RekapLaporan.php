@@ -161,6 +161,9 @@ class RekapLaporan
     /**
      * Rekap pengaduan per unit dan kategori untuk periode (H-18): jumlah, selesai, rata-rata hari penyelesaian (sejak
      * masuk sampai Selesai), dan jumlah yang lewat batas waktu (selesai terlambat atau masih berjalan melewati batas).
+     * Pengaduan berstatus Dipindah ke WBS tidak dihitung: penanganannya pindah ke kanal WBS (dan terhitung di rekap
+     * WBS), sehingga tidak boleh tampak sebagai pengaduan yang belum selesai. Jumlahnya sengaja tidak ditampilkan per
+     * unit agar angka kecil tidak membuka adanya laporan WBS.
      *
      * @param  array{dari: string, sampai: string, unit_id?: int|string|null, kategori_id?: int|string|null}  $filter
      * @return list<array{unit: string, kategori: string, jumlah: int, selesai: int, rata_rata_hari: float|null, lewat_sla: int}>
@@ -169,6 +172,7 @@ class RekapLaporan
     {
         $sekarang = now();
         $laporan = $this->pengaduan($user)
+            ->whereNot('status', StatusLaporan::DipindahKeWbs->value)
             ->whereBetween('dibuat_pada', [WaktuLokal::awalHari($filter['dari']), WaktuLokal::akhirHari($filter['sampai'])])
             ->when(filled($filter['unit_id'] ?? null), fn (Builder $query) => $query->where('unit_id', $filter['unit_id']))
             ->when(filled($filter['kategori_id'] ?? null), fn (Builder $query) => $query->where('kategori_id', $filter['kategori_id']))
@@ -202,6 +206,17 @@ class RekapLaporan
             })
             ->values()
             ->all();
+    }
+
+    /** Catatan di bawah tabel rekap pengaduan (layar, PDF, Excel). */
+    public const CATATAN_PINDAH_WBS = 'Pengaduan yang dipindah ke WBS tidak dihitung.';
+
+    /**
+     * Angka desimal format Indonesia (koma), misalnya 0,2; "-" bila kosong.
+     */
+    public static function angka(?float $nilai): string
+    {
+        return $nilai === null ? '-' : number_format($nilai, 1, ',', '.');
     }
 
     /**

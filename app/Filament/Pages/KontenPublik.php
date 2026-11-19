@@ -91,7 +91,7 @@ class KontenPublik extends Page
                     ->description('Target waktu penanganan ditampilkan otomatis dari Kategori dan SLA, tidak perlu ditulis di sini.')
                     ->schema([
                         Repeater::make('faq')
-                            ->hiddenLabel()
+                            ->label('Daftar pertanyaan (FAQ)')
                             ->schema([
                                 TextInput::make('pertanyaan')->label('Pertanyaan')->required()->maxLength(300),
                                 Textarea::make('jawaban')->label('Jawaban')->required()->rows(3)->maxLength(3000),
@@ -106,7 +106,7 @@ class KontenPublik extends Page
                     ->description('Pisahkan paragraf dengan baris kosong. Baris yang diawali "- " tampil sebagai butir.')
                     ->schema([
                         Repeater::make('privasi')
-                            ->hiddenLabel()
+                            ->label('Bagian kebijakan privasi')
                             ->schema([
                                 TextInput::make('judul')->label('Judul bagian')->required()->maxLength(200),
                                 Textarea::make('isi')->label('Isi')->required()->rows(5)->maxLength(5000),
