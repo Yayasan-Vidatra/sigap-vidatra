@@ -1,0 +1,16 @@
+# SIGAP Vidatra, cron. Dipasang deploy/pasang.sh ke /etc/cron.d/sigap (pemilik root, mode 644).
+# Skrip root dijalankan dari salinan di /usr/local/sbin (milik root), bukan dari folder repo yang bisa diubah.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Scheduler Laravel (pengingat SLA, tutup otomatis, bersihkan unggahan, detak pemantauan).
+* * * * *   www-data  cd /var/www/sigap && php artisan schedule:run >> /dev/null 2>&1
+
+# Pemantauan setiap 5 menit: /kesehatan, worker antrean, layanan, dan disk.
+*/5 * * * * root      sigap-cek-kesehatan
+
+# Cadangan harian terenkripsi ke luar VPS (01.30 WITA bila zona server Asia/Makassar).
+30 1 * * *  root      sigap-cadangan
+
+# Uji pemulihan mingguan dari cadangan terbaru (Minggu 03.00).
+0 3 * * 0   root      sigap-uji-pemulihan

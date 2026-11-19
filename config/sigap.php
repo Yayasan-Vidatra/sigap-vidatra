@@ -217,6 +217,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pemantauan (NF-04, TOR Bagian 6)
+    |--------------------------------------------------------------------------
+    |
+    | Scheduler mencatat detak setiap menit dan mengirim job detak ke antrean.
+    | GET /kesehatan menjawab 503 bila basis data tidak terjangkau, detak
+    | scheduler atau antrean terlambat, atau sisa disk di bawah batas.
+    | deploy/pantau/cek-kesehatan.sh (cron di VPS) dan pemantau uptime luar
+    | memakai jawaban itu; peringatan dikirim ke surel pengelola TI.
+    |
+    */
+
+    'pemantauan' => [
+        'maks_jeda_scheduler_menit' => 3,
+        'maks_jeda_antrean_menit' => 5,
+        'min_sisa_disk_persen' => 10,
+        // Satu atau lebih surel dipisah koma, diisi di .env server (bukan data jabatan Yayasan).
+        'surel_pengelola_ti' => array_values(array_filter(array_map('trim', explode(',', (string) env('SIGAP_SUREL_PENGELOLA_TI', ''))))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Akun uji lokal (AkunUjiSeeder)
     |--------------------------------------------------------------------------
     |
