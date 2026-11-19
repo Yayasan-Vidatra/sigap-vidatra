@@ -13,8 +13,9 @@ const kanal = [
         poin: [
             'Wajib mengisi nama dan kontak. Siswa memakai kontak orang tua/wali.',
             'Ditangani unit atau sekolah terkait.',
-            'Tanggapan awal 2 hari kerja, selesai 14 hari kerja.',
         ],
+        // Target waktu diambil dari SLA kategori (props targetPengaduan), bukan ditulis di sini.
+        denganTarget: true,
     },
     {
         judul: 'Pelaporan Pelanggaran (WBS)',
@@ -32,7 +33,21 @@ const kanal = [
     },
 ];
 
-export default function Beranda({ kontakDarurat }) {
+function rentangHari({ min, maks }) {
+    return min === maks ? `${min} hari kerja` : `${min}–${maks} hari kerja`;
+}
+
+function kalimatTarget(target) {
+    if (!target) {
+        return null;
+    }
+
+    return `Tanggapan awal ${rentangHari(target.tanggapan)}, selesai ${rentangHari(target.selesai)}.`;
+}
+
+export default function Beranda({ kontakDarurat, targetPengaduan }) {
+    const target = kalimatTarget(targetPengaduan);
+
     return (
         <PublicLayout>
             <Head title="Beranda" />
@@ -61,6 +76,14 @@ export default function Beranda({ kontakDarurat }) {
                             {item.poin.map((poin) => (
                                 <li key={poin}>{poin}</li>
                             ))}
+                            {item.denganTarget && target && (
+                                <li>
+                                    {target}{' '}
+                                    <Link href="/faq" className="text-teal-700 hover:underline">
+                                        Rincian per kategori
+                                    </Link>
+                                </li>
+                            )}
                         </ul>
                         <Link
                             href={item.href}

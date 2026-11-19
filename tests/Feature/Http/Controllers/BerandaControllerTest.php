@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Models\Kategori;
 use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -28,6 +29,40 @@ class BerandaControllerTest extends TestCase
                 ['unit' => 'SD YPVDP', 'kontak' => '0811-1111-1111'],
                 ['unit' => 'SMP YPVDP', 'kontak' => '0822-2222-2222'],
             ]));
+    }
+
+    public function test_beranda_takes_the_complaint_targets_from_the_category_sla(): void
+    {
+        Kategori::factory()->create(['nama' => 'Kebersihan', 'sla_tanggapan_hari' => 2, 'sla_hari' => 14]);
+        Kategori::factory()->create(['nama' => 'Fasilitas', 'sla_tanggapan_hari' => 3, 'sla_hari' => 10]);
+        Kategori::factory()->wbs()->create();
+
+        $this->get('/')->assertInertia(fn (Assert $page) => $page
+            ->where('targetPengaduan', ['tanggapan' => ['min' => 2, 'maks' => 3], 'selesai' => ['min' => 10, 'maks' => 14]]));
+    }
+
+    public function test_changing_a_category_sla_changes_the_beranda_target_without_code(): void
+    {
+        $kategori = Kategori::factory()->create(['sla_tanggapan_hari' => 2, 'sla_hari' => 14]);
+
+        $kategori->update(['sla_tanggapan_hari' => 1, 'sla_hari' => 7]);
+
+        $this->get('/')->assertInertia(fn (Assert $page) => $page
+            ->where('targetPengaduan', ['tanggapan' => ['min' => 1, 'maks' => 1], 'selesai' => ['min' => 7, 'maks' => 7]]));
+    }
+
+    public function test_beranda_shows_no_target_before_complaint_categories_exist(): void
+    {
+        Kategori::factory()->wbs()->create();
+
+        $this->get('/')->assertInertia(fn (Assert $page) => $page->where('targetPengaduan', null));
+    }
+
+    public function test_the_beranda_page_no_longer_hard_codes_the_sla(): void
+    {
+        $sumber = file_get_contents(resource_path('js/pages/Beranda.jsx'));
+
+        $this->assertDoesNotMatchRegularExpression('/\d+\s+hari kerja/', $sumber);
     }
 
     public function test_beranda_has_no_emergency_contacts_until_they_are_filled_in(): void

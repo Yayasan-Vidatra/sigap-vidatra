@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Kategori;
 use App\Models\Unit;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * H-01 Beranda (US-01, F-01). Kontak darurat diambil dari units.kontak_darurat yang diisi lewat
- * Pengaturan, bukan ditanam di kode (aturan proyek no. 7).
+ * Pengaturan, dan target waktu Pengaduan dari SLA kategori, bukan ditanam di kode (aturan proyek no. 7).
  */
 class BerandaController extends Controller
 {
@@ -22,6 +23,28 @@ class BerandaController extends Controller
                 ->get(['nama', 'kontak_darurat'])
                 ->map(fn (Unit $unit): array => ['unit' => $unit->nama, 'kontak' => $unit->kontak_darurat])
                 ->all(),
+            'targetPengaduan' => self::ringkasanTarget(Kategori::targetPengaduan()),
         ]);
+    }
+
+    /**
+     * Rentang target (terkecil dan terbesar) dari semua kategori pengaduan; null bila belum ada kategori.
+     *
+     * @param  list<array{kategori: string, tanggapan: int, selesai: int}>  $target
+     * @return array{tanggapan: array{min: int, maks: int}, selesai: array{min: int, maks: int}}|null
+     */
+    private static function ringkasanTarget(array $target): ?array
+    {
+        if ($target === []) {
+            return null;
+        }
+
+        $tanggapan = array_column($target, 'tanggapan');
+        $selesai = array_column($target, 'selesai');
+
+        return [
+            'tanggapan' => ['min' => min($tanggapan), 'maks' => max($tanggapan)],
+            'selesai' => ['min' => min($selesai), 'maks' => max($selesai)],
+        ];
     }
 }
