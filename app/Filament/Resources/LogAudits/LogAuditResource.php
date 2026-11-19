@@ -39,7 +39,7 @@ class LogAuditResource extends Resource
         $user = Filament::auth()->user();
 
         return parent::getEloquentQuery()
-            ->with('user')
+            ->with(['user', 'riwayatPengaturan'])
             ->when(
                 $user instanceof User,
                 fn (Builder $query) => $query->terlihatOleh($user),
