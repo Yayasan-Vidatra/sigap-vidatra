@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Pengaturan berbentuk kunci–nilai untuk teks halaman publik dan berkas jaminan kerahasiaan (aturan proyek
- * no. 7). Dikelola Super Admin lewat Pengaturan (H-19, Hari 13); sebelum itu halaman memakai teks bawaan.
+ * no. 7). Dikelola Super Admin lewat Pengaturan > Konten Publik (H-19) dan dicatat PengelolaKontenPublik.
  */
 #[Table('pengaturan')]
 #[Fillable(['kunci', 'nilai'])]
@@ -33,6 +33,12 @@ class Pengaturan extends Model
 
     public const WBS_SALURAN_SURAT = 'wbs.saluran_surat';
 
+    /** Tanya jawab H-08 (/faq): JSON daftar {pertanyaan, jawaban}. */
+    public const PUBLIK_FAQ = 'publik.faq';
+
+    /** Kebijakan Privasi H-08 (/privasi): JSON daftar {judul, isi}. */
+    public const PUBLIK_PRIVASI = 'publik.privasi';
+
     /**
      * Nilai pengaturan, atau null bila belum diisi atau kosong.
      */
@@ -41,5 +47,17 @@ class Pengaturan extends Model
         $nilai = self::query()->where('kunci', $kunci)->value('nilai');
 
         return is_string($nilai) && trim($nilai) !== '' ? trim($nilai) : null;
+    }
+
+    /**
+     * Pengaturan berbentuk daftar (JSON), misalnya FAQ; daftar kosong bila belum diisi atau rusak.
+     *
+     * @return list<array<string, string>>
+     */
+    public static function daftar(string $kunci): array
+    {
+        $daftar = json_decode(self::nilai($kunci) ?? '[]', true);
+
+        return is_array($daftar) ? array_values(array_filter($daftar, 'is_array')) : [];
     }
 }
