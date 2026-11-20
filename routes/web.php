@@ -6,6 +6,7 @@ use App\Http\Controllers\BuktiLaporController;
 use App\Http\Controllers\HalamanInformasiController;
 use App\Http\Controllers\KesehatanController;
 use App\Http\Controllers\LacakController;
+use App\Http\Controllers\LacakWbsController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\UnggahLampiranController;
 use App\Http\Controllers\WbsController;
@@ -79,8 +80,9 @@ Route::get('/altcha/tantangan', AltchaController::class)
     ->name('altcha.tantangan');
 
 /*
- * Semua jalur WBS (H-03, H-04, H-05) di grup ini: tanpa sesi, cookie, dan CSRF; header no-referrer, no-store,
- * dan CSP tanpa pihak ketiga (LindungiJalurWbs). Pengganti CSRF: ALTCHA dan token formulir bertanda tangan.
+ * Semua jalur WBS (kode akses, H-03, H-04, H-05, Lacak WBS) di grup ini: tanpa sesi, cookie, dan CSRF; header
+ * no-referrer, no-store, noindex, dan CSP tanpa pihak ketiga (LindungiJalurWbs). /wbs sengaja tidak dicantumkan di
+ * robots.txt atau sitemap, agar alamatnya tidak terbuka. Pengganti CSRF: ALTCHA dan token formulir bertanda tangan.
  */
 Route::prefix('wbs')
     ->withoutMiddleware($tanpaCookie)
@@ -99,11 +101,21 @@ Route::prefix('wbs')
                 Route::delete('/{id}', [UnggahLampiranController::class, 'batal'])->middleware('throttle:unggah-lampiran-wbs')->name('batal');
             });
 
-        Route::get('/', [WbsController::class, 'jaminan'])->name('wbs');
+        // Revisi 20-11: kanal internal. Langkah pertama kode akses (wajib ALTCHA); jaminan dan formulir dibuka dengan
+        // token akses bertanda tangan di memori halaman.
+        Route::get('/', [WbsController::class, 'akses'])->name('wbs');
+        Route::post('/akses', [WbsController::class, 'periksaKode'])->middleware('throttle:kode-akses-wbs')->name('wbs.akses');
         Route::get('/jaminan-kerahasiaan', [WbsController::class, 'berkasJaminan'])->name('wbs.jaminan.berkas');
         Route::get('/lapor', [WbsController::class, 'create'])->name('wbs.lapor');
+        Route::post('/lapor/buka', [WbsController::class, 'bukaFormulir'])->middleware('throttle:tantangan-altcha')->name('wbs.lapor.buka');
         Route::get('/lapor/token', [WbsController::class, 'token'])->middleware('throttle:tantangan-altcha')->name('wbs.token');
         // Kiriman dijawab JSON berisi data Bukti Lapor WBS (H-05) yang ditampilkan sekali di halaman.
         Route::post('/lapor', [WbsController::class, 'store'])->middleware('throttle:kirim-wbs')->name('wbs.store');
         Route::post('/bukti/pdf', [WbsController::class, 'pdf'])->middleware('throttle:kirim-wbs')->name('wbs.bukti.pdf');
+
+        // Lacak WBS dipisah dari Lacak Pengaduan (revisi 20-11), tanpa sesi: token Lacak di memori halaman.
+        Route::get('/lacak', [LacakWbsController::class, 'create'])->name('wbs.lacak');
+        Route::post('/lacak', [LacakWbsController::class, 'store'])->middleware('throttle:kirim-wbs')->name('wbs.lacak.store');
+        Route::post('/lacak/detail', [LacakWbsController::class, 'show'])->middleware('throttle:kirim-wbs')->name('wbs.lacak.show');
+        Route::post('/lacak/pesan', [LacakWbsController::class, 'kirimPesan'])->middleware('throttle:kirim-wbs')->name('wbs.lacak.pesan');
     });

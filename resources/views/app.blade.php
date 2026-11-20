@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1E3A9E">
+    @if (request()->is('wbs', 'wbs/*'))
+        {{-- Kanal WBS internal (revisi 20-11): tidak diindeks, dan tidak dicantumkan di robots.txt. --}}
+        <meta name="robots" content="noindex,nofollow">
+    @endif
     <link rel="icon" type="image/png" href="/img/logo-96.png">
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/app.jsx'])

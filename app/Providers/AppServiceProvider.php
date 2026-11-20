@@ -112,6 +112,11 @@ class AppServiceProvider extends ServiceProvider
             'message' => 'Terlalu banyak permintaan dalam waktu singkat. Silakan coba lagi dalam satu menit.',
         ], 429);
 
+        // Kode akses WBS (revisi 20-11): penghitung global tanpa IP; setiap percobaan juga wajib ALTCHA.
+        RateLimiter::for('kode-akses-wbs', fn (): Limit => Limit::perMinute(
+            (int) config('sigap.wbs.batas_kode_akses_global_per_menit'),
+        )->by('global')->response($terlaluBanyak));
+
         RateLimiter::for('kirim-wbs', fn (): Limit => Limit::perMinute(
             (int) config('sigap.wbs.batas_kirim_global_per_menit'),
         )->by('global')->response($terlaluBanyak));

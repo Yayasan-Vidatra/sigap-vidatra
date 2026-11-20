@@ -42,9 +42,13 @@ class PemindahPengaduanKeWbs
         StatusLaporan::Diterima, StatusLaporan::Terverifikasi, StatusLaporan::Diproses, StatusLaporan::MenungguKonfirmasi,
     ];
 
-    public const JUDUL_PENGGANTI = 'Dipindah ke kanal WBS';
+    /**
+     * Judul dan kronologi pengganti pada pengaduan asal. Tampil juga di halaman Lacak pelapor, sehingga sejak revisi 20-11
+     * tidak menyebut kanal WBS internal.
+     */
+    public const JUDUL_PENGGANTI = 'Dialihkan ke tim khusus';
 
-    public const KRONOLOGI_PENGGANTI = 'Isi pengaduan ini dipindah ke kanal WBS dan tidak lagi tersedia di sini.';
+    public const KRONOLOGI_PENGGANTI = 'Isi pengaduan ini dialihkan ke tim penanganan khusus yayasan dan tidak lagi tersedia di sini.';
 
     public function __construct(
         private PembuatLaporanWbs $pembuat,

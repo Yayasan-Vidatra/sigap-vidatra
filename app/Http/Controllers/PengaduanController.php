@@ -12,8 +12,10 @@ use App\Http\Requests\StorePengaduanRequest;
 use App\Models\Kategori;
 use App\Models\Lampiran;
 use App\Models\Laporan;
+use App\Models\TautanBukti;
 use App\Models\Unit;
 use App\Services\Lampiran\PelampirUnggahan;
+use App\Services\Lampiran\PenyimpanTautanBukti;
 use App\Services\WaktuLokal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +32,8 @@ class PengaduanController extends Controller
     {
         return Inertia::render('Pengaduan/Formulir', [
             // Kontak darurat dan SLA dari Pengaturan/Kategori: formulir menampilkannya sesuai unit dan kategori yang dipilih.
-            'unit' => Unit::query()->where('aktif', true)->orderBy('id')->get(['id', 'nama', 'kontak_darurat']),
+            // Unit khusus WBS (mis. PT Vidatra Jaya Makmur) tidak tampil di Pengaduan (revisi 20-11).
+            'unit' => Unit::query()->untukPengaduan()->where('aktif', true)->orderBy('id')->get(['id', 'nama', 'kontak_darurat']),
             'kategori' => Kategori::query()
                 ->where('jenis', JenisLaporan::Pengaduan)
                 ->orderBy('nama')
@@ -40,7 +43,6 @@ class PengaduanController extends Controller
             'jenisPelapor' => collect(JenisPelapor::cases())
                 ->map(fn (JenisPelapor $jenis): array => ['value' => $jenis->value, 'label' => $jenis->getLabel()])
                 ->all(),
-            'kataKunciWbs' => config('sigap.pengaduan.kata_kunci_wbs'),
             'aturanLampiran' => [
                 'maks_berkas' => (int) config('sigap.lampiran.maks_berkas'),
                 'maks_total_mb' => (int) config('sigap.lampiran.maks_total_mb'),
@@ -53,15 +55,16 @@ class PengaduanController extends Controller
                     ->values()
                     ->all(),
             ],
+            'maksTautan' => TautanBukti::MAKS,
         ]);
     }
 
-    public function store(StorePengaduanRequest $request, PelampirUnggahan $pelampir): RedirectResponse
+    public function store(StorePengaduanRequest $request, PelampirUnggahan $pelampir, PenyimpanTautanBukti $tautan): RedirectResponse
     {
         $data = $request->validated();
         $siswa = $request->enum('jenis_pelapor', JenisPelapor::class) === JenisPelapor::Siswa;
 
-        $laporan = DB::transaction(function () use ($data, $siswa, $pelampir): Laporan {
+        $laporan = DB::transaction(function () use ($data, $siswa, $pelampir, $tautan): Laporan {
             $laporan = Laporan::create([
                 'kode_lacak' => Laporan::buatKodeLacak(JenisLaporan::Pengaduan),
                 'jenis' => JenisLaporan::Pengaduan,
@@ -94,6 +97,7 @@ class PengaduanController extends Controller
             StatusLaporanBerubah::dispatch($laporan, $riwayat);
 
             $pelampir->lampirkan($laporan, array_values($data['lampiran'] ?? []));
+            $tautan->simpan($laporan, array_values($data['tautan'] ?? []));
 
             return $laporan;
         });

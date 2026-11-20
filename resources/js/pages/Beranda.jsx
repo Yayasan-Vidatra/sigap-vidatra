@@ -40,27 +40,24 @@ function Hero() {
             <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-12 px-4 pt-12 pb-14 sm:px-6 sm:pt-14 sm:pb-16">
                 <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-5">
                     <span className="self-start rounded-full bg-pengaduan-100 px-3 py-1.5 text-xs font-bold tracking-wide text-pengaduan-700 sm:text-[13px]">
-                        PENGADUAN DAN PELAPORAN PELANGGARAN
+                        PENGADUAN LAYANAN SEKOLAH
                     </span>
                     <h1 className="text-[34px] leading-[1.08] font-extrabold tracking-tight sm:text-5xl lg:text-[54px]">
                         Suara Anda membantu sekolah kita jadi lebih baik.
                     </h1>
                     <p className="max-w-[540px] text-lg leading-relaxed text-slate-600">
-                        Sampaikan keluhan layanan atau laporkan dugaan pelanggaran di SD, SMP, SMA YPVDP, dan Pelaksana Harian.
-                        Setiap laporan mendapat kode lacak, sehingga Anda bisa memantau perkembangannya kapan saja.
+                        Sampaikan keluhan layanan di SD, SMP, SMA YPVDP, dan Pelaksana Harian. Setiap pengaduan mendapat kode lacak,
+                        sehingga Anda bisa memantau perkembangannya kapan saja.
                     </p>
                     <div className="flex flex-wrap gap-3">
                         <Tombol href="/pengaduan">
                             Kirim pengaduan
                             <Ikon ukuran={18} d={<path d="M5 12h14M13 6l6 6-6 6" />} />
                         </Tombol>
-                        <Tombol href="#wbs" biasa varian="garisWbs">
-                            Laporkan pelanggaran
+                        <Tombol href="/lacak" varian="garis">
+                            Lacak pengaduan
                         </Tombol>
                     </div>
-                    <Link href="/lacak" className="inline-flex min-h-11 items-center self-start font-semibold text-pengaduan-700 underline underline-offset-2">
-                        Sudah punya kode lacak? Lacak laporan Anda
-                    </Link>
                 </div>
                 <div className="relative min-w-0 flex-[1_1_440px]">
                     <picture>
@@ -81,7 +78,7 @@ function Hero() {
                             <Ikon ukuran={22} warna="#15803D" d={<path d="M20 6 9 17l-5-5" />} />
                         </span>
                         <span className="flex flex-col gap-0.5 text-[13px] text-slate-600">
-                            <span className="text-sm font-bold text-slate-900">Setiap laporan punya kode lacak</span>
+                            <span className="text-sm font-bold text-slate-900">Setiap pengaduan punya kode lacak</span>
                             Pantau statusnya di halaman Lacak
                         </span>
                     </div>
@@ -91,16 +88,16 @@ function Hero() {
     );
 }
 
-function Ciri({ judul, isi, gelap = false }) {
+function Ciri({ judul, isi }) {
     return (
         <div>
             <dt className="font-bold">{judul}</dt>
-            <dd className={`mt-0.5 ${gelap ? 'text-wbs-200' : 'text-slate-600'}`}>{isi}</dd>
+            <dd className="mt-0.5 text-slate-600">{isi}</dd>
         </div>
     );
 }
 
-function PilihJalur({ targetPengaduan, targetWbs }) {
+function TentangPengaduan({ targetPengaduan }) {
     const targetTeks = targetPengaduan
         ? `Tanggapan awal ${rentangHari(targetPengaduan.tanggapan)}; selesai sesuai kategori, ${
               targetPengaduan.selesai.min === targetPengaduan.selesai.maks
@@ -112,59 +109,31 @@ function PilihJalur({ targetPengaduan, targetWbs }) {
     return (
         <section className="mx-auto max-w-[1200px] px-4 pt-16 pb-6 sm:px-6 sm:pt-[72px]">
             <div className="mb-8 flex max-w-[680px] flex-col gap-2.5">
-                <h2 className={judulBagian}>Pilih jalur yang sesuai</h2>
+                <h2 className={judulBagian}>Apa yang bisa diadukan</h2>
                 <p className="text-[17px] leading-relaxed text-slate-600">
-                    Keduanya bisa melampirkan foto, video, atau dokumen dan bisa dilacak. Bedanya ada pada isi laporan dan siapa yang
-                    menanganinya.
+                    Pengaduan bisa melampirkan foto, video, dokumen, atau berkas ZIP, dan bisa dilacak sampai selesai.
                 </p>
             </div>
-            <div className="flex flex-wrap gap-6">
-                <article className="flex min-w-0 flex-[1_1_440px] flex-col gap-5 rounded-[20px] border border-pengaduan-200 bg-white p-6 sm:p-8">
-                    <div className="flex items-center gap-3.5">
-                        <span className="flex size-12 items-center justify-center rounded-2xl bg-pengaduan-100">
-                            <Ikon warna="#1E3A9E" d={<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />} />
-                        </span>
-                        <div>
-                            <h3 className="text-[22px] font-extrabold">Pengaduan</h3>
-                            <p className="mt-1 text-[15px] text-slate-600">Keluhan tentang layanan sekolah</p>
-                        </div>
+            <article className="flex flex-col gap-6 rounded-[20px] border border-pengaduan-200 bg-white p-6 sm:p-8">
+                <div className="flex items-center gap-3.5">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-pengaduan-100">
+                        <Ikon warna="#1E3A9E" d={<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />} />
+                    </span>
+                    <div>
+                        <h3 className="text-[22px] font-extrabold">Pengaduan</h3>
+                        <p className="mt-1 text-[15px] text-slate-600">Keluhan tentang layanan sekolah</p>
                     </div>
-                    <dl className="grid grid-cols-1 gap-3.5 text-[15px] leading-relaxed">
-                        <Ciri judul="Contoh" isi="Fasilitas rusak, layanan administrasi, kebersihan, jadwal kegiatan, komunikasi guru dan orang tua." />
-                        <Ciri judul="Siapa yang melapor" isi="Orang tua, siswa (dengan kontak orang tua/wali), alumni, dan masyarakat." />
-                        <Ciri judul="Identitas" isi="Nama dan satu kontak wajib diisi, agar petugas bisa menindaklanjuti." />
-                        <Ciri judul="Target waktu" isi={targetTeks} />
-                    </dl>
-                    <Tombol href="/pengaduan" className="mt-auto self-start">
-                        Kirim pengaduan
-                    </Tombol>
-                </article>
-
-                <article id="wbs" className="flex min-w-0 flex-[1_1_440px] scroll-mt-6 flex-col gap-5 rounded-[20px] bg-wbs-700 p-6 text-white sm:p-8">
-                    <div className="flex items-center gap-3.5">
-                        <span className="flex size-12 items-center justify-center rounded-2xl bg-white/10">
-                            <Ikon warna="#ffffff" d={<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />} />
-                        </span>
-                        <div>
-                            <h3 className="text-[22px] font-extrabold">Pelaporan Pelanggaran (WBS)</h3>
-                            <p className="mt-1 text-[15px] text-wbs-200">Dugaan pelanggaran serius, ditangani rahasia</p>
-                        </div>
-                    </div>
-                    <dl className="grid grid-cols-1 gap-3.5 text-[15px] leading-relaxed">
-                        <Ciri
-                            gelap
-                            judul="Contoh"
-                            isi="Penyalahgunaan dana atau aset (termasuk BOS), pungutan tidak sah, suap atau gratifikasi, benturan kepentingan, manipulasi data, tindakan balasan terhadap pelapor."
-                        />
-                        <Ciri gelap judul="Siapa yang melapor" isi="Siapa saja, termasuk guru, karyawan, dan penyedia." />
-                        <Ciri gelap judul="Identitas" isi="Boleh tanpa nama. Laporan dipantau dengan kode lacak dan PIN." />
-                        <Ciri gelap judul="Target waktu" isi={`Ditelaah dalam ${targetWbs.telaah} hari kerja.`} />
-                    </dl>
-                    <Tombol href="/wbs" varian="putih" className="mt-auto self-start">
-                        Baca jaminan kerahasiaan, lalu lapor
-                    </Tombol>
-                </article>
-            </div>
+                </div>
+                <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-x-8 gap-y-4 text-[15px] leading-relaxed">
+                    <Ciri judul="Contoh" isi="Fasilitas rusak, layanan administrasi, kebersihan, jadwal kegiatan, komunikasi guru dan orang tua." />
+                    <Ciri judul="Siapa yang mengadu" isi="Orang tua, siswa (dengan kontak orang tua/wali), alumni, dan masyarakat." />
+                    <Ciri judul="Identitas" isi="Nama dan satu kontak wajib diisi, agar petugas bisa menindaklanjuti." />
+                    <Ciri judul="Target waktu" isi={targetTeks} />
+                </dl>
+                <Tombol href="/pengaduan" className="self-start">
+                    Kirim pengaduan
+                </Tombol>
+            </article>
         </section>
     );
 }
@@ -239,8 +208,8 @@ function Darurat({ kontakDarurat, unitTanpaKontakDarurat, kontakDaruratCadangan 
 
 const langkah = [
     ['Isi formulir', 'Sekitar 5 menit dari HP. Lampirkan foto, video, atau dokumen bila ada. Draf pengaduan tersimpan otomatis.'],
-    ['Simpan kode lacak', 'Kode tampil setelah laporan terkirim. Unduh Bukti Lapor dalam bentuk PDF.'],
-    ['Petugas menindaklanjuti', 'Pengaduan diteruskan ke unit sekolah terkait; laporan pelanggaran ditelaah Tim WBS.'],
+    ['Simpan kode lacak', 'Kode tampil setelah pengaduan terkirim. Unduh Bukti Lapor dalam bentuk PDF.'],
+    ['Petugas menindaklanjuti', 'Pengaduan diperiksa petugas, lalu diteruskan ke unit sekolah terkait.'],
     ['Pantau dan balas', 'Lihat status, berkirim pesan dengan petugas, dan konfirmasi hasil lewat halaman Lacak.'],
 ];
 
@@ -265,30 +234,30 @@ function CaraKerja() {
 
 const perlindungan = [
     [
-        'Tanpa jejak di halaman WBS',
-        'Tidak mencatat alamat IP, tidak memasang cookie pelacak, tanpa analitik pihak ketiga.',
-        <path key="a" d="M17.9 17.9A10 10 0 0 1 6.1 6.1M2 2l20 20M9.9 4.2A10 10 0 0 1 22 12a10 10 0 0 1-2.2 3.9" />,
-    ],
-    [
-        'Disimpan terenkripsi',
-        'Identitas, isi laporan pelanggaran, dan lampirannya disandikan saat disimpan.',
+        'Identitas disimpan terenkripsi',
+        'Nama dan kontak Anda disandikan saat disimpan dan tidak tampil di halaman Lacak.',
         <>
-            <rect x="4" y="11" width="16" height="10" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            <rect key="a" x="4" y="11" width="16" height="10" rx="2" />
+            <path key="b" d="M8 11V7a4 4 0 0 1 8 0v4" />
         </>,
     ],
     [
         'Hanya petugas berwenang',
-        'Petugas hanya melihat laporan sesuai perannya, dan setiap pembukaan tercatat.',
+        'Petugas hanya melihat pengaduan sesuai perannya; petugas unit hanya pengaduan unitnya.',
         <>
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 21a8 8 0 0 1 16 0" />
+            <circle key="a" cx="12" cy="8" r="4" />
+            <path key="b" d="M4 21a8 8 0 0 1 16 0" />
         </>,
     ],
     [
-        'Tidak ditangani yang dilaporkan',
-        'Laporan tentang Tim WBS, Pengawas, atau Pembina otomatis diteruskan ke pihak lain.',
-        <path key="d" d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7" />,
+        'Setiap pembukaan tercatat',
+        'Pembukaan pengaduan dan lampiran tercatat di log yang tidak bisa diubah atau dihapus.',
+        <path key="c" d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" />,
+    ],
+    [
+        'Tanpa analitik pihak ketiga',
+        'Situs ini tidak memakai cookie iklan atau analitik pihak ketiga.',
+        <path key="d" d="M17.9 17.9A10 10 0 0 1 6.1 6.1M2 2l20 20M9.9 4.2A10 10 0 0 1 22 12a10 10 0 0 1-2.2 3.9" />,
     ],
 ];
 
@@ -299,8 +268,8 @@ function Perlindungan() {
                 <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-3">
                     <h2 className={judulBagian}>Identitas Anda terlindungi</h2>
                     <p className="text-[17px] leading-relaxed text-slate-600">
-                        Melapor tidak boleh membuat Anda dirugikan. Tindakan balasan terhadap pelapor termasuk pelanggaran dan dapat
-                        dilaporkan.
+                        Mengadu tidak boleh membuat Anda dirugikan. Yayasan melarang tindakan balasan terhadap orang yang
+                        menyampaikan pengaduan dengan iktikad baik.
                     </p>
                 </div>
                 <div className="grid min-w-0 flex-[2_1_560px] grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
@@ -347,16 +316,17 @@ function TanyaJawab({ tanyaJawab }) {
 }
 
 /*
- * H-01 Beranda (US-01, F-01). Angka dan kontak tidak ditanam di kode: kontak darurat dari Pengaturan (units),
- * target Pengaduan dari SLA kategori, target telaah WBS dari config, tanya jawab dari Pengaturan.
+ * H-01 Beranda (US-01, F-01). Sejak revisi 20-11 hanya untuk Pengaduan; kanal WBS internal tidak disebut di halaman
+ * publik. Angka dan kontak tidak ditanam di kode: kontak darurat dari Pengaturan (units), target Pengaduan dari SLA
+ * kategori, tanya jawab dari Pengaturan.
  */
-export default function Beranda({ kontakDarurat, unitTanpaKontakDarurat = [], kontakDaruratCadangan, targetPengaduan, targetWbs, tanyaJawab = [] }) {
+export default function Beranda({ kontakDarurat, unitTanpaKontakDarurat = [], kontakDaruratCadangan, targetPengaduan, tanyaJawab = [] }) {
     return (
         <PublicLayout polos>
             <Head title="Beranda" />
             <div className="bg-white">
                 <Hero />
-                <PilihJalur targetPengaduan={targetPengaduan} targetWbs={targetWbs} />
+                <TentangPengaduan targetPengaduan={targetPengaduan} />
                 <Darurat kontakDarurat={kontakDarurat} unitTanpaKontakDarurat={unitTanpaKontakDarurat} kontakDaruratCadangan={kontakDaruratCadangan} />
                 <CaraKerja />
                 <Perlindungan />

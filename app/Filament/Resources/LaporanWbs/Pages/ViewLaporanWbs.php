@@ -293,6 +293,7 @@ class ViewLaporanWbs extends ViewRecord
                 TextEntry::make('identitasPelapor.nama')->label('Nama'),
                 TextEntry::make('identitasPelapor.email')->label('Surel')->placeholder('-'),
                 TextEntry::make('identitasPelapor.no_hp')->label('Nomor HP/WhatsApp')->placeholder('-'),
+                TextEntry::make('identitasPelapor.media_sosial')->label('Akun media sosial')->placeholder('-'),
             ]);
     }
 

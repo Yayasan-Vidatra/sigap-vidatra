@@ -9,8 +9,8 @@ use Inertia\Response;
 
 /**
  * H-08 FAQ dan Kebijakan Privasi. Teksnya dari Pengaturan (dikelola Super Admin di H-19), bukan dari kode. Target
- * waktu penanganan diambil langsung dari Kategori dan SLA serta tenggat WBS, sehingga selalu sama dengan yang
- * dipakai sistem. Halaman ini tidak memuat data petugas, termasuk susunan Tim WBS dan penerima hasil.
+ * waktu penanganan diambil langsung dari Kategori dan SLA, sehingga selalu sama dengan yang dipakai sistem. Sejak
+ * revisi 20-11 halaman publik tidak menyebut kanal WBS internal. Halaman ini tidak memuat data petugas.
  */
 class HalamanInformasiController extends Controller
 {
@@ -19,11 +19,6 @@ class HalamanInformasiController extends Controller
         return Inertia::render('Informasi/Faq', [
             'pertanyaan' => Pengaturan::daftar(Pengaturan::PUBLIK_FAQ),
             'targetPengaduan' => Kategori::targetPengaduan(),
-            'targetWbs' => [
-                'telaah' => (int) config('sigap.wbs.telaah_hari_kerja'),
-                'investigasi' => (int) config('sigap.wbs.investigasi_hari_kerja'),
-                'perpanjangan' => (int) config('sigap.wbs.perpanjangan_hari_kerja'),
-            ],
         ]);
     }
 

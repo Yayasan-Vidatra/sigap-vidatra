@@ -1394,3 +1394,42 @@ select.fi-select-input,
     font-size: 22px;
     font-weight: 800;
 }
+
+/* ---------------------------------------------------------------- Tautan bukti (Google Drive) */
+
+.sigap-tautan-bukti {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sigap-tautan-bukti li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.sigap-tautan-bukti-label {
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.dark .sigap-tautan-bukti-label {
+    background: rgb(251 191 36 / 0.16);
+    color: #fde68a;
+}
+
+.sigap-tautan-bukti-waktu {
+    font-size: 13px;
+    color: var(--sigap-teks-3);
+}

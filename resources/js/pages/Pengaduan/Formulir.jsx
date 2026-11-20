@@ -1,15 +1,15 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Altcha from '../../components/Altcha';
+import TautanDrive from '../../components/TautanDrive';
 import UnggahLampiran from '../../components/UnggahLampiran';
 import PublicLayout, { Bagian, JudulHalaman, Kolom, Tombol, gayaIsian } from '../../layouts/PublicLayout';
 
 /*
- * Draf otomatis khusus Formulir Pengaduan (US-02). Jangan dipakai di formulir WBS: draf di browser
- * meninggalkan jejak laporan di perangkat pelapor.
+ * Draf otomatis Formulir Pengaduan (US-02). Lampiran, tautan Google Drive, dan persetujuan tidak ikut disimpan.
  */
 const KUNCI_DRAF = 'sigap.draf-pengaduan.v1';
-const KOLOM_TANPA_DRAF = ['situs_web', 'setuju_ketentuan', 'persetujuan_orang_tua', 'altcha', 'lampiran'];
+const KOLOM_TANPA_DRAF = ['situs_web', 'setuju_ketentuan', 'persetujuan_orang_tua', 'altcha', 'lampiran', 'tautan', 'setuju_tautan'];
 
 function bacaDraf() {
     try {
@@ -47,17 +47,6 @@ function hapusDraf() {
     }
 }
 
-function polaKataKunci(kataKunci) {
-    if (kataKunci.length === 0) {
-        return null;
-    }
-
-    const daftar = kataKunci.map((kata) => kata.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-
-    // Kata utuh, boleh diikuti partikel -nya/-lah/-kah/-pun (mis. "kekerasannya"), tetapi "suapan" tidak cocok.
-    return new RegExp(`(^|[^\\p{L}\\p{N}])(${daftar})(?:nya|lah|kah|pun)?(?=$|[^\\p{L}\\p{N}])`, 'iu');
-}
-
 function rentang(nilai) {
     if (nilai.length === 0) {
         return null;
@@ -89,6 +78,8 @@ const isianAwal = {
     situs_web: '',
     altcha: '',
     lampiran: [],
+    tautan: [],
+    setuju_tautan: false,
 };
 
 function Centang({ id, checked, onChange, galat, children }) {
@@ -157,15 +148,6 @@ function Samping({ unitDipilih, kategoriDipilih, unit, kategori, kontakDaruratCa
 
     return (
         <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
-            <div className="flex flex-col gap-2.5 rounded-[18px] bg-wbs-700 p-5 text-white sm:p-6">
-                <h2 className="text-[17px] font-extrabold">Mau melaporkan pelanggaran?</h2>
-                <p className="text-sm leading-relaxed text-wbs-200">
-                    Pungutan liar, penyalahgunaan dana, atau suap dilaporkan lewat WBS, boleh tanpa nama.
-                </p>
-                <Link href="/wbs" className="inline-flex min-h-11 items-center self-start text-[15px] font-bold text-white underline underline-offset-2">
-                    Ke Pelaporan Pelanggaran
-                </Link>
-            </div>
             <div className="flex flex-col gap-3 rounded-[18px] border border-garis bg-white p-5 sm:p-6">
                 <h2 className="text-[17px] font-extrabold">Setelah dikirim</h2>
                 <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm leading-relaxed text-slate-600">
@@ -196,7 +178,7 @@ function Samping({ unitDipilih, kategoriDipilih, unit, kategori, kontakDaruratCa
  * H-02 Formulir Pengaduan (US-02, US-03, US-04). Target waktu dan kontak darurat dari props (SLA kategori dan
  * Pengaturan), berubah mengikuti unit dan kategori yang dipilih.
  */
-export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, aturanLampiran, maksKronologi, kontakDaruratCadangan }) {
+export default function Formulir({ unit, kategori, jenisPelapor, aturanLampiran, maksKronologi, kontakDaruratCadangan, maksTautan = 5 }) {
     const [sedangMengunggah, setSedangMengunggah] = useState(false);
     const form = useForm(isianAwal);
     const { data, setData, errors, processing } = form;
@@ -231,8 +213,6 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, a
         return () => clearTimeout(jeda);
     }, [data]);
 
-    const pola = useMemo(() => polaKataKunci(kataKunciWbs), [kataKunciWbs]);
-    const sarankanWbs = pola !== null && pola.test(`${data.judul} ${data.kronologi}`);
     const kategoriDipilih = kategori.find((item) => String(item.id) === String(data.kategori_id));
     const unitDipilih = unit.find((item) => String(item.id) === String(data.unit_id));
 
@@ -263,6 +243,8 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, a
 
     function kirim(e) {
         e.preventDefault();
+        // Isian tautan yang dibiarkan kosong tidak ikut dikirim.
+        form.transform((isian) => ({ ...isian, tautan: isian.tautan.filter((url) => url.trim() !== '') }));
         form.post('/pengaduan', {
             preserveScroll: true,
             onSuccess: () => hapusDraf(),
@@ -391,20 +373,6 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, a
                                 {angka.format(data.kronologi.length)} / {angka.format(maksKronologi)} karakter
                             </span>
                         </div>
-                        {sarankanWbs && (
-                            <div role="status" className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-                                <p className="font-semibold">Apakah ini dugaan pelanggaran serius atau kekerasan?</p>
-                                <p>
-                                    Laporan seperti ini sebaiknya dikirim lewat{' '}
-                                    <Link href="/wbs" className="font-semibold text-wbs-700 underline">
-                                        Pelaporan Pelanggaran (WBS)
-                                    </Link>
-                                    , yang lebih rahasia dan boleh anonim. Isian di formulir ini tidak dibawa ke formulir WBS. Bila menyangkut
-                                    keselamatan siswa, segera hubungi kontak darurat sekolah.
-                                </p>
-                                <p>Bila memang keluhan layanan, Anda tetap bisa melanjutkan pengaduan ini.</p>
-                            </div>
-                        )}
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-4">
                             <Kolom id="waktu_kejadian" label="Kapan terjadi" galat={errors.waktu_kejadian}>
                                 <input type="datetime-local" {...properti('waktu_kejadian')} className={gayaIsian} />
@@ -424,6 +392,9 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, a
                     </Bagian>
 
                     <Bagian nomor="3" judul="Lampiran" tambahan="(opsional)">
+                        <p className="text-sm text-slate-600">
+                            Data lokasi dan perangkat pada foto dan video dihapus otomatis. Data berkas di dalam ZIP tidak dibersihkan.
+                        </p>
                         <UnggahLampiran
                             kanal="pengaduan"
                             aturan={aturanLampiran}
@@ -432,6 +403,13 @@ export default function Formulir({ unit, kategori, jenisPelapor, kataKunciWbs, a
                                 setSedangMengunggah(berjalan);
                             }}
                             galat={errors.lampiran}
+                        />
+                        <TautanDrive
+                            tautan={data.tautan}
+                            setuju={data.setuju_tautan}
+                            maks={maksTautan}
+                            galat={errors}
+                            onChange={(tautan, setuju) => setData((isian) => ({ ...isian, tautan, setuju_tautan: setuju }))}
                         />
                     </Bagian>
 

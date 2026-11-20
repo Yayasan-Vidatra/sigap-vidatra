@@ -1,6 +1,7 @@
 import { Head, Link, useHttp } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Altcha from '../../components/Altcha';
+import TautanDrive from '../../components/TautanDrive';
 import UnggahLampiran from '../../components/UnggahLampiran';
 import PublicLayout, { Bagian, JudulHalaman, Kolom, Tombol, gayaIsian } from '../../layouts/PublicLayout';
 
@@ -10,24 +11,30 @@ import PublicLayout, { Bagian, JudulHalaman, Kolom, Tombol, gayaIsian } from '..
  *
  * Tanpa draf: isian hanya ada di memori halaman, tidak di localStorage atau riwayat browser. Kiriman memakai
  * permintaan HTTP biasa (useHttp) ke /wbs/lapor yang berjalan tanpa sesi dan cookie; pengganti CSRF adalah
- * token formulir bertanda tangan (diperbarui berkala selama halaman terbuka) dan ALTCHA. Jawaban server
- * berisi kode lacak yang ditampilkan sekali di halaman ini; kode tidak pernah masuk URL.
+ * token akses (lolos kode akses), token formulir bertanda tangan (keduanya diperbarui berkala selama halaman
+ * terbuka), dan ALTCHA. Jawaban server berisi kode lacak yang ditampilkan sekali; kode tidak pernah masuk URL.
+ *
+ * Revisi 20-11: tidak anonim (nama, surel, HP/WA wajib; media sosial opsional), kedudukan "Lain-lain" dengan
+ * isian wajib, berkas ZIP, dan tautan Google Drive.
  */
 const isianAwal = {
-    mode: '',
     nama: '',
     email: '',
     no_hp: '',
+    media_sosial: '',
     kategori_id: '',
     unit_id: '',
     terlapor: [{ nama: '', jabatan: '' }],
     kedudukan_terlapor: '',
+    kedudukan_lain: '',
     judul: '',
     kronologi: '',
     waktu_kejadian: '',
     lokasi: '',
     saksi: '',
     lampiran: [],
+    tautan: [],
+    setuju_tautan: false,
     pin: '',
     pin_confirmation: '',
     situs_web: '',
@@ -56,18 +63,24 @@ function Centang({ id, checked, onChange, children }) {
 }
 
 /*
- * Token formulir baru diminta berkala tanpa cookie (credentials: 'omit'), agar halaman yang lama terbuka
- * tetap bisa mengirim.
+ * Token formulir dan token akses baru diminta berkala tanpa cookie (credentials: 'omit'), agar halaman yang lama
+ * terbuka tetap bisa mengirim. Token akses dikirim di header, bukan URL.
  */
-function useTokenFormulir(tokenAwal, masaTokenMenit) {
+function useTokenFormulir(tokenAwal, tokenAksesAwal, masaTokenMenit) {
     const token = useRef(tokenAwal);
+    const tokenAkses = useRef(tokenAksesAwal);
 
     async function perbarui() {
         try {
-            const jawaban = await fetch('/wbs/lapor/token', { credentials: 'omit', headers: { Accept: 'application/json' } });
+            const jawaban = await fetch('/wbs/lapor/token', {
+                credentials: 'omit',
+                headers: { Accept: 'application/json', 'X-Token-Akses': tokenAkses.current },
+            });
 
             if (jawaban.ok) {
-                token.current = (await jawaban.json()).token;
+                const isi = await jawaban.json();
+                token.current = isi.token;
+                tokenAkses.current = isi.tokenAkses;
             }
         } catch {
             // Koneksi terputus; dicoba lagi pada putaran berikutnya.
@@ -80,7 +93,7 @@ function useTokenFormulir(tokenAwal, masaTokenMenit) {
         return () => window.clearInterval(pewaktu);
     }, [masaTokenMenit]);
 
-    return { ambil: () => token.current, perbarui };
+    return { ambil: () => token.current, ambilAkses: () => tokenAkses.current, perbarui };
 }
 
 /*
@@ -130,7 +143,7 @@ function PesanKekerasan(props) {
  * H-05 Bukti Lapor WBS: kode lacak tampil sekali dari memori halaman. PDF diunduh lewat token sekali pakai
  * yang dikirim di badan POST, tanpa cookie, lalu disimpan dari blob agar halaman ini tidak berpindah.
  */
-function BuktiLaporWbs({ kodeLacak, tokenPdf, masaUnduhPdfMenit, lampiran }) {
+function BuktiLaporWbs({ kodeLacak, tokenPdf, masaUnduhPdfMenit, lampiran, jumlahTautan = 0 }) {
     const [tersalin, setTersalin] = useState(false);
     const [pdf, setPdf] = useState({ status: 'siap', pesan: null });
 
@@ -220,6 +233,11 @@ function BuktiLaporWbs({ kodeLacak, tokenPdf, masaUnduhPdfMenit, lampiran }) {
                 </p>
                 {pdf.pesan && <p className="text-sm text-rose-700">{pdf.pesan}</p>}
             </div>
+            {jumlahTautan > 0 && (
+                <p className="text-sm text-slate-700">
+                    {jumlahTautan} tautan Google Drive terkirim. Jangan hapus berkas atau cabut aksesnya sebelum laporan selesai.
+                </p>
+            )}
             {lampiran.length > 0 && (
                 <div className="flex flex-col gap-2">
                     <h2 className="font-semibold">Lampiran terkirim</h2>
@@ -236,10 +254,10 @@ function BuktiLaporWbs({ kodeLacak, tokenPdf, masaUnduhPdfMenit, lampiran }) {
             )}
             <p className="text-sm text-slate-700">
                 Pantau laporan dan balas pesan Tim WBS di halaman{' '}
-                <Link href="/lacak" className="font-medium text-wbs-700 hover:underline">
-                    Lacak Laporan
+                <Link href="/wbs/lacak" className="font-medium text-wbs-700 hover:underline">
+                    Lacak Laporan WBS
                 </Link>{' '}
-                dengan kode lacak dan PIN. Laporan WBS tidak dikirimi surel.
+                (/wbs/lacak) dengan kode lacak dan PIN. Laporan WBS tidak dikirimi surel.
             </p>
         </section>
     );
@@ -261,7 +279,7 @@ function Samping({ targetTelaah, kontakDarurat, jumlahUnit, kontakDaruratCadanga
                 <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm leading-relaxed text-slate-600">
                     <li>Anda mendapat kode lacak yang tampil sekali. Simpan bersama PIN Anda.</li>
                     <li>Laporan ditelaah dalam {targetTelaah} hari kerja oleh penelaah yang berwenang.</li>
-                    <li>Pantau dan balas pesan Tim WBS di halaman Lacak Laporan.</li>
+                    <li>Pantau dan balas pesan Tim WBS di halaman Lacak Laporan WBS (/wbs/lacak).</li>
                 </ol>
             </div>
             <div className="flex flex-col gap-2 rounded-[18px] border border-darurat-200 bg-darurat-50 p-5 text-sm text-darurat-900 sm:p-6">
@@ -273,17 +291,17 @@ function Samping({ targetTelaah, kontakDarurat, jumlahUnit, kontakDaruratCadanga
 }
 
 export default function Formulir(props) {
-    const { token, masaTokenMenit, unit, kategori, kedudukan, kontakDarurat, kontakDaruratCadangan, targetTelaah } = props;
-    const { kataKunciKekerasan, maksTerlapor, aturanLampiran } = props;
+    const { token, tokenAkses, masaTokenMenit, unit, kategori, kedudukan, kontakDarurat, kontakDaruratCadangan, targetTelaah } = props;
+    const { kataKunciKekerasan, maksTerlapor, aturanLampiran, jumlahUnitSekolah, maksTautan } = props;
     const form = useHttp(isianAwal);
     const { data, setData, errors, processing } = form;
-    const tokenFormulir = useTokenFormulir(token, masaTokenMenit);
+    const tokenFormulir = useTokenFormulir(token, tokenAkses, masaTokenMenit);
     const [sedangMengunggah, setSedangMengunggah] = useState(false);
     const [kekerasanDipilih, setKekerasanDipilih] = useState(false);
     const [galatUmum, setGalatUmum] = useState(null);
     const [bukti, setBukti] = useState(null);
-    const bernama = data.mode === 'bernama';
-    const darurat = { kontakDarurat, jumlahUnit: unit.length, kontakDaruratCadangan };
+    const lainLain = data.kedudukan_terlapor === 'lain_lain';
+    const darurat = { kontakDarurat, jumlahUnit: jumlahUnitSekolah, kontakDaruratCadangan };
 
     const pola = useMemo(() => polaKataKunci(kataKunciKekerasan), [kataKunciKekerasan]);
     const tampilkanPesanKekerasan = kekerasanDipilih || (pola !== null && pola.test(`${data.judul} ${data.kronologi}`));
@@ -315,12 +333,18 @@ export default function Formulir(props) {
     async function kirim(e) {
         e.preventDefault();
         setGalatUmum(null);
-        form.transform((isian) => ({ ...isian, token: tokenFormulir.ambil() }));
+        form.transform((isian) => ({
+            ...isian,
+            token: tokenFormulir.ambil(),
+            token_akses: tokenFormulir.ambilAkses(),
+            kedudukan_lain: isian.kedudukan_terlapor === 'lain_lain' ? isian.kedudukan_lain : '',
+            tautan: isian.tautan.filter((url) => url.trim() !== ''),
+        }));
 
         try {
             const hasil = await form.post('/wbs/lapor', {
                 onError: (galat) => {
-                    if (galat.token) {
+                    if (galat.token || galat.token_akses) {
                         tokenFormulir.perbarui();
                     }
                 },
@@ -336,6 +360,11 @@ export default function Formulir(props) {
                 },
             });
 
+            // Galat validasi (422) tidak melempar; jawabannya kosong dan isian dibiarkan apa adanya.
+            if (!hasil) {
+                return;
+            }
+
             form.reset();
             setBukti(hasil);
             window.scrollTo(0, 0);
@@ -346,7 +375,7 @@ export default function Formulir(props) {
 
     if (bukti) {
         return (
-            <PublicLayout lebar="sedang">
+            <PublicLayout lebar="sedang" wbs>
                 <Head title="Bukti Lapor" />
                 <BuktiLaporWbs {...bukti} />
             </PublicLayout>
@@ -356,7 +385,7 @@ export default function Formulir(props) {
     const adaGalat = Object.keys(errors).length > 0;
 
     return (
-        <PublicLayout>
+        <PublicLayout wbs>
             <Head title="Formulir Pelaporan Pelanggaran" />
 
             <JudulHalaman
@@ -369,65 +398,31 @@ export default function Formulir(props) {
                 <form onSubmit={kirim} noValidate autoComplete="off" className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
                     {(adaGalat || galatUmum) && (
                         <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">
-                            {galatUmum ?? errors.token ?? 'Ada isian yang perlu diperbaiki. Isian lain tidak hilang.'}
+                            {galatUmum ?? errors.token_akses ?? errors.token ?? 'Ada isian yang perlu diperbaiki. Isian lain tidak hilang.'}
                         </div>
                     )}
 
-                    <Bagian nomor="1" judul="Cara melapor" warna="wbs">
-                        <div className="flex flex-col gap-2.5" role="radiogroup" aria-labelledby="mode-label">
-                            <span id="mode-label" className="text-[15px] font-semibold">
-                                Melapor dengan nama atau anonim?<span className="text-rose-700"> *</span>
-                            </span>
-                            {[
-                                { value: 'anonim', label: 'Anonim', keterangan: 'Tanpa nama dan kontak. Satu-satunya jalur komunikasi adalah kode lacak dan PIN.' },
-                                { value: 'bernama', label: 'Bernama', keterangan: 'Identitas disimpan terenkripsi dan hanya dapat dibuka penelaah yang berwenang.' },
-                            ].map((pilihan) => {
-                                const dipilih = data.mode === pilihan.value;
-
-                                return (
-                                    <label
-                                        key={pilihan.value}
-                                        className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl p-3.5 ${
-                                            dipilih ? 'border-2 border-wbs-700 bg-wbs-50' : 'border-[1.5px] border-slate-300 bg-white hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="mode"
-                                            value={pilihan.value}
-                                            checked={dipilih}
-                                            onChange={atur('mode')}
-                                            className="mt-0.5 size-[18px] shrink-0 accent-wbs-700"
-                                        />
-                                        <span>
-                                            <span className="block text-[15px] font-semibold text-slate-900">{pilihan.label}</span>
-                                            <span className="text-sm text-slate-600">{pilihan.keterangan}</span>
-                                        </span>
-                                    </label>
-                                );
-                            })}
-                            {errors.mode && <p className="text-sm font-medium text-rose-700">{errors.mode}</p>}
+                    <Bagian nomor="1" judul="Identitas pelapor" warna="wbs">
+                        <p className="rounded-xl border border-wbs-200 bg-wbs-50 px-4 py-3 text-sm text-wbs-900">
+                            Identitas Anda dirahasiakan dan hanya dibuka oleh penelaah yang berwenang. Setiap pembukaan identitas tercatat.
+                        </p>
+                        <Kolom id="nama" label="Nama lengkap" wajib galat={errors.nama}>
+                            <input type="text" autoComplete="off" {...properti('nama')} className={gayaIsian} />
+                        </Kolom>
+                        <div className={kisi}>
+                            <Kolom id="email" label="Surel" wajib galat={errors.email}>
+                                <input type="email" autoComplete="off" {...properti('email')} className={gayaIsian} />
+                            </Kolom>
+                            <Kolom id="no_hp" label="Nomor HP/WhatsApp" wajib galat={errors.no_hp}>
+                                <input type="tel" autoComplete="off" {...properti('no_hp')} className={gayaIsian} />
+                            </Kolom>
                         </div>
-
-                        {bernama && (
-                            <>
-                                <Kolom id="nama" label="Nama lengkap" wajib galat={errors.nama}>
-                                    <input type="text" {...properti('nama')} className={gayaIsian} />
-                                </Kolom>
-                                <div className={kisi}>
-                                    <Kolom id="email" label="Surel" galat={errors.email}>
-                                        <input type="email" {...properti('email')} className={gayaIsian} />
-                                    </Kolom>
-                                    <Kolom id="no_hp" label="Nomor HP/WhatsApp" galat={errors.no_hp}>
-                                        <input type="tel" {...properti('no_hp')} className={gayaIsian} />
-                                    </Kolom>
-                                </div>
-                                <p className="text-sm text-slate-600">
-                                    Kontak boleh dikosongkan. Bila diisi, Tim WBS dapat menghubungi Anda bila perlu. Laporan WBS tidak dikirimi surel
-                                    otomatis.
-                                </p>
-                            </>
-                        )}
+                        <Kolom id="media_sosial" label="Akun media sosial" keterangan="Boleh dikosongkan. Contoh: IG @nama." galat={errors.media_sosial}>
+                            <input type="text" maxLength={150} autoComplete="off" placeholder="IG @nama" {...properti('media_sosial', true)} className={gayaIsian} />
+                        </Kolom>
+                        <p className="text-sm text-slate-600">
+                            Tim WBS dapat menghubungi Anda lewat kontak ini bila perlu. Laporan WBS tidak dikirimi surel otomatis.
+                        </p>
                     </Bagian>
 
                     <Bagian nomor="2" judul="Pelanggaran yang dilaporkan" warna="wbs">
@@ -508,7 +503,7 @@ export default function Formulir(props) {
                             id="kedudukan_terlapor"
                             label="Kedudukan terlapor"
                             wajib
-                            keterangan="Menentukan siapa yang menelaah laporan. Bila terlapor lebih dari satu, pilih kedudukan yang tertinggi. Pilih “Tidak tahu” bila Anda tidak yakin."
+                            keterangan="Menentukan siapa yang menelaah laporan. Bila terlapor lebih dari satu, pilih kedudukan yang tertinggi. Pilih “Lain-lain” bila tidak ada yang pas, lalu tuliskan kedudukannya."
                             galat={errors.kedudukan_terlapor}
                         >
                             <select {...properti('kedudukan_terlapor', true)} className={gayaIsian}>
@@ -520,6 +515,17 @@ export default function Formulir(props) {
                                 ))}
                             </select>
                         </Kolom>
+                        {lainLain && (
+                            <Kolom
+                                id="kedudukan_lain"
+                                label="Sebutkan kedudukan terlapor"
+                                wajib
+                                keterangan="Paling banyak 100 karakter. Contoh: petugas kantin, rekanan pengadaan."
+                                galat={errors.kedudukan_lain}
+                            >
+                                <input type="text" maxLength={100} {...properti('kedudukan_lain', true)} className={gayaIsian} />
+                            </Kolom>
+                        )}
                     </Bagian>
 
                     <Bagian nomor="4" judul="Kejadian" warna="wbs">
@@ -555,6 +561,7 @@ export default function Formulir(props) {
                     <Bagian nomor="5" judul="Bukti" tambahan="(opsional)" warna="wbs">
                         <p className="text-sm text-slate-600">
                             Metadata berkas (lokasi GPS, perangkat, nama pembuat) dihapus otomatis, dan isi berkas disimpan terenkripsi.
+                            Metadata berkas di dalam ZIP tidak dibersihkan.
                         </p>
                         <UnggahLampiran
                             kanal="wbs"
@@ -565,6 +572,14 @@ export default function Formulir(props) {
                                 setSedangMengunggah(berjalan);
                             }}
                             galat={errors.lampiran}
+                        />
+                        <TautanDrive
+                            warna="wbs"
+                            tautan={data.tautan}
+                            setuju={data.setuju_tautan}
+                            maks={maksTautan}
+                            galat={errors}
+                            onChange={(tautan, setuju) => setData((isian) => ({ ...isian, tautan, setuju_tautan: setuju }))}
                         />
                     </Bagian>
 

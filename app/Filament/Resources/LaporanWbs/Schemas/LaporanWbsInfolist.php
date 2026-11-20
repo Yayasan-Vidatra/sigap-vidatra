@@ -7,6 +7,7 @@ use App\Enums\StatusLaporan;
 use App\Filament\Resources\LaporanWbs\Tables\LaporanWbsTable;
 use App\Filament\Resources\Pengaduan\Schemas\PengaduanInfolist;
 use App\Models\Laporan;
+use App\Models\TerlaporWbs;
 use App\Services\WaktuLokal;
 use App\Services\Wbs\AksesWbs;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -26,6 +27,7 @@ class LaporanWbsInfolist
      */
     public const RELASI = [
         'unit', 'kategori', 'investigator', 'terlapor', 'lampiranPelapor', 'riwayatStatus.oleh', 'pesan.pengirimPetugas', 'pesan.lampiran',
+        'tautanBukti',
     ];
 
     public static function configure(Schema $schema): Schema
@@ -37,6 +39,7 @@ class LaporanWbsInfolist
                 self::isi(),
                 self::terlapor(),
                 PengaduanInfolist::lampiran('lampiranPelapor', 'Bukti dari pelapor', 'Tidak ada lampiran.'),
+                PengaduanInfolist::tautanBukti(),
                 self::kesimpulan(),
                 PengaduanInfolist::pesan(),
                 PengaduanInfolist::riwayat(denganCatatanPetugas: true),
@@ -58,6 +61,10 @@ class LaporanWbsInfolist
                 TextEntry::make('unit.nama')->label('Unit')->placeholder('-'),
                 TextEntry::make('sumber')->label('Sumber'),
                 TextEntry::make('kedudukan_terlapor')->label('Kedudukan terlapor (pilihan/koreksi)')->badge()->placeholder('Tidak tahu'),
+                TextEntry::make('kedudukan_lain')
+                    ->label('Kedudukan yang ditulis pelapor ("Lain-lain")')
+                    ->state(fn (Laporan $record): ?string => $record->terlapor->map(fn (TerlaporWbs $terlapor): ?string => $terlapor->kedudukan_lain)->filter()->first())
+                    ->visible(fn (Laporan $record): bool => $record->terlapor->contains(fn (TerlaporWbs $terlapor): bool => filled($terlapor->kedudukan_lain))),
                 TextEntry::make('kedudukan_efektif')
                     ->label('Perutean menurut matriks')
                     ->state(fn (Laporan $record): string => AksesWbs::kedudukanEfektif($record)->getLabel())
@@ -108,6 +115,10 @@ class LaporanWbsInfolist
                     ->schema([
                         TextEntry::make('nama')->label('Nama'),
                         TextEntry::make('jabatan')->label('Jabatan')->placeholder('-'),
+                        TextEntry::make('kedudukan_lain')
+                            ->label('Kedudukan (Lain-lain)')
+                            ->visible(fn (?TerlaporWbs $record): bool => filled($record?->kedudukan_lain))
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

@@ -10,9 +10,13 @@ use App\Models\Lampiran;
 use App\Models\Laporan;
 use App\Models\Pesan;
 use App\Models\RiwayatStatus;
+use App\Models\TautanBukti;
+use App\Models\User;
 use App\Services\WaktuLokal;
+use Filament\Facades\Filament;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Number;
@@ -32,7 +36,7 @@ class PengaduanInfolist
      */
     public const RELASI = [
         'unit', 'kategori', 'lampiranPelapor', 'buktiPenyelesaian', 'disposisi.unit', 'disposisi.pic', 'riwayatStatus.oleh',
-        'pesan.pengirimPetugas', 'pesan.lampiran',
+        'pesan.pengirimPetugas', 'pesan.lampiran', 'tautanBukti',
     ];
 
     public static function configure(Schema $schema): Schema
@@ -43,6 +47,7 @@ class PengaduanInfolist
                 self::ringkasan(),
                 self::isi(),
                 self::lampiran('lampiranPelapor', 'Lampiran pelapor', 'Tidak ada lampiran.'),
+                self::tautanBukti(),
                 self::disposisi(),
                 self::lampiran('buktiPenyelesaian', 'Bukti penyelesaian dari unit', 'Belum ada bukti penyelesaian.'),
                 self::pesan(),
@@ -147,6 +152,44 @@ class PengaduanInfolist
      * Kanal pesan dengan pelapor (UC-05), hanya untuk Admin Pengaduan; PIC Unit tidak melihatnya. Lampiran
      * tambahan dari pelapor juga tercantum di bagian Lampiran pelapor beserta tautan unduhnya.
      */
+    /**
+     * Tautan Google Drive dari pelapor (revisi 20-11), pada laporan dan pesan. Hanya tautan yang boleh dibuka pengguna
+     * ini (TautanBuktiPolicy: PIC Unit tidak melihat tautan dari pesan). Setiap tautan dibuka lewat tautan bertanda
+     * tangan yang memeriksa hak akses dan mencatat log audit; berkasnya tidak dipindai antivirus.
+     */
+    public static function tautanBukti(): Section
+    {
+        return Section::make('Tautan bukti dari pelapor')
+            ->description('Tautan luar, tidak dipindai antivirus dan tidak dienkripsi sistem. Setiap pembukaan tercatat di log audit.')
+            ->visible(fn (Laporan $record): bool => self::tautanTerlihat($record) !== [])
+            ->schema([
+                ViewEntry::make('tautan_bukti')
+                    ->hiddenLabel()
+                    ->view('filament.infolist.tautan-bukti')
+                    ->state(fn (Laporan $record): array => self::tautanTerlihat($record)),
+            ]);
+    }
+
+    /**
+     * @return list<array{url: string, buka: string, dariPesan: bool, waktu: string}>
+     */
+    public static function tautanTerlihat(Laporan $laporan): array
+    {
+        $user = Filament::auth()->user();
+
+        return $laporan->tautanBukti
+            ->filter(fn (TautanBukti $tautan): bool => $user instanceof User && $user->can('view', $tautan))
+            ->sortBy('id')
+            ->map(fn (TautanBukti $tautan): array => [
+                'url' => $tautan->url,
+                'buka' => $tautan->tautanBukaSementara(),
+                'dariPesan' => $tautan->pesan_id !== null,
+                'waktu' => WaktuLokal::tampilkan($tautan->dibuat_pada),
+            ])
+            ->values()
+            ->all();
+    }
+
     public static function pesan(): Section
     {
         return Section::make('Pesan dengan pelapor')

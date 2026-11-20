@@ -30,7 +30,7 @@ class HalamanInformasiControllerTest extends TestCase
                 ->component('Informasi/Faq')
                 ->where('pertanyaan', [['pertanyaan' => 'Apakah identitas saya aman?', 'jawaban' => 'Ya, dienkripsi.']])
                 ->where('targetPengaduan', [['kategori' => 'Kebersihan', 'tanggapan' => 2, 'selesai' => 14]])
-                ->where('targetWbs', ['telaah' => 5, 'investigasi' => 30, 'perpanjangan' => 30]));
+                ->missing('targetWbs'));
     }
 
     public function test_changing_the_text_in_settings_changes_the_page_without_code(): void

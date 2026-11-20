@@ -19,6 +19,7 @@ class PengaduanUnitInfolist
                 PengaduanInfolist::ringkasan(),
                 PengaduanInfolist::isi(),
                 PengaduanInfolist::lampiran('lampiranPelapor', 'Lampiran pelapor', 'Tidak ada lampiran.'),
+                PengaduanInfolist::tautanBukti(),
                 PengaduanInfolist::disposisi(),
                 PengaduanInfolist::lampiran('buktiPenyelesaian', 'Bukti penyelesaian', 'Belum ada bukti penyelesaian.'),
                 PengaduanInfolist::riwayat(denganCatatanPetugas: false),

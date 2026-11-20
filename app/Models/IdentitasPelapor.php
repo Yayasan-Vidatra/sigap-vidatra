@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Identitas pelapor, terenkripsi untuk semua baris. Tidak ada baris bila pelapor WBS anonim.
+ * Identitas pelapor, terenkripsi untuk semua baris. Laporan WBS lama yang anonim tidak punya baris; sejak revisi 20-11
+ * Formulir WBS mewajibkan nama, surel, dan nomor HP/WA.
  */
 #[Table('identitas_pelapor')]
-#[Fillable(['laporan_id', 'nama', 'email', 'no_hp', 'kontak_orang_tua', 'persetujuan_orang_tua'])]
+#[Fillable(['laporan_id', 'nama', 'email', 'no_hp', 'media_sosial', 'kontak_orang_tua', 'persetujuan_orang_tua'])]
 class IdentitasPelapor extends Model
 {
     /** @use HasFactory<IdentitasPelaporFactory> */
@@ -32,6 +33,7 @@ class IdentitasPelapor extends Model
             'nama' => 'encrypted',
             'email' => 'encrypted',
             'no_hp' => 'encrypted',
+            'media_sosial' => 'encrypted',
             'kontak_orang_tua' => 'encrypted',
             'persetujuan_orang_tua' => 'boolean',
         ];
