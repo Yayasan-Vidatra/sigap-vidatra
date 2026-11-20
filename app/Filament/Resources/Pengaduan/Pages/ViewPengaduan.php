@@ -356,6 +356,7 @@ class ViewPengaduan extends ViewRecord
         $user = Filament::auth()->user();
 
         return Unit::query()
+            ->untukPengaduan()
             ->where('aktif', true)
             ->when($user instanceof User && $user->isAdminSekolah(), fn ($query) => $query->whereKey($user->unit_id))
             ->orderBy('id')

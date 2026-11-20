@@ -20,6 +20,7 @@ class LabelRingkas
             KedudukanTerlapor::Pengawas => 'Pengawas',
             KedudukanTerlapor::Pembina => 'Pembina',
             KedudukanTerlapor::TidakTahu, null => 'Tidak tahu',
+            KedudukanTerlapor::LainLain => 'Lain-lain',
         };
     }
 

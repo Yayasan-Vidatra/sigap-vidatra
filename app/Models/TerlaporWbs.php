@@ -12,10 +12,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Pihak terlapor pada laporan WBS, terenkripsi.
+ * Pihak terlapor pada laporan WBS, terenkripsi. kedudukan_lain berisi kedudukan yang ditulis pelapor bila memilih
+ * "Lain-lain" (revisi 20-11); disimpan pada terlapor pertama.
  */
 #[Table('terlapor_wbs')]
-#[Fillable(['laporan_id', 'nama', 'jabatan'])]
+#[Fillable(['laporan_id', 'nama', 'jabatan', 'kedudukan_lain'])]
 class TerlaporWbs extends Model
 {
     /** @use HasFactory<TerlaporWbsFactory> */
@@ -42,6 +43,7 @@ class TerlaporWbs extends Model
         return [
             'nama' => 'encrypted',
             'jabatan' => 'encrypted',
+            'kedudukan_lain' => 'encrypted',
         ];
     }
 

@@ -33,6 +33,15 @@ class Pengaturan extends Model
 
     public const WBS_SALURAN_SURAT = 'wbs.saluran_surat';
 
+    /**
+     * Kode akses kanal WBS internal (revisi 20-11): hanya hash (Hash::make), tidak pernah nilai aslinya. Dikelola
+     * lewat App\Services\Wbs\KodeAksesWbs, bukan Konten Publik.
+     */
+    public const WBS_KODE_AKSES = 'wbs.kode_akses_hash';
+
+    /** Petunjuk kode akses yang tampil di bawah isian kode di /wbs. */
+    public const WBS_PETUNJUK_KODE_AKSES = 'wbs.petunjuk_kode_akses';
+
     /** Tanya jawab H-08 (/faq): JSON daftar {pertanyaan, jawaban}. */
     public const PUBLIK_FAQ = 'publik.faq';
 

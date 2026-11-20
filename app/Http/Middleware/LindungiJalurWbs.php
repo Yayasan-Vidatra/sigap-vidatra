@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Header untuk semua respons /wbs* (aturan proyek no. 5, Rancangan r1 Bagian 9, NF-02):
+ * - X-Robots-Tag noindex, nofollow (kanal internal sejak revisi 20-11);
  * - Referrer-Policy no-referrer, agar alamat halaman WBS tidak terkirim ke situs lain;
  * - Cache-Control no-store, agar isi halaman dan respons tidak tersimpan di cache browser atau proxy;
  * - Content-Security-Policy yang hanya mengizinkan skrip, gaya, gambar, font, dan koneksi dari situs ini
@@ -30,6 +31,9 @@ class LindungiJalurWbs
             $response->headers->removeCookie($cookie->getName(), $cookie->getPath(), $cookie->getDomain());
         }
 
+        // Kanal internal (revisi 20-11): jangan diindeks mesin pencari. Sengaja tidak lewat robots.txt, karena
+        // mencantumkan /wbs di sana justru membuka alamatnya.
+        $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
         $response->headers->set('Referrer-Policy', 'no-referrer');
         $response->headers->set('Cache-Control', 'no-store, max-age=0');
         $response->headers->set('Pragma', 'no-cache');

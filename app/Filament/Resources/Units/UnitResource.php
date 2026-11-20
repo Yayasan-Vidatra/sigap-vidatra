@@ -60,6 +60,16 @@ class UnitResource extends Resource
                 Toggle::make('aktif')
                     ->label('Aktif (bisa dipilih pelapor)')
                     ->default(true),
+                Toggle::make('khusus_wbs')
+                    ->label('Khusus WBS')
+                    ->helperText('Hanya tampil sebagai tempat kejadian di formulir WBS; tidak tampil di Pengaduan, filter Pengaduan, '
+                        .'dan disposisi (mis. PT Vidatra Jaya Makmur).')
+                    ->default(false),
+                TextInput::make('nama_pimpinan')
+                    ->label('Nama pimpinan unit (tanpa akun panel)')
+                    ->helperText('Diisi untuk unit yang pimpinannya tidak punya akun panel. Bila namanya disebut sebagai terlapor WBS, '
+                        .'laporan diperlakukan seperti laporan tentang Kepala Sekolah.')
+                    ->maxLength(150),
             ]);
     }
 
@@ -71,6 +81,7 @@ class UnitResource extends Resource
                 TextColumn::make('nama')->label('Unit')->searchable()->wrap()->width('220px'),
                 TextColumn::make('kontak_darurat')->label('Kontak darurat')->placeholder('–')->wrap(),
                 IconColumn::make('aktif')->label('Aktif')->boolean()->falseIcon(Heroicon::OutlinedMinus)->falseColor('gray')->width('96px'),
+                IconColumn::make('khusus_wbs')->label('Khusus WBS')->boolean()->falseIcon(Heroicon::OutlinedMinus)->falseColor('gray')->trueColor('wbs')->width('110px'),
             ])
             ->recordActions([
                 // Seluruh baris membuka formulir ubah; tombol ubah tampil sebagai panah seperti tabel lain.

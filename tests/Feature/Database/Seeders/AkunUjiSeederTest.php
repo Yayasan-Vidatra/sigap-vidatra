@@ -88,7 +88,7 @@ class AkunUjiSeederTest extends TestCase
         $this->seed(AkunUjiSeeder::class);
 
         $this->assertDatabaseCount('users', 12);
-        $this->assertDatabaseCount('units', 4);
+        $this->assertDatabaseCount('units', 5);
         $this->assertSame($idPertama, User::query()->orderBy('email')->pluck('id', 'email')->all());
         $this->assertTrue(Hash::check('kata-sandi-baru', User::query()->where('email', 'pic.sd@sigap.test')->value('password')));
     }

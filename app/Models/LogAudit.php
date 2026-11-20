@@ -69,7 +69,7 @@ class LogAudit extends Model
     /**
      * Baris log yang boleh dibaca pengguna di H-20. Super Admin membaca semua baris; log tidak memuat
      * isi laporan, sehingga isi WBS tetap tertutup. Ketua Tim WBS hanya membaca log laporan WBS yang
-     * boleh ia buka menurut matriks (termasuk lapis kedua nama terlapor), beserta log lampirannya. Peran lain tidak membaca apa pun.
+     * boleh ia buka menurut matriks (termasuk lapis kedua nama terlapor), beserta log lampiran dan tautan buktinya. Peran lain tidak membaca apa pun.
      *
      * @param  Builder<LogAudit>  $query
      */
@@ -83,10 +83,12 @@ class LogAudit extends Model
         if ($user->peran === Peran::KetuaTimWbs) {
             $idLaporan = Laporan::query()->wbsTerbukaBagi($user)->pluck('id');
             $idLampiran = Lampiran::query()->whereIn('laporan_id', $idLaporan)->pluck('id');
+            $idTautan = TautanBukti::query()->whereIn('laporan_id', $idLaporan)->pluck('id');
 
             $query->whereIn('objek', [
                 ...$idLaporan->map(fn (int $id): string => "laporan:{$id}"),
                 ...$idLampiran->map(fn (int $id): string => "lampiran:{$id}"),
+                ...$idTautan->map(fn (int $id): string => "tautan_bukti:{$id}"),
             ]);
 
             return;

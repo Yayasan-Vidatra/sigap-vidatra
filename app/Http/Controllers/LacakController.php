@@ -14,21 +14,22 @@ use App\Models\Laporan;
 use App\Models\LogAudit;
 use App\Models\Pesan;
 use App\Models\RiwayatStatus;
+use App\Models\TautanBukti;
 use App\Rules\AltchaSah;
 use App\Rules\UnggahanLampiranSiap;
 use App\Services\Lacak\IzinLacak;
 use App\Services\Lacak\PembatasPercobaanLacak;
-use App\Services\Lacak\PembatasPercobaanLacakWbs;
 use App\Services\Lacak\TahapanLaporan;
+use App\Services\Lacak\TokenLacakWbs;
+use App\Services\Lampiran\PenyimpanTautanBukti;
 use App\Services\Pengaduan\KonfirmasiPelapor;
 use App\Services\Pengaduan\PesanLaporan;
 use App\Services\WaktuLokal;
+use App\Services\Wbs\PemindahPengaduanKeWbs;
 use App\Services\Wbs\TokenFormulirWbs;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -40,44 +41,29 @@ use Inertia\Response;
  * di sesi (IzinLacak), yang berakhir setelah 15 menit tidak aktif. Kode lacak tidak pernah ada di URL, agar
  * tidak tersimpan di riwayat browser dan log server.
  *
- * Kode WBS dibuka bersama PIN (Hari 9). Pembatasan percobaannya memakai penghitung per kode dan global tanpa
- * IP; sesi Lacak sendiri tidak menyimpan IP maupun user agent (App\Services\Sesi\PenanganSesiTanpaJejak).
- * Detail WBS menampilkan status, riwayat (catatan bertanda tampil_ke_pelapor saja), dan pesan dengan Tim WBS.
+ * Sejak revisi 20-11 Lacak dipisah: halaman ini hanya untuk pengaduan. Kode WBS mendapat pesan gagal yang sama dengan
+ * kode yang tidak ada, sehingga halaman ini tidak mengonfirmasi bahwa kode itu ada; laporan WBS dilacak di
+ * /wbs/lacak (LacakWbsController) yang berjalan tanpa sesi dan cookie.
  */
 class LacakController extends Controller
 {
-    public const PESAN_GAGAL = 'Kode lacak atau PIN tidak cocok. Periksa kembali lalu coba lagi.';
-
-    private const KUNCI_CAPTCHA_WBS = 'lacak_wbs_perlu_captcha';
-
-    private const KUNCI_JEDA_WBS = 'lacak_wbs_jeda_sampai';
-
-    private static ?string $hashTiruan = null;
+    public const PESAN_GAGAL = 'Kode lacak tidak ditemukan. Periksa kembali lalu coba lagi.';
 
     public const PESAN_SESI_BERAKHIR = 'Sesi Lacak berakhir karena 15 menit tidak aktif atau belum dibuka. Masukkan kode lacak lagi.';
 
     public function create(Request $request): Response
     {
-        $jedaWbs = max(0, (int) $request->session()->get(self::KUNCI_JEDA_WBS, 0) - now()->getTimestamp());
-
         return Inertia::render('Lacak/Masuk', [
-            'perluCaptcha' => PembatasPercobaanLacak::perluCaptcha($request) || $request->session()->get(self::KUNCI_CAPTCHA_WBS) === true,
-            'sisaJeda' => max(PembatasPercobaanLacak::sisaJeda($request), $jedaWbs),
+            'perluCaptcha' => PembatasPercobaanLacak::perluCaptcha($request),
+            'sisaJeda' => PembatasPercobaanLacak::sisaJeda($request),
             'pesan' => $request->session()->get('lacak_pesan'),
         ]);
     }
 
     /**
-     * Kode berawalan WBS- diperiksa bersama PIN dengan pembatas tanpa IP; kode lain sebagai pengaduan.
+     * Hanya kode pengaduan. Kode WBS diperlakukan sama dengan kode yang tidak ada (pesan dan penghitung gagal sama).
      */
     public function store(Request $request): RedirectResponse
-    {
-        $kode = strtoupper(trim((string) $request->input('kode', '')));
-
-        return str_starts_with($kode, 'WBS-') ? $this->masukWbs($request, $kode) : $this->masukPengaduan($request);
-    }
-
-    private function masukPengaduan(Request $request): RedirectResponse
     {
         if (($jeda = PembatasPercobaanLacak::sisaJeda($request)) > 0) {
             throw ValidationException::withMessages([
@@ -89,9 +75,9 @@ class LacakController extends Controller
         $data = $this->validasiMasuk($request, $perluCaptcha);
 
         $kode = strtoupper(trim($data['kode']));
-        $laporan = Laporan::query()->where('kode_lacak', $kode)->first();
+        $laporan = Laporan::query()->where('kode_lacak', $kode)->where('jenis', JenisLaporan::Pengaduan->value)->first();
 
-        if ($laporan === null || $laporan->jenis !== JenisLaporan::Pengaduan) {
+        if ($laporan === null) {
             PembatasPercobaanLacak::catatGagal($request);
 
             throw ValidationException::withMessages(['kode' => self::PESAN_GAGAL]);
@@ -103,58 +89,16 @@ class LacakController extends Controller
     }
 
     /**
-     * Kode WBS + PIN (UC-04). Penghitung gagal per kode dan global, tanpa IP (PembatasPercobaanLacakWbs). Kode yang
-     * tidak ada, PIN salah, dan PIN kosong mendapat pesan yang sama; PIN tetap dicocokkan dengan hash tiruan bila
-     * kode tidak ada, agar lama pemeriksaan tidak membedakan keduanya. Kebutuhan CAPTCHA dan jeda dibawa ke
-     * halaman H-06 lewat flash sesi, karena halaman itu belum tahu kode yang akan dimasukkan.
-     */
-    private function masukWbs(Request $request, string $kode): RedirectResponse
-    {
-        if (($jeda = PembatasPercobaanLacakWbs::sisaJeda($kode)) > 0) {
-            $this->bawaPembatasWbs($request, $kode);
-
-            throw ValidationException::withMessages([
-                'kode' => "Terlalu banyak percobaan. Coba lagi dalam {$jeda} detik.",
-            ]);
-        }
-
-        $perluCaptcha = PembatasPercobaanLacakWbs::perluCaptcha($kode);
-
-        if ($perluCaptcha) {
-            $this->bawaPembatasWbs($request, $kode);
-        }
-
-        $data = $this->validasiMasuk($request, $perluCaptcha);
-        $laporan = Laporan::query()->where('kode_lacak', $kode)->where('jenis', JenisLaporan::Wbs->value)->first();
-        $hash = $laporan?->getAttributes()['pin_hash'] ?? null;
-        $pin = is_string($data['pin'] ?? null) ? $data['pin'] : '';
-        $cocok = Hash::check($pin, is_string($hash) ? $hash : self::hashTiruan()) && $laporan !== null && $hash !== null && $pin !== '';
-
-        if (! $cocok) {
-            PembatasPercobaanLacakWbs::catatGagal($kode);
-            $this->bawaPembatasWbs($request, $kode);
-
-            throw ValidationException::withMessages(['kode' => self::PESAN_GAGAL]);
-        }
-
-        PembatasPercobaanLacakWbs::bersihkan($kode);
-
-        return $this->bukaIzin($request, $laporan);
-    }
-
-    /**
-     * @return array{kode: string, pin?: string|null, altcha?: string|null}
+     * @return array{kode: string, altcha?: string|null}
      */
     private function validasiMasuk(Request $request, bool $perluCaptcha): array
     {
         $data = $request->validate([
             'kode' => ['required', 'string', 'max:30'],
-            'pin' => ['nullable', 'string', 'max:20'],
             'altcha' => $perluCaptcha ? ['bail', 'required', 'string', new AltchaSah] : ['nullable'],
         ], [
             'kode.required' => 'Masukkan kode lacak.',
             'kode.max' => self::PESAN_GAGAL,
-            'pin.max' => self::PESAN_GAGAL,
             'altcha.required' => 'Selesaikan verifikasi "Saya bukan robot" terlebih dahulu.',
         ]);
 
@@ -163,22 +107,6 @@ class LacakController extends Controller
         }
 
         return $data;
-    }
-
-    private function bawaPembatasWbs(Request $request, string $kode): void
-    {
-        if (PembatasPercobaanLacakWbs::perluCaptcha($kode)) {
-            $request->session()->flash(self::KUNCI_CAPTCHA_WBS, true);
-        }
-
-        if (($jeda = PembatasPercobaanLacakWbs::sisaJeda($kode)) > 0) {
-            $request->session()->flash(self::KUNCI_JEDA_WBS, now()->getTimestamp() + $jeda);
-        }
-    }
-
-    private static function hashTiruan(): string
-    {
-        return self::$hashTiruan ??= Hash::make(Str::random(16));
     }
 
     private function bukaIzin(Request $request, Laporan $laporan): RedirectResponse
@@ -191,24 +119,48 @@ class LacakController extends Controller
 
     public function show(Request $request): Response|RedirectResponse
     {
-        return $this->denganIzin($request, fn (Laporan $laporan): Response => Inertia::render('Lacak/Detail', $this->dataDetail($laporan)));
+        return $this->denganIzin($request, fn (Laporan $laporan): Response => Inertia::render('Lacak/Detail', self::dataDetail($laporan)));
     }
 
     public function kirimPesan(Request $request, PesanLaporan $pesan): RedirectResponse
     {
         return $this->denganIzin($request, function (Laporan $laporan) use ($request, $pesan): RedirectResponse {
-            $data = $request->validate([
-                'isi' => ['required', 'string', 'max:'.PesanLaporan::MAKS_ISI],
-                'lampiran' => ['nullable', 'array', 'max:'.config('sigap.lampiran.maks_berkas'), new UnggahanLampiranSiap($laporan->jenis)],
-                'lampiran.*' => ['string', 'distinct'],
-            ], [
-                'isi.required' => 'Tulis pesan terlebih dahulu.',
-                'isi.max' => 'Pesan paling banyak :max karakter.',
-                'lampiran.max' => 'Lampiran paling banyak :max berkas.',
-            ]);
+            $data = $request->validate(self::aturanPesan($request, $laporan), self::pesanValidasiPesan());
 
-            return $this->jalankan(fn () => $pesan->kirimDariPelapor($laporan, $data['isi'], array_values($data['lampiran'] ?? [])), 'Pesan terkirim.', 'isi');
+            return $this->jalankan(
+                fn () => $pesan->kirimDariPelapor($laporan, $data['isi'], array_values($data['lampiran'] ?? []), array_values($data['tautan'] ?? [])),
+                'Pesan terkirim.',
+                'isi',
+            );
         });
+    }
+
+    /**
+     * Aturan pesan lanjutan pelapor, dipakai juga Lacak WBS: isi, lampiran, dan tautan Google Drive (revisi 20-11).
+     *
+     * @return array<string, mixed>
+     */
+    public static function aturanPesan(Request $request, Laporan $laporan): array
+    {
+        return [
+            'isi' => ['required', 'string', 'max:'.PesanLaporan::MAKS_ISI],
+            'lampiran' => ['nullable', 'array', 'max:'.config('sigap.lampiran.maks_berkas'), new UnggahanLampiranSiap($laporan->jenis)],
+            'lampiran.*' => ['string', 'distinct'],
+            ...PenyimpanTautanBukti::aturan($request),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function pesanValidasiPesan(): array
+    {
+        return [
+            'isi.required' => 'Tulis pesan terlebih dahulu.',
+            'isi.max' => 'Pesan paling banyak :max karakter.',
+            'lampiran.max' => 'Lampiran paling banyak :max berkas.',
+            ...PenyimpanTautanBukti::pesan(),
+        ];
     }
 
     public function konfirmasi(Request $request, KonfirmasiPelapor $konfirmasi): RedirectResponse
@@ -288,9 +240,9 @@ class LacakController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function dataDetail(Laporan $laporan): array
+    public static function dataDetail(Laporan $laporan): array
     {
-        $laporan->load(['unit', 'kategori', 'riwayatStatus', 'pesanUntukPelapor.lampiran']);
+        $laporan->load(['unit', 'kategori', 'riwayatStatus', 'pesanUntukPelapor.lampiran', 'pesanUntukPelapor.tautanBukti']);
         $wbs = $laporan->isWbs();
         // Laporan WBS pindahan (UC-09 1a): pesan yang ikut dipindah dari pengaduan dikirim sebelum laporan WBS ini
         // dibuat, sehingga pengirimnya petugas Pengaduan, bukan Tim WBS. Nama petugas tetap tidak ditampilkan.
@@ -304,13 +256,14 @@ class LacakController extends Controller
         return [
             'wbs' => $wbs,
             'kodeLacak' => $laporan->kode_lacak,
-            'judul' => $laporan->judul,
+            // Pengaduan yang dipindah sebelum revisi 20-11 masih menyimpan judul pengganti lama yang menyebut WBS.
+            'judul' => $laporan->status === StatusLaporan::DipindahKeWbs ? PemindahPengaduanKeWbs::JUDUL_PENGGANTI : $laporan->judul,
             'unit' => $laporan->unit?->nama,
             'kategori' => $laporan->kategori?->nama,
             'dibuatPada' => WaktuLokal::tampilkan($laporan->dibuat_pada),
             'status' => [
                 'nilai' => $laporan->status->value,
-                'label' => $laporan->status->getLabel(),
+                'label' => $laporan->status->labelUntukPelapor(),
                 'penjelasan' => $laporan->status->penjelasanUntukPelapor($laporan->jenis),
             ],
             // Baris tanpa perubahan status (mis. koreksi kedudukan terlapor) hanya untuk petugas.
@@ -319,7 +272,7 @@ class LacakController extends Controller
                 ->sortBy('id')->values()->map(fn (RiwayatStatus $riwayat): array => [
                     'id' => $riwayat->id,
                     'waktu' => WaktuLokal::tampilkan($riwayat->waktu, 'd F Y, H.i'),
-                    'status' => $riwayat->status_baru->getLabel(),
+                    'status' => $riwayat->status_baru->labelUntukPelapor(),
                     'catatan' => $riwayat->tampil_ke_pelapor ? $riwayat->catatan : null,
                 ])->all(),
             'pesan' => $laporan->pesanUntukPelapor->sortBy('id')->values()->map(fn (Pesan $pesan): array => [
@@ -333,6 +286,8 @@ class LacakController extends Controller
                 'isi' => $pesan->isi,
                 'waktu' => WaktuLokal::tampilkan($pesan->dibuat_pada, 'd F Y, H.i'),
                 'lampiran' => $pesan->lampiran->map(fn (Lampiran $lampiran): string => $lampiran->nama_asli)->all(),
+                // Pelapor melihat jumlah tautan yang ia kirim, bukan alamatnya lagi.
+                'jumlahTautan' => $pesan->tautanBukti->count(),
             ])->all(),
             'tahapan' => TahapanLaporan::untuk($laporan),
             // Batas waktu SLA kategori yang dihitung saat disposisi; hanya tampil selama unit memproses pengaduan.
@@ -346,8 +301,8 @@ class LacakController extends Controller
                 : null,
             'bolehMenilai' => KonfirmasiPelapor::bisaDinilai($laporan),
             'penilaian' => $laporan->penilaian,
-            'masaSesiMenit' => IzinLacak::masaMenit(),
-            'berhasil' => session('lacak_berhasil'),
+            'berhasil' => $wbs ? null : session('lacak_berhasil'),
+            'maksTautan' => TautanBukti::MAKS,
             'aturanLampiran' => $wbs ? WbsController::aturanLampiran() : [
                 'maks_berkas' => (int) config('sigap.lampiran.maks_berkas'),
                 'maks_total_mb' => (int) config('sigap.lampiran.maks_total_mb'),
@@ -359,6 +314,8 @@ class LacakController extends Controller
             ],
             // Lampiran tambahan WBS diunggah lewat /wbs/lampiran/unggah (tanpa sesi), memakai token formulir WBS.
             'tokenUnggahWbs' => $wbs ? TokenFormulirWbs::terbitkan() : null,
+            'tokenLacak' => $wbs ? TokenLacakWbs::terbitkan($laporan) : null,
+            'masaSesiMenit' => $wbs ? TokenLacakWbs::masaMenit() : IzinLacak::masaMenit(),
         ];
     }
 }

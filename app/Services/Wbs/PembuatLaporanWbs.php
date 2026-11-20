@@ -4,6 +4,7 @@ namespace App\Services\Wbs;
 
 use App\Enums\AksiAudit;
 use App\Enums\JenisLaporan;
+use App\Enums\KedudukanTerlapor;
 use App\Enums\StatusLaporan;
 use App\Enums\StatusPindai;
 use App\Enums\SumberLaporan;
@@ -36,7 +37,7 @@ class PembuatLaporanWbs
     ) {}
 
     /**
-     * @param  array{mode: string, nama?: string|null, email?: string|null, no_hp?: string|null, kategori_id: int|string, unit_id: int|string, terlapor: list<array{nama: string, jabatan?: string|null}>, kedudukan_terlapor: string, judul: string, kronologi: string, waktu_kejadian?: string|null, lokasi?: string|null, saksi?: string|null}  $data
+     * @param  array{mode: string, nama?: string|null, email?: string|null, no_hp?: string|null, media_sosial?: string|null, kedudukan_lain?: string|null, kategori_id: int|string, unit_id: int|string, terlapor: list<array{nama: string, jabatan?: string|null}>, kedudukan_terlapor: string, judul: string, kronologi: string, waktu_kejadian?: string|null, lokasi?: string|null, saksi?: string|null}  $data
      */
     public function buat(array $data, SumberLaporan $sumber, string $pin, ?User $pencatat = null): Laporan
     {
@@ -57,10 +58,16 @@ class PembuatLaporanWbs
             'pin_hash' => $pin,
         ]);
 
-        foreach ($data['terlapor'] as $terlapor) {
+        // Kedudukan "Lain-lain" yang ditulis pelapor disimpan terenkripsi pada terlapor pertama (revisi 20-11).
+        $kedudukanLain = $data['kedudukan_terlapor'] === KedudukanTerlapor::LainLain->value
+            ? self::teksAtauNull($data['kedudukan_lain'] ?? null)
+            : null;
+
+        foreach (array_values($data['terlapor']) as $urutan => $terlapor) {
             $laporan->terlapor()->create([
                 'nama' => trim((string) $terlapor['nama']),
                 'jabatan' => self::teksAtauNull($terlapor['jabatan'] ?? null),
+                'kedudukan_lain' => $urutan === 0 ? $kedudukanLain : null,
             ]);
         }
 
@@ -69,6 +76,7 @@ class PembuatLaporanWbs
                 'nama' => trim((string) $data['nama']),
                 'email' => self::teksAtauNull($data['email'] ?? null),
                 'no_hp' => self::teksAtauNull($data['no_hp'] ?? null),
+                'media_sosial' => self::teksAtauNull($data['media_sosial'] ?? null),
                 'persetujuan_orang_tua' => false,
             ]);
         }

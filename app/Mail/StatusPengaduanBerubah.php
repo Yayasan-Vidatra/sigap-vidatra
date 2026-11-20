@@ -29,7 +29,7 @@ class StatusPengaduanBerubah extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Status pengaduan {$this->laporan->kode_lacak}: {$this->riwayat->status_baru->getLabel()}",
+            subject: "Status pengaduan {$this->laporan->kode_lacak}: {$this->riwayat->status_baru->labelUntukPelapor()}",
         );
     }
 
@@ -39,7 +39,7 @@ class StatusPengaduanBerubah extends Mailable implements ShouldQueue
             markdown: 'mail.status-pengaduan-berubah',
             with: [
                 'kodeLacak' => $this->laporan->kode_lacak,
-                'status' => $this->riwayat->status_baru->getLabel(),
+                'status' => $this->riwayat->status_baru->labelUntukPelapor(),
                 'waktu' => WaktuLokal::tampilkan($this->riwayat->waktu, 'd F Y, H.i'),
                 'catatan' => $this->riwayat->tampil_ke_pelapor ? $this->riwayat->catatan : null,
                 'penjelasan' => $this->riwayat->status_baru->penjelasanUntukPelapor(),

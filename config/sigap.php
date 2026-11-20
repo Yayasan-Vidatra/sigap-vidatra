@@ -21,6 +21,10 @@ return [
         'perpanjangan_hari_kerja' => 30,
         // Token formulir pengganti CSRF di jalur /wbs* tanpa sesi; halaman formulir memperbaruinya berkala.
         'masa_token_formulir_menit' => 30,
+        // Bukti lolos kode akses WBS (revisi 20-11): token bertanda tangan, diperbarui selama formulir terbuka.
+        'masa_token_akses_menit' => 120,
+        // Batas percobaan kode akses per menit, penghitung global tanpa IP (setiap percobaan juga wajib ALTCHA).
+        'batas_kode_akses_global_per_menit' => 30,
         // Pembatas laju jalur WBS tanpa IP: penghitung global, ditambah per token formulir untuk unggahan.
         'batas_kirim_global_per_menit' => 20,
         'batas_unggah_global_per_menit' => 60,
@@ -127,6 +131,12 @@ return [
                 'maks_mb' => 20,
                 'kanal' => ['wbs'],
                 'mime' => ['audio/mpeg', 'audio/mp4', 'audio/x-m4a'],
+            ],
+            // Revisi 20-11: arsip ZIP untuk bukti besar. Dipindai ClamAV; metadata berkas di dalamnya tidak dibersihkan.
+            'arsip' => [
+                'maks_mb' => 100,
+                'kanal' => ['pengaduan', 'wbs'],
+                'mime' => ['application/zip'],
             ],
         ],
         // Kunci enkripsi isi lampiran WBS: 32 byte, base64. Wajib bila ada lampiran WBS yang disimpan.

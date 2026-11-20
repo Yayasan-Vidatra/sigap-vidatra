@@ -7,6 +7,7 @@ use App\Enums\KedudukanTerlapor;
 use App\Enums\Peran;
 use App\Models\Laporan;
 use App\Models\TerlaporWbs;
+use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -19,7 +20,7 @@ use Illuminate\Support\Str;
  * 2. Lapis kedua berdasarkan nama terlapor: bila nama pejabat yang berperan di sistem disebut sebagai terlapor,
  *    kedudukan efektif dinaikkan ke kedudukan yang tersirat dari perannya (anggota Tim WBS -> SPI/Tim WBS,
  *    Dewan Pengawas -> Pengawas, Pembina -> Pembina), dan orang yang disebut itu sendiri tidak pernah mendapat
- *    akses. Nama terlapor terenkripsi, sehingga pencocokan dilakukan di aplikasi, bukan di SQL.
+ *    akses. Nama pimpinan unit tanpa akun panel (Pengaturan > Unit, mis. PT VJM) diperlakukan seperti Kepala Sekolah. Nama terlapor terenkripsi, sehingga pencocokan dilakukan di aplikasi, bukan di SQL.
  * 3. Investigator yang ditunjuk penelaah ikut mendapat akses (anggota tim yang tidak terlibat, UC-13).
  *
  * Super Admin dan peran di luar matriks tidak pernah mendapat akses.
@@ -42,6 +43,13 @@ class AksesWbs
             if ($tersirat !== null && $tersirat->tingkat() > $kedudukan->tingkat()) {
                 $kedudukan = $tersirat;
             }
+        }
+
+        // Pimpinan unit tanpa akun panel (mis. PT Vidatra Jaya Makmur, revisi 20-11) diperlakukan seperti Kepala Sekolah.
+        $tersiratPimpinan = KedudukanTerlapor::tersiratDariPeran(Peran::KepalaSekolah);
+
+        if ($tersiratPimpinan !== null && $tersiratPimpinan->tingkat() > $kedudukan->tingkat() && self::pimpinanUnitDisebut($laporan)) {
+            $kedudukan = $tersiratPimpinan;
         }
 
         return $kedudukan;
@@ -209,6 +217,26 @@ class AksesWbs
         }
 
         return $laporan->terlapor->contains(fn (TerlaporWbs $terlapor): bool => self::namaCocok($nama, self::normalkan((string) $terlapor->nama)));
+    }
+
+    /**
+     * Apakah nama pimpinan unit yang dicatat di Pengaturan > Unit (unit tanpa akun pimpinan di panel) disebut sebagai
+     * terlapor.
+     */
+    public static function pimpinanUnitDisebut(Laporan $laporan): bool
+    {
+        if ($laporan->terlapor->isEmpty()) {
+            return false;
+        }
+
+        return Unit::query()
+            ->whereNotNull('nama_pimpinan')
+            ->pluck('nama_pimpinan')
+            ->map(fn (mixed $nama): string => self::normalkan((string) $nama))
+            ->filter()
+            ->contains(fn (string $nama): bool => $laporan->terlapor->contains(
+                fn (TerlaporWbs $terlapor): bool => self::namaCocok($nama, self::normalkan((string) $terlapor->nama)),
+            ));
     }
 
     /**

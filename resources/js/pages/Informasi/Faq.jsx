@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import TeksBerparagraf from '../../components/TeksBerparagraf';
 import PublicLayout from '../../layouts/PublicLayout';
 
-export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
+export default function Faq({ pertanyaan, targetPengaduan }) {
     return (
         <PublicLayout lebar="sedang">
             <Head title="Tanya Jawab (FAQ)" />
@@ -10,7 +10,7 @@ export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
             <div className="flex flex-col gap-6">
                 <header className="flex flex-col gap-2">
                     <h1 className="text-xl font-bold sm:text-2xl">Tanya Jawab (FAQ)</h1>
-                    <p className="text-slate-600">Jawaban singkat tentang cara melapor, melacak laporan, dan kerahasiaan.</p>
+                    <p className="text-slate-600">Jawaban singkat tentang cara mengadu, melacak pengaduan, dan kerahasiaan.</p>
                 </header>
 
                 {pertanyaan.length === 0 ? (
@@ -41,7 +41,6 @@ export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
                     <h2 className="text-lg font-extrabold">Target waktu penanganan</h2>
                     <p className="text-sm text-slate-600">Dihitung dalam hari kerja (Senin sampai Jumat).</p>
 
-                    <h3 className="font-semibold text-pengaduan-800">Pengaduan</h3>
                     {targetPengaduan.length === 0 ? (
                         <p className="text-slate-600">Belum ada kategori pengaduan.</p>
                     ) : (
@@ -66,15 +65,6 @@ export default function Faq({ pertanyaan, targetPengaduan, targetWbs }) {
                             </table>
                         </div>
                     )}
-
-                    <h3 className="font-semibold text-wbs-800">Pelaporan Pelanggaran (WBS)</h3>
-                    <ul className="list-disc space-y-1 pl-5 text-slate-700">
-                        <li>Telaah awal: {targetWbs.telaah} hari kerja sejak laporan diterima.</li>
-                        <li>
-                            Investigasi: {targetWbs.investigasi} hari kerja, dapat diperpanjang {targetWbs.perpanjangan} hari
-                            kerja dengan persetujuan.
-                        </li>
-                    </ul>
                 </section>
 
                 <p className="text-sm text-slate-600">

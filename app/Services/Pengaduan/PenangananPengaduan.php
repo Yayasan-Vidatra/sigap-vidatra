@@ -173,7 +173,7 @@ class PenangananPengaduan
      */
     public static function unitTujuanSah(User $oleh, Unit $unit): bool
     {
-        return $unit->aktif && (! $oleh->isAdminSekolah() || $oleh->unit_id === $unit->getKey());
+        return $unit->aktif && ! $unit->khusus_wbs && (! $oleh->isAdminSekolah() || $oleh->unit_id === $unit->getKey());
     }
 
     public static function picSah(User $pic, Unit $unit): bool

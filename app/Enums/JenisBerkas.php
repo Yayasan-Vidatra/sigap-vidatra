@@ -14,6 +14,7 @@ enum JenisBerkas: string implements HasLabel
     case Foto = 'foto';
     case Video = 'video';
     case Audio = 'audio';
+    case Arsip = 'arsip';
 
     public function getLabel(): string
     {
@@ -22,6 +23,7 @@ enum JenisBerkas: string implements HasLabel
             self::Foto => 'Foto',
             self::Video => 'Video',
             self::Audio => 'Audio',
+            self::Arsip => 'ZIP',
         };
     }
 

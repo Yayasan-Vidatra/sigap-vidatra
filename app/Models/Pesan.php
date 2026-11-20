@@ -62,4 +62,14 @@ class Pesan extends Model
     {
         return $this->hasMany(Lampiran::class);
     }
+
+    /**
+     * Tautan Google Drive yang dikirim pelapor bersama pesan ini (revisi 20-11).
+     *
+     * @return HasMany<TautanBukti, $this>
+     */
+    public function tautanBukti(): HasMany
+    {
+        return $this->hasMany(TautanBukti::class);
+    }
 }

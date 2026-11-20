@@ -51,7 +51,7 @@ class TahapanLaporan
 
             return [
                 ...array_map(fn (string $nilai): array => ['label' => $alur[$nilai], 'waktu' => $waktu[$nilai], 'keadaan' => self::SELESAI], array_keys($dilalui)),
-                ['label' => $laporan->status->getLabel(), 'waktu' => $waktu[$laporan->status->value] ?? null, 'keadaan' => self::SELESAI],
+                ['label' => $laporan->status->labelUntukPelapor(), 'waktu' => $waktu[$laporan->status->value] ?? null, 'keadaan' => self::SELESAI],
             ];
         }
 

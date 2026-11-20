@@ -87,7 +87,7 @@ class PengaduanTable
                     ->modifyFormFieldUsing(fn (Select $field): Select => $field->extraFieldWrapperAttributes(['class' => 'sigap-filter-tersembunyi'])),
                 SelectFilter::make('unit_id')
                     ->label('Unit')
-                    ->relationship('unit', 'nama')
+                    ->relationship('unit', 'nama', fn (Builder $query) => $query->untukPengaduan())
                     ->hidden(fn (): bool => self::penggunaAdminSekolah()),
                 SelectFilter::make('kategori_id')
                     ->label('Kategori')

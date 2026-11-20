@@ -349,6 +349,16 @@ class Laporan extends Model
     }
 
     /**
+     * Tautan Google Drive dari pelapor, pada laporan maupun pesan lanjutan (revisi 20-11).
+     *
+     * @return HasMany<TautanBukti, $this>
+     */
+    public function tautanBukti(): HasMany
+    {
+        return $this->hasMany(TautanBukti::class);
+    }
+
+    /**
      * Lampiran dari pelapor, tanpa bukti penyelesaian PIC Unit.
      *
      * @return HasMany<Lampiran, $this>

@@ -14,10 +14,13 @@ import { useEffect, useRef, useState } from 'react';
  * masih ada unggahan yang berjalan (formulir sebaiknya menunda pengiriman).
  */
 const FORMAT = {
-    pengaduan: { terima: '.pdf,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.heic,.mp4,.mov', label: 'PDF, DOCX, XLSX, TXT, JPG, PNG, HEIC, MP4, MOV' },
+    pengaduan: {
+        terima: '.pdf,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.heic,.mp4,.mov,.zip',
+        label: 'PDF, DOCX, XLSX, TXT, JPG, PNG, HEIC, MP4, MOV, ZIP',
+    },
     wbs: {
-        terima: '.pdf,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.heic,.mp4,.mov,.mp3,.m4a',
-        label: 'PDF, DOCX, XLSX, TXT, JPG, PNG, HEIC, MP4, MOV, MP3, M4A',
+        terima: '.pdf,.docx,.xlsx,.txt,.jpg,.jpeg,.png,.heic,.mp4,.mov,.mp3,.m4a,.zip',
+        label: 'PDF, DOCX, XLSX, TXT, JPG, PNG, HEIC, MP4, MOV, MP3, M4A, ZIP',
     },
 };
 const PERCOBAAN_POTONGAN = 3;

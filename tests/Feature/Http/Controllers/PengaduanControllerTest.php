@@ -36,6 +36,7 @@ class PengaduanControllerTest extends TestCase
     {
         $unit = Unit::factory()->create(['nama' => 'SMP YPVDP', 'kontak_darurat' => '0811-2222-3333']);
         Unit::factory()->nonaktif()->create();
+        Unit::factory()->create(['nama' => 'PT Vidatra Jaya Makmur', 'khusus_wbs' => true]);
         $kategori = Kategori::factory()->create(['nama' => 'Kebersihan', 'sla_tanggapan_hari' => 2, 'sla_hari' => 10]);
         Kategori::factory()->wbs()->create();
 
@@ -49,7 +50,8 @@ class PengaduanControllerTest extends TestCase
             ->where('maksKronologi', StorePengaduanRequest::MAKS_KRONOLOGI)
             ->where('kontakDaruratCadangan', 'Segera hubungi wali kelas atau kantor sekolah.')
             ->has('jenisPelapor', 4)
-            ->has('kataKunciWbs'));
+            ->where('maksTautan', 5)
+            ->missing('kataKunciWbs'));
     }
 
     public function test_changing_a_category_sla_or_emergency_contact_changes_the_form_without_code(): void

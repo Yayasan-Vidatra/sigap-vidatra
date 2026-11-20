@@ -227,6 +227,7 @@ class RekapLaporan
     public static function pilihanUnit(User $user): array
     {
         return Unit::query()
+            ->untukPengaduan()
             ->when($user->unit_id !== null && in_array($user->peran, [Peran::AdminPengaduan, Peran::PicUnit], true), fn (Builder $query) => $query->whereKey($user->unit_id))
             ->orderBy('id')
             ->pluck('nama', 'id')

@@ -12,6 +12,7 @@ use App\Models\LogAudit;
 use App\Models\Pesan;
 use App\Models\User;
 use App\Services\Lampiran\PelampirUnggahan;
+use App\Services\Lampiran\PenyimpanTautanBukti;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -37,7 +38,10 @@ class PesanLaporan
         StatusLaporan::Selesai, StatusLaporan::Ditolak, StatusLaporan::TidakDitindaklanjuti, StatusLaporan::DipindahKeWbs,
     ];
 
-    public function __construct(private PelampirUnggahan $pelampir) {}
+    public function __construct(
+        private PelampirUnggahan $pelampir,
+        private PenyimpanTautanBukti $tautan,
+    ) {}
 
     public static function pelaporBolehMengirim(Laporan $laporan): bool
     {
@@ -48,8 +52,9 @@ class PesanLaporan
      * Dipanggil halaman Lacak (H-07) setelah pelapor membuktikan kode lacaknya.
      *
      * @param  list<string>  $idUnggahan  unggahan pengaduan yang sudah selesai diperiksa
+     * @param  list<string>  $tautan  tautan Google Drive yang sudah lolos validasi dan disetujui pelapor
      */
-    public function kirimDariPelapor(Laporan $laporan, string $isi, array $idUnggahan = []): Pesan
+    public function kirimDariPelapor(Laporan $laporan, string $isi, array $idUnggahan = [], array $tautan = []): Pesan
     {
         $isi = $this->periksaIsi($isi);
 
@@ -57,7 +62,7 @@ class PesanLaporan
             throw AksiPengaduanTidakSah::laporanDitutup();
         }
 
-        return DB::transaction(function () use ($laporan, $isi, $idUnggahan): Pesan {
+        return DB::transaction(function () use ($laporan, $isi, $idUnggahan, $tautan): Pesan {
             $pesan = $laporan->pesan()->create([
                 'pengirim' => PengirimPesan::Pelapor,
                 'isi' => $isi,
@@ -65,6 +70,7 @@ class PesanLaporan
             ]);
 
             $this->pelampir->lampirkan($laporan, $idUnggahan, $pesan);
+            $this->tautan->simpan($laporan, $tautan, $pesan);
             LogAudit::catat(null, AksiAudit::PelaporMengirimPesan, $laporan);
             PesanLaporanTerkirim::dispatch($pesan);
 
