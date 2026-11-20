@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Kotak Masuk Pengaduan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F7FC}
+a{color:#1E3A9E}a:hover{color:#142a78}
+.lst{display:none}
+.navlinks{display:flex}
+.menubtn{display:none}
+tbody tr:hover{background:#F8FAFE}
+td{overflow:hidden;overflow-wrap:anywhere}
+select,input{font:inherit}
+@media (max-width: 900px){.tbl{display:none}.lst{display:flex}}
+@media (max-width: 760px){.navlinks{display:none}.menubtn{display:flex}.pagesize{display:none}}
+</style>
+</helmet>
+<div style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #0F172A; background: #F5F7FC; min-height: 100vh">
+
+<header style="background: #ffffff; border-bottom: 1px solid #E5E9F2">
+<div style="max-width: 1440px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; gap: 28px">
+<a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #0F172A; flex: none">
+<img src="img/logo.png" alt="Logo Yayasan Vidatra" style="width: 34px; height: 34px; object-fit: contain">
+<span style="font-weight: 800; font-size: 16px">SIGAP Vidatra</span>
+</a>
+<nav aria-label="Menu panel" class="navlinks" style="align-items: stretch; gap: 4px; height: 100%; font-size: 14px; font-weight: 600">
+<a href="#" style="display: flex; align-items: center; padding: 0 12px; color: #475569; text-decoration: none; border-bottom: 3px solid transparent">Dasbor</a>
+<a href="#" aria-current="page" style="display: flex; align-items: center; padding: 0 12px; color: #1E3A9E; text-decoration: none; border-bottom: 3px solid #1E3A9E">Kotak Masuk Pengaduan</a>
+<a href="#" style="display: flex; align-items: center; padding: 0 12px; color: #475569; text-decoration: none; border-bottom: 3px solid transparent">Rekap dan Ekspor</a>
+</nav>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 12px">
+<button type="button" aria-label="Menu akun Uji Admin" style="width: 40px; height: 40px; border-radius: 999px; border: none; background: #1E3A9E; color: #ffffff; font-weight: 700; font-size: 13px; cursor: pointer">UA</button>
+<button type="button" class="menubtn" aria-label="Buka menu" style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid #E5E9F2; background: #ffffff; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+</div>
+</div>
+</header>
+
+<main style="max-width: 1440px; margin: 0 auto; padding: 24px 24px 48px; display: flex; flex-direction: column; gap: 14px">
+<div>
+<h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.01em">Kotak Masuk Pengaduan</h1>
+<p style="margin: 4px 0 0; font-size: 14px; color: #475569">{{ringkasan}}</p>
+</div>
+
+<div role="tablist" aria-label="Saring status" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+<button type="button" role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}} <span style="opacity: 0.75; font-weight: 600">{{t.count}}</span></button>
+</sc-for>
+</div>
+
+<section aria-label="Filter" style="background: #ffffff; border: 1px solid #E5E9F2; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #475569; grid-column: span 2">Cari
+<input type="search" placeholder="Kode lacak atau judul" value="{{f.q}}" onInput="{{setQ}}" style="height: 40px; border: 1px solid #CBD5E1; border-radius: 10px; padding: 0 12px; font-size: 14px; font-weight: 500; color: #0F172A"></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #475569">Unit
+<span style="position: relative; display: block"><select value="{{f.unit}}" onChange="{{setUnit}}" style="height: 40px; border: 1px solid #CBD5E1; border-radius: 10px; padding: 0 38px 0 12px; appearance: none; -webkit-appearance: none; width: 100%; font-size: 14px; font-weight: 500; color: #0F172A; background: #ffffff"><sc-for list="{{optUnit}}" as="o"><option value="{{o}}">{{o}}</option></sc-for></select><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; right: 12px; top: 50%; margin-top: -8px; pointer-events: none"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #475569">Kategori
+<span style="position: relative; display: block"><select value="{{f.kategori}}" onChange="{{setKategori}}" style="height: 40px; border: 1px solid #CBD5E1; border-radius: 10px; padding: 0 38px 0 12px; appearance: none; -webkit-appearance: none; width: 100%; font-size: 14px; font-weight: 500; color: #0F172A; background: #ffffff"><sc-for list="{{optKategori}}" as="o"><option value="{{o}}">{{o}}</option></sc-for></select><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; right: 12px; top: 50%; margin-top: -8px; pointer-events: none"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #475569">Prioritas
+<span style="position: relative; display: block"><select value="{{f.prioritas}}" onChange="{{setPrioritas}}" style="height: 40px; border: 1px solid #CBD5E1; border-radius: 10px; padding: 0 38px 0 12px; appearance: none; -webkit-appearance: none; width: 100%; font-size: 14px; font-weight: 500; color: #0F172A; background: #ffffff"><sc-for list="{{optPrioritas}}" as="o"><option value="{{o}}">{{o}}</option></sc-for></select><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; right: 12px; top: 50%; margin-top: -8px; pointer-events: none"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label style="display: flex; align-items: center; gap: 8px; height: 40px; font-size: 14px; font-weight: 600; color: #0F172A; cursor: pointer"><input type="checkbox" checked="{{f.lewat}}" onChange="{{toggleLewat}}" style="width: 18px; height: 18px; accent-color: #B42318; margin: 0">Lewat batas waktu</label>
+</div>
+<sc-if value="{{adaFilter}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-top: 1px solid #EEF2F7; padding-top: 12px">
+<span style="font-size: 13px; color: #475569; font-weight: 600">Filter aktif:</span>
+<sc-for list="{{chips}}" as="c">
+<button type="button" onClick="{{c.remove}}" aria-label="Hapus filter {{c.label}}" style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid #C7D2EE; background: #EEF2FC; color: #1E3A9E; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{c.label}}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</sc-for>
+<button type="button" onClick="{{hapusSemua}}" style="margin-left: auto; height: 32px; padding: 0 12px; border-radius: 8px; border: none; background: transparent; color: #B42318; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">Hapus semua filter</button>
+</div>
+</sc-if>
+</section>
+
+<div class="tbl" style="background: #ffffff; border: 1px solid #E5E9F2; border-radius: 16px; overflow: hidden">
+<table style="width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px">
+<colgroup><col style="width: 158px"><col><col style="width: 120px"><col style="width: 156px"><col style="width: 176px"><col style="width: 92px"><col style="width: 116px"><col style="width: 112px"><col style="width: 36px"></colgroup>
+<thead>
+<tr style="background: #F8FAFC; text-align: left; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em">
+<th scope="col" style="padding: 12px 16px; font-weight: 700">Kode lacak</th>
+<th scope="col" style="padding: 12px 10px; font-weight: 700">Judul</th>
+<th scope="col" style="padding: 12px 10px; font-weight: 700">Unit</th>
+<th scope="col" style="padding: 12px 10px; font-weight: 700">Kategori</th>
+<th scope="col" style="padding: 12px 10px; font-weight: 700">Status</th>
+<th scope="col" style="padding: 12px 10px; font-weight: 700">Prioritas</th>
+<th scope="col" style="padding: 12px 10px; font-weight: 700">Batas waktu</th>
+<th scope="col" style="padding: 12px 10px; font-weight: 700">Masuk</th>
+<th scope="col" style="padding: 12px 6px"><span style="position: absolute; left: -9999px">Buka</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<tr style="border-top: 1px solid #EEF2F7; cursor: pointer">
+<td style="padding: 14px 16px; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums"><a href="#" style="color: #0F172A; text-decoration: none">{{r.kode}}</a></td>
+<td style="padding: 14px 10px; line-height: 1.4"><span style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">{{r.judul}}</span></td>
+<td style="padding: 14px 10px; color: #334155; line-height: 1.4">{{r.unit}}</td>
+<td style="padding: 14px 10px; color: #334155; line-height: 1.4">{{r.kategori}}</td>
+<td style="padding: 14px 10px"><span style="{{r.statusStyle}}">{{r.status}}</span></td>
+<td style="padding: 14px 10px; color: #334155">{{r.prioritas}}</td>
+<td style="padding: 14px 10px; font-size: 13px; font-variant-numeric: tabular-nums; line-height: 1.4; {{r.batasStyle}}">{{r.batas}}</td>
+<td style="padding: 14px 10px; font-size: 13px; color: #475569; font-variant-numeric: tabular-nums; line-height: 1.4">{{r.masuk}}</td>
+<td style="padding: 14px 6px; color: #94A3B8"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></td>
+</tr>
+</sc-for>
+<sc-if value="{{kosong}}" hint-placeholder-val="{{false}}">
+<tr><td colspan="9" style="padding: 32px; text-align: center; color: #475569">Tidak ada pengaduan yang cocok dengan filter. <button type="button" onClick="{{hapusSemua}}" style="border: none; background: none; color: #1E3A9E; font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline">Hapus semua filter</button></td></tr>
+</sc-if>
+</tbody>
+</table>
+</div>
+
+<div class="lst" style="flex-direction: column; gap: 10px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<a href="#" style="display: flex; flex-direction: column; gap: 8px; background: #ffffff; border: 1px solid #E5E9F2; border-radius: 14px; padding: 14px 16px; text-decoration: none; color: #0F172A">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums">{{r.kode}}</span>
+<span style="{{r.statusStyle}}">{{r.status}}</span>
+</div>
+<span style="font-size: 15px; font-weight: 600; line-height: 1.4">{{r.judul}}</span>
+<span style="font-size: 13px; color: #475569">{{r.unit}} · {{r.kategori}}</span>
+<div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: #475569; font-variant-numeric: tabular-nums">
+<span>Batas: <span style="{{r.batasStyle}}">{{r.batas}}</span></span>
+<span>{{r.masuk}}</span>
+</div>
+</a>
+</sc-for>
+<sc-if value="{{kosong}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; padding: 24px; text-align: center; background: #ffffff; border: 1px solid #E5E9F2; border-radius: 14px; color: #475569">Tidak ada pengaduan yang cocok dengan filter.</p>
+</sc-if>
+</div>
+
+<nav aria-label="Halaman" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: #475569">
+<span>{{infoHalaman}}</span>
+<div style="display: flex; align-items: center; gap: 6px">
+<button type="button" onClick="{{sebelumnya}}" disabled="{{diAwal}}" aria-label="Halaman sebelumnya" style="{{btnPrev}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"></path></svg></button>
+<sc-for list="{{halaman}}" as="h">
+<button type="button" onClick="{{h.pick}}" aria-current="{{h.current}}" style="{{h.style}}">{{h.n}}</button>
+</sc-for>
+<button type="button" onClick="{{berikutnya}}" disabled="{{diAkhir}}" aria-label="Halaman berikutnya" style="{{btnNext}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+</div>
+<label class="pagesize" style="display: flex; align-items: center; gap: 8px">Per halaman
+<span style="position: relative; display: inline-block; width: 76px"><select value="{{perHalaman}}" onChange="{{setPer}}" style="height: 36px; border: 1px solid #CBD5E1; border-radius: 8px; padding: 0 38px 0 12px; appearance: none; -webkit-appearance: none; width: 100%; font-size: 14px; background: #ffffff"><option value="5">5</option><option value="10">10</option><option value="25">25</option></select><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; right: 12px; top: 50%; margin-top: -8px; pointer-events: none"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+</nav>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { status: 'Semua', q: '', unit: 'Semua unit', kategori: 'Semua kategori', prioritas: 'Semua prioritas', lewat: false, page: 1, per: 5 };
+  }
+  renderVals() {
+    const s = this.state;
+    const set = (patch) => this.setState(Object.assign({ page: 1 }, patch));
+    const badge = (bg, fg) => 'display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: ' + bg + '; color: ' + fg;
+    const st = { 'Diterima': badge('#E3E9FA', '#1E3A9E'), 'Diproses': badge('#FEF3C7', '#92400E'), 'Menunggu konfirmasi': badge('#EDE9FE', '#5B21B6'), 'Selesai': badge('#DCFCE7', '#166534'), 'Ditolak': badge('#FEE4E2', '#912018'), 'Dipindah ke WBS': badge('#E2E8F0', '#0B1B4D') };
+    const data = [
+      ['PGD-2611-K2M7QA', 'Jadwal ekstrakurikuler bentrok dengan les tambahan', 'SMA YPVDP', 'Jadwal kegiatan', 'Diterima', '–', 'Saat disposisi', '20 Nov, 06.58', false],
+      ['PGD-2611-3U8B93', 'Lampu kelas 2A mati sejak minggu lalu', 'SD YPVDP', 'Fasilitas dan sarana', 'Diproses', 'Sedang', '9 Des 2026', '19 Nov, 14.34', false],
+      ['PGD-2611-R5N1VB', 'Wali kelas belum membalas pesan orang tua soal nilai', 'SMP YPVDP', 'Komunikasi guru dan orang tua', 'Diproses', 'Rendah', '18 Nov 2026', '4 Nov, 09.20', true],
+      ['PGD-2611-T8W3LD', 'Surat keterangan siswa lama terbit', 'Pelaksana Harian', 'Layanan administrasi', 'Menunggu konfirmasi', 'Tinggi', '25 Nov 2026', '17 Nov, 10.12', false],
+      ['PGD-2611-H7J92G', 'Dipindah ke kanal WBS', 'SMP YPVDP', 'Kebersihan', 'Dipindah ke WBS', 'Sedang', '–', '18 Nov, 08.55', false],
+      ['PGD-2611-GEUCXR', 'Keran wastafel kelas 3B bocor', 'SD YPVDP', 'Fasilitas dan sarana', 'Selesai', 'Sedang', '7 Des 2026', '18 Nov, 07.46', false],
+      ['PGD-2611-M4C8PE', 'AC ruang guru SMA bocor dan menetes ke meja', 'SMA YPVDP', 'Fasilitas dan sarana', 'Diproses', 'Tinggi', '16 Nov 2026', '2 Nov, 13.05', true],
+      ['PGD-2611-B9F2UK', 'Tempat sampah kantin penuh sejak pagi', 'SMP YPVDP', 'Kebersihan', 'Selesai', 'Rendah', '12 Nov 2026', '10 Nov, 11.40', false],
+      ['PGD-2611-Z6H3NR', 'Info rapat orang tua terlambat diterima', 'SD YPVDP', 'Komunikasi guru dan orang tua', 'Diterima', '–', 'Saat disposisi', '20 Nov, 06.31', false],
+      ['PGD-2611-W1Q7JS', 'Legalisir ijazah alumni lebih dari dua minggu', 'Pelaksana Harian', 'Layanan administrasi', 'Diproses', 'Sedang', '27 Nov 2026', '13 Nov, 08.15', false],
+      ['PGD-2611-E5L9VT', 'Pengaduan berisi iklan, bukan keluhan', 'SMA YPVDP', 'Layanan administrasi', 'Ditolak', '–', '–', '12 Nov, 21.03', false]
+    ];
+    const all = data.map((r) => ({ kode: r[0], judul: r[1], unit: r[2], kategori: r[3], status: r[4], prioritas: r[5], batas: r[6], masuk: r[7], lewat: r[8], statusStyle: st[r[4]], batasStyle: r[8] ? 'color: #B42318; font-weight: 700' : 'color: #334155' }));
+    const q = s.q.trim().toLowerCase();
+    const cocokLain = (r) => (s.unit === 'Semua unit' || r.unit === s.unit) && (s.kategori === 'Semua kategori' || r.kategori === s.kategori) && (s.prioritas === 'Semua prioritas' || r.prioritas === s.prioritas) && (!s.lewat || r.lewat) && (!q || r.kode.toLowerCase().includes(q) || r.judul.toLowerCase().includes(q));
+    const dasar = all.filter(cocokLain);
+    const hasil = dasar.filter((r) => s.status === 'Semua' || r.status === s.status);
+    const per = Number(s.per);
+    const totalHal = Math.max(1, Math.ceil(hasil.length / per));
+    const page = Math.min(s.page, totalHal);
+    const rows = hasil.slice((page - 1) * per, page * per);
+    const statusList = ['Semua', 'Diterima', 'Diproses', 'Menunggu konfirmasi', 'Selesai', 'Ditolak', 'Dipindah ke WBS'];
+    const tabs = statusList.map((label) => ({ label, count: label === 'Semua' ? dasar.length : dasar.filter((r) => r.status === label).length, selected: label === s.status ? 'true' : 'false', pick: () => set({ status: label }), style: 'flex: none; height: 36px; padding: 0 14px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; ' + (label === s.status ? 'background: #1E3A9E; color: #ffffff; border: 1px solid #1E3A9E' : 'background: #ffffff; color: #334155; border: 1px solid #CBD5E1') }));
+    const chips = [];
+    if (q) chips.push({ label: 'Cari: "' + s.q.trim() + '"', remove: () => set({ q: '' }) });
+    if (s.status !== 'Semua') chips.push({ label: 'Status: ' + s.status, remove: () => set({ status: 'Semua' }) });
+    if (s.unit !== 'Semua unit') chips.push({ label: s.unit, remove: () => set({ unit: 'Semua unit' }) });
+    if (s.kategori !== 'Semua kategori') chips.push({ label: s.kategori, remove: () => set({ kategori: 'Semua kategori' }) });
+    if (s.prioritas !== 'Semua prioritas') chips.push({ label: 'Prioritas ' + s.prioritas, remove: () => set({ prioritas: 'Semua prioritas' }) });
+    if (s.lewat) chips.push({ label: 'Lewat batas waktu', remove: () => set({ lewat: false }) });
+    const navBtn = (off) => 'width: 36px; height: 36px; border-radius: 8px; border: 1px solid #CBD5E1; background: #ffffff; display: inline-flex; align-items: center; justify-content: center; cursor: ' + (off ? 'default; opacity: 0.4' : 'pointer') + '; color: #0F172A';
+    const halaman = [];
+    for (let n = 1; n <= totalHal; n++) halaman.push({ n, current: n === page ? 'page' : 'false', pick: () => this.setState({ page: n }), style: 'min-width: 36px; height: 36px; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; ' + (n === page ? 'background: #1E3A9E; color: #ffffff; border: 1px solid #1E3A9E' : 'background: #ffffff; color: #334155; border: 1px solid #CBD5E1') });
+    const dari = hasil.length ? (page - 1) * per + 1 : 0;
+    const sampai = Math.min(page * per, hasil.length);
+    return {
+      f: s, rows, tabs, chips, halaman,
+      adaFilter: chips.length > 0,
+      kosong: hasil.length === 0,
+      ringkasan: all.length + ' pengaduan · ' + all.filter((r) => r.status === 'Diterima').length + ' baru · ' + all.filter((r) => r.lewat).length + ' lewat batas waktu',
+      infoHalaman: 'Menampilkan ' + dari + '–' + sampai + ' dari ' + hasil.length,
+      perHalaman: String(per),
+      diAwal: page <= 1, diAkhir: page >= totalHal,
+      btnPrev: navBtn(page <= 1), btnNext: navBtn(page >= totalHal),
+      optUnit: ['Semua unit', 'SD YPVDP', 'SMP YPVDP', 'SMA YPVDP', 'Pelaksana Harian'],
+      optKategori: ['Semua kategori', 'Fasilitas dan sarana', 'Jadwal kegiatan', 'Kebersihan', 'Komunikasi guru dan orang tua', 'Layanan administrasi'],
+      optPrioritas: ['Semua prioritas', 'Rendah', 'Sedang', 'Tinggi'],
+      setQ: (e) => set({ q: e.target.value }),
+      setUnit: (e) => set({ unit: e.target.value }),
+      setKategori: (e) => set({ kategori: e.target.value }),
+      setPrioritas: (e) => set({ prioritas: e.target.value }),
+      toggleLewat: () => set({ lewat: !s.lewat }),
+      setPer: (e) => this.setState({ per: Number(e.target.value), page: 1 }),
+      sebelumnya: () => { if (page > 1) this.setState({ page: page - 1 }); },
+      berikutnya: () => { if (page < totalHal) this.setState({ page: page + 1 }); },
+      hapusSemua: () => this.setState({ status: 'Semua', q: '', unit: 'Semua unit', kategori: 'Semua kategori', prioritas: 'Semua prioritas', lewat: false, page: 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>
