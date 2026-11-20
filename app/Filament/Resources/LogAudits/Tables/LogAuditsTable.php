@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\LogAudits\Tables;
 
 use App\Enums\AksiAudit;
+use App\Filament\Support\TabelPanel;
 use App\Models\LogAudit;
 use App\Models\RiwayatPengaturan;
 use App\Services\WaktuLokal;
@@ -22,22 +23,30 @@ class LogAuditsTable
 {
     public static function configure(Table $table): Table
     {
-        return $table
+        $table = $table
             ->columns([
                 TextColumn::make('waktu')
                     ->label('Waktu')
                     ->dateTime('d M Y H:i:s')->suffix(' '.WaktuLokal::label())
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap()
+                    ->width('128px'),
                 TextColumn::make('user.name')
                     ->label('Pengguna')
                     ->placeholder('Sistem / tidak dikenal')
-                    ->searchable(),
+                    ->searchable()
+                    ->wrap()
+                    ->width('170px'),
                 TextColumn::make('aksi')
                     ->label('Aksi')
-                    ->formatStateUsing(fn (string $state): string => AksiAudit::tryFrom($state)?->getLabel() ?? $state),
+                    ->formatStateUsing(fn (string $state): string => AksiAudit::tryFrom($state)?->getLabel() ?? $state)
+                    ->wrap()
+                    ->width('190px'),
                 TextColumn::make('objek')
                     ->label('Objek')
-                    ->searchable(),
+                    ->searchable()
+                    ->wrap()
+                    ->width('200px'),
                 TextColumn::make('rincian')
                     ->label('Nilai lama → baru')
                     ->state(fn (LogAudit $record): array => $record->riwayatPengaturan
@@ -69,5 +78,7 @@ class LogAuditsTable
             ])
             ->recordActions([])
             ->toolbarActions([]);
+
+        return TabelPanel::terapkan($table, 'ringkas', 'log audit');
     }
 }

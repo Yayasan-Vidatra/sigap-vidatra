@@ -4,11 +4,11 @@ namespace App\Filament\Resources\LaporanDialihkan;
 
 use App\Filament\Resources\LaporanDialihkan\Pages\ListLaporanDialihkan;
 use App\Filament\Resources\LaporanDialihkan\Pages\ViewLaporanDialihkan;
+use App\Filament\Support\TabelPanel;
 use App\Models\Pengalihan;
 use App\Models\User;
 use App\Services\WaktuLokal;
 use BackedEnum;
-use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -68,18 +69,31 @@ class LaporanDialihkanResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        $table = $table
             ->columns([
-                TextColumn::make('id')->label('No.')->formatStateUsing(fn (int $state): string => "#{$state}"),
-                TextColumn::make('laporan.jenis')->label('Kanal'),
-                TextColumn::make('laporan.kategori.nama')->label('Kategori')->placeholder('-')->wrap(),
-                TextColumn::make('unitTujuan.nama')->label('Unit tujuan')->placeholder('-'),
-                TextColumn::make('dibuat_pada')->label('Dialihkan')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label())->sortable(),
-                TextColumn::make('diterima_pada')->label('Diterima')->dateTime('d M Y H:i')->placeholder('Belum dikonfirmasi'),
+                TextColumn::make('id')->label('No.')->formatStateUsing(fn (int $state): string => "#{$state}")->width('80px'),
+                TextColumn::make('laporan.jenis')->label('Kanal')->width('120px'),
+                TextColumn::make('laporan.kategori.nama')->label('Kategori')->placeholder('–')->lineClamp(2)->wrap(),
+                TextColumn::make('unitTujuan.nama')->label('Unit tujuan')->placeholder('–')->wrap()->width('150px'),
+                TextColumn::make('dibuat_pada')->label('Dialihkan')->dateTime('j M Y H:i')->suffix(' '.WaktuLokal::label())->sortable()->wrap()->width('130px'),
+                TextColumn::make('diterima_pada')->label('Diterima')->dateTime('j M Y H:i')->placeholder('Belum dikonfirmasi')->wrap()->width('140px'),
+                TabelPanel::kolomPanah(),
             ])
             ->defaultSort('dibuat_pada', 'desc')
-            ->recordActions([ViewAction::make()->label('Buka')])
+            ->filters([
+                // Sama dengan kartu pengalihan di Dasbor; hanya mempersempit pengalihan yang boleh dilihat (PengalihanPolicy).
+                TernaryFilter::make('dikonfirmasi')
+                    ->label('Konfirmasi terima')
+                    ->placeholder('Semua')
+                    ->trueLabel('Sudah dikonfirmasi')
+                    ->falseLabel('Belum dikonfirmasi')
+                    ->nullable()
+                    ->attribute('diterima_pada'),
+            ])
+            ->recordActions([])
             ->toolbarActions([]);
+
+        return TabelPanel::terapkan($table, 'ringkas', 'laporan dialihkan');
     }
 
     public static function infolist(Schema $schema): Schema
@@ -94,8 +108,8 @@ class LaporanDialihkanResource extends Resource
                         TextEntry::make('unitTujuan.nama')->label('Unit tujuan')->placeholder('-'),
                         TextEntry::make('laporan.jenis')->label('Kanal asal'),
                         TextEntry::make('laporan.kategori.nama')->label('Kategori')->placeholder('-'),
-                        TextEntry::make('dibuat_pada')->label('Dialihkan')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label()),
-                        TextEntry::make('diterima_pada')->label('Diterima')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label())->placeholder('Belum dikonfirmasi'),
+                        TextEntry::make('dibuat_pada')->label('Dialihkan')->dateTime('j M Y H:i')->suffix(' '.WaktuLokal::label()),
+                        TextEntry::make('diterima_pada')->label('Diterima')->dateTime('j M Y H:i')->suffix(' '.WaktuLokal::label())->placeholder('Belum dikonfirmasi'),
                         TextEntry::make('ringkasan')->label('Ringkasan')->prose()->columnSpanFull(),
                         TextEntry::make('catatan_tindak_lanjut')->label('Catatan tindak lanjut')->placeholder('Belum ada')->columnSpanFull(),
                     ]),

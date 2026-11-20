@@ -76,7 +76,7 @@ class ViewPengaduan extends ViewRecord
         return Action::make('pindahKeWbs')
             ->label('Pindah ke WBS')
             ->icon(Heroicon::OutlinedShieldExclamation)
-            ->color('danger')
+            ->color('wbs')
             ->authorize('kelolaPengaduan')
             ->visible(fn (Laporan $record): bool => PemindahPengaduanKeWbs::bisa($record))
             ->modalHeading('Pindah ke kanal WBS')

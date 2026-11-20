@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users;
 use App\Enums\JenisAkun;
 use App\Enums\Peran;
 use App\Filament\Resources\Users\Pages\ManageUsers;
+use App\Filament\Support\TabelPanel;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Pengaturan\PengelolaDataJabatan;
@@ -21,6 +22,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -121,18 +123,23 @@ class UserResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        $table = $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('name')->label('Nama')->searchable()->sortable(),
-                TextColumn::make('email')->label('Surel')->searchable(),
-                TextColumn::make('peran')->label('Peran')->badge()->placeholder('Nonaktif'),
-                TextColumn::make('unit.nama')->label('Unit')->placeholder('-'),
-                TextColumn::make('jenis_akun')->label('Jenis akun'),
+                TextColumn::make('name')->label('Nama')->searchable()->sortable()->wrap(),
+                TextColumn::make('email')->label('Surel')->searchable()->wrap(),
+                TextColumn::make('peran')->label('Peran')->badge()->wrap()->color('gray')->placeholder('Nonaktif')->width('190px'),
+                TextColumn::make('unit.nama')->label('Unit')->placeholder('–')->wrap()->width('140px'),
+                TextColumn::make('jenis_akun')->label('Jenis akun')->wrap()->width('150px'),
                 IconColumn::make('terkunci_pada')
                     ->label('Terkunci')
                     ->boolean()
-                    ->state(fn (User $record): bool => $record->terkunci()),
+                    ->trueIcon(Heroicon::OutlinedLockClosed)
+                    ->falseIcon(Heroicon::OutlinedMinus)
+                    ->trueColor('warning')
+                    ->falseColor('gray')
+                    ->state(fn (User $record): bool => $record->terkunci())
+                    ->width('96px'),
             ])
             ->defaultSort('name')
             ->filters([
@@ -141,13 +148,22 @@ class UserResource extends Resource
                     ->options(collect(Peran::kelolaanPengaturan())
                         ->mapWithKeys(fn (Peran $peran): array => [$peran->value => $peran->getLabel()])
                         ->all()),
+                Filter::make('terkunci')
+                    ->label('Akun terkunci')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('terkunci_pada')),
             ])
             ->recordActions([
+                // Seluruh baris membuka formulir ubah; tombol ubah tampil sebagai panah seperti tabel lain.
                 EditAction::make()
+                    ->iconButton()
+                    ->icon(Heroicon::ChevronRight)
+                    ->color('gray')
                     ->using(fn (User $record, array $data): User => app(PengelolaDataJabatan::class)
                         ->simpanPengguna(self::pengguna(), $record, $data)),
                 Action::make('bukaKunci')
                     ->label('Buka kunci')
+                    ->iconButton()
                     ->icon(Heroicon::OutlinedLockOpen)
                     ->color('warning')
                     ->visible(fn (User $record): bool => $record->terkunci())
@@ -160,6 +176,8 @@ class UserResource extends Resource
                     }),
             ])
             ->toolbarActions([]);
+
+        return TabelPanel::terapkan($table, 'ringkas', 'pengguna');
     }
 
     public static function pengguna(): User

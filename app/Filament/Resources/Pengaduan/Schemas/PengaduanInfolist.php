@@ -106,7 +106,7 @@ class PengaduanInfolist
                             ->badge()
                             ->color(fn (StatusPindai $state): string => match ($state) {
                                 StatusPindai::Bersih => 'success',
-                                StatusPindai::Karantina, StatusPindai::Gagal => 'danger',
+                                // Merah hanya untuk tindakan menolak dan lewat batas waktu; karantina cukup kuning.
                                 default => 'warning',
                             }),
                         TextEntry::make('unduh')
@@ -115,7 +115,7 @@ class PengaduanInfolist
                                 ? 'Unduh'
                                 : 'Dikarantina, tidak bisa diunduh')
                             ->url(fn (Lampiran $record): ?string => self::bisaDiunduh($record) ? $record->tautanUnduhSementara() : null)
-                            ->color(fn (Lampiran $record): string => self::bisaDiunduh($record) ? 'primary' : 'danger'),
+                            ->color(fn (Lampiran $record): string => self::bisaDiunduh($record) ? 'primary' : 'gray'),
                     ]),
             ]);
     }

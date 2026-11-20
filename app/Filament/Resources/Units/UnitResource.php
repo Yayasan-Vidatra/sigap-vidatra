@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Units;
 
 use App\Filament\Resources\Units\Pages\ManageUnits;
+use App\Filament\Support\TabelPanel;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Pengaturan\PengelolaDataJabatan;
@@ -64,19 +65,25 @@ class UnitResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        $table = $table
             ->recordTitleAttribute('nama')
             ->columns([
-                TextColumn::make('nama')->label('Unit')->searchable(),
-                TextColumn::make('kontak_darurat')->label('Kontak darurat')->placeholder('-'),
-                IconColumn::make('aktif')->label('Aktif')->boolean(),
+                TextColumn::make('nama')->label('Unit')->searchable()->wrap()->width('220px'),
+                TextColumn::make('kontak_darurat')->label('Kontak darurat')->placeholder('–')->wrap(),
+                IconColumn::make('aktif')->label('Aktif')->boolean()->falseIcon(Heroicon::OutlinedMinus)->falseColor('gray')->width('96px'),
             ])
             ->recordActions([
+                // Seluruh baris membuka formulir ubah; tombol ubah tampil sebagai panah seperti tabel lain.
                 EditAction::make()
+                    ->iconButton()
+                    ->icon(Heroicon::ChevronRight)
+                    ->color('gray')
                     ->using(fn (Unit $record, array $data): Unit => app(PengelolaDataJabatan::class)
                         ->simpanUnit(self::pengguna(), $record, $data)),
             ])
             ->toolbarActions([]);
+
+        return TabelPanel::terapkan($table, 'ringkas', 'unit');
     }
 
     public static function pengguna(): User
