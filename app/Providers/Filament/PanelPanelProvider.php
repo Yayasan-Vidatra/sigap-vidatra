@@ -6,19 +6,21 @@ use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\MintaTautanKataSandi;
 use App\Filament\Pages\Auth\ProfilPetugas;
 use App\Filament\Pages\Auth\VerifikasiSso;
+use App\Filament\Pages\Dasbor;
+use App\Filament\Support\AvatarInisial;
+use App\Filament\Support\WarnaPanel;
 use App\Http\Controllers\Auth\LoginGoogleController;
 use App\Http\Controllers\UnduhLampiranController;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsEnabled;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
-use Filament\Widgets\AccountWidget;
+use Filament\Support\Enums\Width;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -57,19 +59,27 @@ class PanelPanelProvider extends PanelProvider
                     ->middleware(['signed', EnsureMultiFactorAuthenticationIsEnabled::class])
                     ->name('lampiran.unduh');
             })
-            ->colors([
-                'primary' => Color::Amber,
-            ])
+            // Tampilan sesuai prototipe yang disetujui (prd/mockup/panel-*.html): menu atas, biru #1E3A9E, biru tua
+            // #0B1B4D untuk area WBS, dan Plus Jakarta Sans dari resources/fonts lewat tema Vite (tanpa domain luar).
+            ->topNavigation()
+            ->breadcrumbs(false)
+            ->viteTheme('resources/css/filament/panel/theme.css')
+            ->font('Plus Jakarta Sans', provider: LocalFontProvider::class)
+            ->brandName('SIGAP Vidatra')
+            ->brandLogo(fn () => view('filament.merek.logo'))
+            ->brandLogoHeight('2.25rem')
+            ->favicon(asset('img/logo-96.png'))
+            ->defaultAvatarProvider(AvatarInisial::class)
+            ->maxContentWidth(Width::ScreenTwoExtraLarge)
+            ->colors(WarnaPanel::palet())
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
-                Dashboard::class,
+                Dasbor::class,
             ])
+            // Widget dasbor per peran (H-10) ditemukan otomatis dari app/Filament/Widgets. Kartu "Selamat Datang"
+            // bawaan Filament (AccountWidget) sengaja tidak dipasang.
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
-            // Widget dasbor per peran (H-10) ditemukan otomatis dari app/Filament/Widgets.
-            ->widgets([
-                AccountWidget::class,
-            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

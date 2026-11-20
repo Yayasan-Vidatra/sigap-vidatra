@@ -15,7 +15,7 @@ use Filament\Widgets\Widget;
  */
 class WbsPerTriwulan extends Widget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
 
     protected string $view = 'filament.widgets.wbs-per-triwulan';
 

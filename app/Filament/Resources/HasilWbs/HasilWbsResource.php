@@ -6,6 +6,7 @@ use App\Enums\StatusLaporan;
 use App\Filament\Resources\HasilWbs\Pages\ListHasilWbs;
 use App\Filament\Resources\HasilWbs\Pages\ViewHasilWbs;
 use App\Filament\Resources\LaporanWbs\Tables\LaporanWbsTable;
+use App\Filament\Support\TabelPanel;
 use App\Models\Laporan;
 use App\Models\RiwayatStatus;
 use App\Models\User;
@@ -13,7 +14,6 @@ use App\Services\WaktuLokal;
 use App\Services\Wbs\AksesWbs;
 use App\Services\Wbs\PenangananWbs;
 use BackedEnum;
-use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -22,6 +22,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
@@ -83,12 +84,12 @@ class HasilWbsResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        $table = $table
             ->columns([
-                TextColumn::make('id')->label('No.')->formatStateUsing(fn (int $state): string => "#{$state}"),
-                TextColumn::make('kategori.nama')->label('Jenis pelanggaran')->wrap(),
-                TextColumn::make('unit.nama')->label('Unit')->placeholder('-'),
-                TextColumn::make('status')->label('Status')->badge()->color(fn (StatusLaporan $state): string => LaporanWbsTable::warnaStatus($state)),
+                TextColumn::make('id')->label('No.')->formatStateUsing(fn (int $state): string => "#{$state}")->width('80px'),
+                TextColumn::make('kategori.nama')->label('Jenis pelanggaran')->lineClamp(2)->wrap(),
+                TextColumn::make('unit.nama')->label('Unit')->placeholder('–')->wrap()->width('140px'),
+                TextColumn::make('status')->label('Status')->badge()->wrap()->color(fn (StatusLaporan $state): string => LaporanWbsTable::warnaStatus($state))->width('160px'),
                 TextColumn::make('keperluan')
                     ->label('Perlu tindakan')
                     ->state(fn (Laporan $record): ?string => match (true) {
@@ -97,13 +98,25 @@ class HasilWbsResource extends Resource
                         default => null,
                     })
                     ->badge()
-                    ->color('warning')
-                    ->placeholder('-'),
-                TextColumn::make('hasil_ditindaklanjuti_pada')->label('Ditindaklanjuti')->date('d M Y')->placeholder('-'),
+                    ->wrap()
+                    ->color('status-diproses')
+                    ->placeholder('–')
+                    ->width('190px'),
+                TextColumn::make('hasil_ditindaklanjuti_pada')->label('Ditindaklanjuti')->date('j M Y')->placeholder('–')->wrap()->width('156px'),
+                TabelPanel::kolomPanah(),
             ])
             ->defaultSort('diperbarui_pada', 'desc')
-            ->recordActions([ViewAction::make()->label('Buka')])
+            ->filters([
+                // Sama dengan kartu "Hasil WBS menunggu tindak lanjut" di Dasbor; hanya mempersempit idHasilUntuk.
+                Filter::make('belum_ditindaklanjuti')
+                    ->label('Menunggu tindak lanjut')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->whereNotNull('kesimpulan')->whereNull('hasil_ditindaklanjuti_pada')),
+            ])
+            ->recordActions([])
             ->toolbarActions([]);
+
+        return TabelPanel::terapkan($table, 'ringkas', 'hasil WBS');
     }
 
     public static function infolist(Schema $schema): Schema
@@ -120,7 +133,7 @@ class HasilWbsResource extends Resource
                         TextEntry::make('status')->label('Status')->badge()->color(fn (StatusLaporan $state): string => LaporanWbsTable::warnaStatus($state)),
                         TextEntry::make('kedudukan_efektif')->label('Kedudukan terlapor')->state(fn (Laporan $record): string => AksesWbs::kedudukanEfektif($record)->getLabel()),
                         TextEntry::make('penerima')->label('Penerima hasil')->state(fn (Laporan $record): string => AksesWbs::kedudukanEfektif($record)->penerimaHasil()),
-                        TextEntry::make('batas_waktu')->label('Batas investigasi')->date('d M Y')->placeholder('-'),
+                        TextEntry::make('batas_waktu')->label('Batas investigasi')->date('j M Y')->placeholder('-'),
                     ]),
                 Section::make('Pihak terlapor')
                     ->schema([
@@ -135,7 +148,7 @@ class HasilWbsResource extends Resource
                 Section::make('Permintaan perpanjangan')
                     ->visible(fn (Laporan $record): bool => $record->perpanjangan_diajukan_pada !== null)
                     ->schema([
-                        TextEntry::make('perpanjangan_diajukan_pada')->label('Diajukan')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label()),
+                        TextEntry::make('perpanjangan_diajukan_pada')->label('Diajukan')->dateTime('j M Y H:i')->suffix(' '.WaktuLokal::label()),
                         TextEntry::make('alasan_perpanjangan')
                             ->label('Alasan dari Tim WBS')
                             ->state(fn (Laporan $record): ?string => self::alasanPerpanjangan($record)),
@@ -145,7 +158,7 @@ class HasilWbsResource extends Resource
                     ->schema([
                         TextEntry::make('kesimpulan')->label('Kesimpulan')->badge(),
                         TextEntry::make('rekomendasi')->label('Rekomendasi')->prose(),
-                        TextEntry::make('hasil_ditindaklanjuti_pada')->label('Ditindaklanjuti')->dateTime('d M Y H:i')->suffix(' '.WaktuLokal::label())->placeholder('Belum'),
+                        TextEntry::make('hasil_ditindaklanjuti_pada')->label('Ditindaklanjuti')->dateTime('j M Y H:i')->suffix(' '.WaktuLokal::label())->placeholder('Belum'),
                     ]),
             ]);
     }

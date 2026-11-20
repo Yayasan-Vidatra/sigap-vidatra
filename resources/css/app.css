@@ -103,3 +103,20 @@ altcha-widget .altcha-checkbox-wrap label {
         @apply bg-latar text-slate-900;
     }
 }
+
+/*
+ * Dropdown halaman publik (Formulir Pengaduan, Formulir WBS, dan select lain): panah seragam berjarak 12 px dari tepi
+ * kanan, ruang teks 38 px agar pilihan tidak menabrak panah, dan tinggi minimal 44 px. Ditulis di luar @layer agar
+ * menimpa padding utilitas pada kelas isian.
+ */
+select:not([multiple]):not([size]) {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 44px;
+    padding-right: 38px;
+    text-overflow: ellipsis;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 12px center;
+    background-size: 16px 16px;
+    background-repeat: no-repeat;
+}

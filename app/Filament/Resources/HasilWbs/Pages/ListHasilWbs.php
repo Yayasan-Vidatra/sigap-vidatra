@@ -8,4 +8,9 @@ use Filament\Resources\Pages\ListRecords;
 class ListHasilWbs extends ListRecords
 {
     protected static string $resource = HasilWbsResource::class;
+
+    public function getTitle(): string
+    {
+        return 'Hasil WBS untuk Saya';
+    }
 }

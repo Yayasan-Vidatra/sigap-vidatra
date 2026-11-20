@@ -5,34 +5,42 @@
 
     @if ($rekap === null)
         <x-filament::section>
-            <p class="text-sm text-danger-600">Periode tidak sah. Periksa tanggal awal dan akhir.</p>
+            <p class="text-sm text-gray-700 dark:text-gray-200">Periode tidak sah. Periksa tanggal awal dan akhir.</p>
         </x-filament::section>
     @else
         <x-filament::section heading="Pengaduan" description="Periode {{ $rekap['periode'] }}. {{ $rekap['unit'] }}; {{ strtolower($rekap['kategori']) }}. Rata-rata dihitung dalam hari kalender sejak masuk sampai Selesai. {{ \App\Services\Rekap\RekapLaporan::CATATAN_PINDAH_WBS }}">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+            <div class="sigap-gulir-tabel">
+                <table class="sigap-tabel-rekap">
+                    <colgroup>
+                        <col style="width: 16%">
+                        <col>
+                        <col style="width: 11%">
+                        <col style="width: 11%">
+                        <col style="width: 16%">
+                        <col style="width: 14%">
+                    </colgroup>
                     <thead>
-                        <tr class="border-b border-gray-200 text-left dark:border-white/10">
-                            <th class="py-2 pe-4 font-medium">Unit</th>
-                            <th class="py-2 pe-4 font-medium">Kategori</th>
-                            <th class="py-2 pe-4 text-end font-medium">Jumlah</th>
-                            <th class="py-2 pe-4 text-end font-medium">Selesai</th>
-                            <th class="py-2 pe-4 text-end font-medium">Rata-rata hari penyelesaian</th>
-                            <th class="py-2 pe-4 text-end font-medium">Lewat batas waktu</th>
+                        <tr>
+                            <th scope="col">Unit</th>
+                            <th scope="col">Kategori</th>
+                            <th scope="col" class="sigap-angka">Jumlah</th>
+                            <th scope="col" class="sigap-angka">Selesai</th>
+                            <th scope="col" class="sigap-angka">Rata-rata hari penyelesaian</th>
+                            <th scope="col" class="sigap-angka">Lewat batas waktu</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($rekap['pengaduan'] as $baris)
-                            <tr class="border-b border-gray-100 dark:border-white/5">
-                                <td class="py-2 pe-4">{{ $baris['unit'] }}</td>
-                                <td class="py-2 pe-4">{{ $baris['kategori'] }}</td>
-                                <td class="py-2 pe-4 text-end tabular-nums">{{ $baris['jumlah'] }}</td>
-                                <td class="py-2 pe-4 text-end tabular-nums">{{ $baris['selesai'] }}</td>
-                                <td class="py-2 pe-4 text-end tabular-nums">{{ \App\Services\Rekap\RekapLaporan::angka($baris['rata_rata_hari']) }}</td>
-                                <td class="py-2 pe-4 text-end tabular-nums">{{ $baris['lewat_sla'] }}</td>
+                            <tr>
+                                <td>{{ $baris['unit'] }}</td>
+                                <td>{{ $baris['kategori'] }}</td>
+                                <td class="sigap-angka">{{ $baris['jumlah'] }}</td>
+                                <td class="sigap-angka">{{ $baris['selesai'] }}</td>
+                                <td class="sigap-angka">{{ \App\Services\Rekap\RekapLaporan::angka($baris['rata_rata_hari']) }}</td>
+                                <td class="sigap-angka">{{ $baris['lewat_sla'] }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="py-2 text-gray-500">Tidak ada pengaduan pada periode ini.</td></tr>
+                            <tr><td colspan="6" class="sigap-kosong">Tidak ada pengaduan pada periode ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
