@@ -25,7 +25,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Testing\AssertableInertia as Assert;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -306,12 +305,11 @@ class RuangKerjaWbsTest extends TestCase
         $this->assertSame(2, $laporan->pesan()->where('pengirim', PengirimPesan::Petugas->value)->count());
 
         auth()->logout();
-        $this->post('/lacak', ['kode' => $laporan->kode_lacak, 'pin' => '582904'])->assertRedirect('/lacak/laporan');
-        $this->get('/lacak/laporan')
-            ->assertInertia(fn (Assert $page) => $page
-                ->has('pesan', 1)
-                ->where('pesan.0.dari', 'Tim WBS')
-                ->where('pesan.0.isi', 'Mohon kirim foto kuitansinya.'))
+        $this->postJson('/wbs/lacak', ['kode' => $laporan->kode_lacak, 'pin' => '582904'])
+            ->assertOk()
+            ->assertJsonCount(1, 'pesan')
+            ->assertJsonPath('pesan.0.dari', 'Tim WBS')
+            ->assertJsonPath('pesan.0.isi', 'Mohon kirim foto kuitansinya.')
             ->assertDontSee('rahasia tim')
             ->assertDontSee($this->ketua->name);
     }

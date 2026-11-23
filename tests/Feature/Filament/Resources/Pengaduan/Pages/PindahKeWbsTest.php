@@ -143,9 +143,11 @@ class PindahKeWbsTest extends TestCase
         $wbs = app(PemindahPengaduanKeWbs::class)->pindahkan($pengaduan, $this->admin, $this->isian());
 
         $this->post('/lacak', ['kode' => $pengaduan->kode_lacak])->assertRedirect('/lacak/laporan');
+        // Revisi 20-11: halaman publik tidak menyebut WBS; status tampil sebagai dialihkan ke tim khusus.
         $this->get('/lacak/laporan')
             ->assertOk()
-            ->assertSee('Dipindah ke WBS')
+            ->assertSee('Dialihkan ke tim khusus')
+            ->assertDontSee('WBS')
             ->assertDontSee($wbs->kode_lacak)
             ->assertDontSee('Dana kegiatan dipotong');
 
@@ -170,7 +172,9 @@ class PindahKeWbsTest extends TestCase
         $this->assertStringNotContainsString($akses['pin'], json_encode(session()->all()));
 
         auth()->logout();
-        $this->post('/lacak', ['kode' => $wbs->kode_lacak, 'pin' => $akses['pin']])->assertRedirect('/lacak/laporan');
+        $this->postJson('/wbs/lacak', ['kode' => $wbs->kode_lacak, 'pin' => $akses['pin']])
+            ->assertOk()
+            ->assertJsonPath('kodeLacak', $wbs->kode_lacak);
     }
 
     public function test_only_the_reviewer_can_create_the_pin_and_only_for_moved_reports(): void

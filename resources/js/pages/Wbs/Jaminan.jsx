@@ -1,11 +1,12 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import PenampilBerkas from '../../components/PenampilBerkas';
 import PublicLayout from '../../layouts/PublicLayout';
 
 /*
- * H-03 Jaminan Kerahasiaan WBS (US-06, F-01, F-03). Dokumen jaminan kerahasiaan dibaca dari Pengaturan
- * (dikelola di H-19); selama belum ada, teks bawaan di bawah ini yang tampil. Halaman ini dan seluruh
- * jalur /wbs tidak memakai sesi, cookie, analitik, atau aset pihak ketiga.
+ * H-03 Jaminan Kerahasiaan WBS (US-06, F-01, F-03). Sejak revisi 20-11 tampil setelah kode akses benar, di dalam
+ * halaman /wbs (Wbs/Akses), bukan lewat alamat sendiri. Dokumen jaminan kerahasiaan dibaca dari Pengaturan
+ * (dikelola di H-19); selama belum ada, teks bawaan di bawah ini yang tampil. Seluruh jalur /wbs tidak memakai
+ * sesi, cookie, analitik, atau aset pihak ketiga.
  */
 function TeksBawaan() {
     return (
@@ -13,10 +14,9 @@ function TeksBawaan() {
             <div className="flex flex-col gap-1.5">
                 <h3 className="font-semibold text-slate-900">Identitas Anda dilindungi</h3>
                 <p>
-                    Anda boleh melapor tanpa nama. Bila Anda menulis nama, identitas disimpan terpisah dan terenkripsi,
-                    dan hanya dapat dibuka penelaah yang berwenang.
-                    Setiap pembukaan identitas tercatat. Halaman WBS tidak mencatat alamat IP, tidak memasang cookie,
-                    dan tidak memuat analitik.
+                    Identitas Anda dirahasiakan dan hanya dibuka oleh penelaah yang berwenang. Nama dan kontak disimpan
+                    terpisah dan terenkripsi, dan setiap pembukaan identitas tercatat. Halaman WBS tidak mencatat alamat IP,
+                    tidak memasang cookie, dan tidak memuat analitik.
                 </p>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -50,8 +50,8 @@ function TeksBawaan() {
                 <h3 className="font-semibold text-slate-900">Simpan kode lacak dan PIN</h3>
                 <p>
                     Setelah mengirim, Anda mendapat kode lacak yang hanya tampil sekali, dan memakai PIN yang Anda buat
-                    sendiri. Keduanya satu-satunya cara memantau laporan dan berkomunikasi dengan Tim WBS. Demi
-                    anonimitas, kode yang hilang tidak dapat dipulihkan.
+                    sendiri. Keduanya dipakai untuk memantau laporan dan berkirim pesan dengan Tim WBS di halaman Lacak
+                    Laporan WBS. PIN tidak tersimpan dalam bentuk yang bisa dibaca, sehingga tidak dapat dipulihkan.
                 </p>
             </div>
         </div>
@@ -90,24 +90,21 @@ function SaluranAlternatif({ saluran }) {
                 <p className="text-sm text-slate-600">Alamat surel, nomor telepon/WhatsApp SPI, dan alamat surat sedang disiapkan.</p>
             )}
             <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Melapor lewat telepon atau WhatsApp memperlihatkan nomor Anda kepada penerima. Bila ingin tetap anonim,
-                gunakan formulir ini.
+                Laporan lewat surel, telepon, WhatsApp, atau surat dicatat Tim WBS dengan aturan kerahasiaan yang sama.
             </p>
         </section>
     );
 }
 
-export default function Jaminan({ berkasJaminan, saluran }) {
+export default function Jaminan({ berkasJaminan, saluran, onLanjut, memuat = false, galat = null }) {
     return (
-        <PublicLayout lebar="sedang">
+        <PublicLayout lebar="sedang" wbs>
             <Head title="Jaminan Kerahasiaan WBS" />
 
             <div className="flex flex-col gap-5">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-[28px] leading-tight font-extrabold tracking-tight sm:text-[34px]">Pelaporan Pelanggaran (WBS)</h1>
-                    <p className="text-slate-600">
-                        Baca jaminan kerahasiaan dan perlindungan pelapor berikut sebelum melapor.
-                    </p>
+                    <p className="text-slate-600">Baca jaminan kerahasiaan dan perlindungan pelapor berikut sebelum melapor.</p>
                 </div>
 
                 <section className="flex flex-col gap-4 rounded-2xl border border-wbs-200 bg-white p-5 sm:p-7">
@@ -117,16 +114,21 @@ export default function Jaminan({ berkasJaminan, saluran }) {
 
                 <SaluranAlternatif saluran={saluran} />
 
+                {galat && (
+                    <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800">
+                        {galat}
+                    </p>
+                )}
+
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <Link
-                        href="/wbs/lapor?mengerti=1"
-                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-wbs-700 px-5 py-3 text-center font-bold text-white hover:bg-wbs-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wbs-700"
+                    <button
+                        type="button"
+                        onClick={onLanjut}
+                        disabled={memuat}
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-wbs-700 px-5 py-3 text-center font-bold text-white hover:bg-wbs-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wbs-700 disabled:opacity-60"
                     >
-                        Saya mengerti, lanjut melapor
-                    </Link>
-                    <Link href="/" className="inline-flex min-h-11 items-center justify-center font-semibold text-slate-700 underline underline-offset-2">
-                        Kembali ke Beranda
-                    </Link>
+                        {memuat ? 'Membuka formulir…' : 'Saya mengerti, lanjut melapor'}
+                    </button>
                 </div>
             </div>
         </PublicLayout>

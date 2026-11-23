@@ -17,6 +17,7 @@ enum AksiAudit: string implements HasLabel
     case LoginSsoDitolak = 'login_sso_ditolak';
     case MembukaLaporan = 'membuka_laporan';
     case MembukaLampiran = 'membuka_lampiran';
+    case MembukaTautanBukti = 'membuka_tautan_bukti';
     case LampiranDikarantina = 'lampiran_dikarantina';
     case MembukaIdentitasPelapor = 'membuka_identitas_pelapor';
     case MemverifikasiPengaduan = 'memverifikasi_pengaduan';
@@ -73,6 +74,7 @@ enum AksiAudit: string implements HasLabel
             self::LoginSsoDitolak => 'Login SSO ditolak',
             self::MembukaLaporan => 'Membuka laporan',
             self::MembukaLampiran => 'Membuka lampiran',
+            self::MembukaTautanBukti => 'Membuka tautan bukti (Google Drive)',
             self::LampiranDikarantina => 'Lampiran dikarantina',
             self::MembukaIdentitasPelapor => 'Membuka identitas pelapor',
             self::MemverifikasiPengaduan => 'Memverifikasi pengaduan',

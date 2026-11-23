@@ -99,6 +99,23 @@ trait MembuatBerkasUji
     }
 
     /**
+     * Arsip ZIP biasa berisi catatan dan foto (revisi 20-11: jenis berkas ZIP).
+     */
+    protected function zipUji(string $nama = 'bukti.zip'): string
+    {
+        $path = $this->berkasUji($nama);
+        unlink($path);
+
+        $zip = new ZipArchive;
+        $zip->open($path, ZipArchive::CREATE);
+        $zip->addFromString('catatan.txt', 'Catatan rapat tanggal 3 November.');
+        $zip->addFile($this->jpgUji('di-dalam-zip.jpg'), 'foto.jpg');
+        $zip->close();
+
+        return $path;
+    }
+
+    /**
      * Skrip PHP yang dinamai seperti PDF.
      */
     protected function skripMenyamarUji(string $nama = 'tagihan.pdf'): string

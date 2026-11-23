@@ -10,7 +10,7 @@ use Inertia\Response;
 
 /**
  * H-01 Beranda (US-01, F-01). Kontak darurat diambil dari units.kontak_darurat yang diisi lewat
- * Pengaturan, target waktu Pengaduan dari SLA kategori, target telaah WBS dari config, dan tanya jawab dari
+ * Pengaturan, target waktu Pengaduan dari SLA kategori, dan tanya jawab dari
  * Pengaturan, bukan ditanam di kode (aturan proyek no. 7).
  */
 class BerandaController extends Controller
@@ -22,6 +22,7 @@ class BerandaController extends Controller
     {
         return Inertia::render('Beranda', [
             'kontakDarurat' => Unit::query()
+                ->untukPengaduan()
                 ->where('aktif', true)
                 ->whereNotNull('kontak_darurat')
                 ->where('kontak_darurat', '!=', '')
@@ -32,7 +33,6 @@ class BerandaController extends Controller
             'unitTanpaKontakDarurat' => Unit::tanpaKontakDarurat(),
             'kontakDaruratCadangan' => Unit::KONTAK_DARURAT_CADANGAN,
             'targetPengaduan' => self::ringkasanTarget(Kategori::targetPengaduan()),
-            'targetWbs' => ['telaah' => (int) config('sigap.wbs.telaah_hari_kerja')],
             'tanyaJawab' => array_slice(Pengaturan::daftar(Pengaturan::PUBLIK_FAQ), 0, self::JUMLAH_TANYA_JAWAB),
         ]);
     }

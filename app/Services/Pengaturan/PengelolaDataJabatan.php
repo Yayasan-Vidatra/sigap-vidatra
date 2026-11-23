@@ -37,6 +37,8 @@ class PengelolaDataJabatan
             $unit->fill([
                 'nama' => trim($data['nama']),
                 'aktif' => (bool) ($data['aktif'] ?? true),
+                'khusus_wbs' => (bool) ($data['khusus_wbs'] ?? $unit->khusus_wbs ?? false),
+                'nama_pimpinan' => self::teksAtauNull($data['nama_pimpinan'] ?? null),
                 'kontak_darurat' => self::teksAtauNull($data['kontak_darurat'] ?? null),
             ])->save();
 
@@ -147,7 +149,7 @@ class PengelolaDataJabatan
      */
     private static function isianUnit(Unit $unit): array
     {
-        return $unit->only(['nama', 'aktif', 'kontak_darurat']);
+        return $unit->only(['nama', 'aktif', 'khusus_wbs', 'nama_pimpinan', 'kontak_darurat']);
     }
 
     /**

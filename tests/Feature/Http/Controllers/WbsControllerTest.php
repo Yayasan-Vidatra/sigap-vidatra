@@ -10,6 +10,7 @@ use App\Models\Kategori;
 use App\Models\Laporan;
 use App\Models\Pengaturan;
 use App\Models\Unit;
+use App\Services\Wbs\KodeAksesWbs;
 use App\Services\Wbs\TokenFormulirWbs;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -21,50 +22,54 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
-use Inertia\Testing\AssertableInertia as Assert;
 use ReflectionProperty;
 use Tests\Concerns\MembacaPdf;
 use Tests\Concerns\MembuatBerkasUji;
+use Tests\Concerns\MembukaKanalWbs;
 use Tests\Concerns\MemecahkanAltcha;
 use Tests\Concerns\MengunggahLampiran;
 use Tests\TestCase;
 
 /**
- * Kanal WBS: H-03 Jaminan Kerahasiaan, H-04 Formulir WBS, dan H-05 Bukti Lapor WBS (US-05, US-06, US-07).
+ * Kanal WBS: kode akses, H-03 Jaminan Kerahasiaan, H-04 Formulir WBS, dan H-05 Bukti Lapor WBS (US-05, US-06, US-07;
+ * revisi 20-11: kanal internal dengan kode akses, tidak anonim).
  */
 class WbsControllerTest extends TestCase
 {
     use MembacaPdf;
     use MembuatBerkasUji;
+    use MembukaKanalWbs;
     use MemecahkanAltcha;
     use MengunggahLampiran;
     use RefreshDatabase;
 
-    public function test_assurance_page_shows_default_text_until_a_document_is_configured(): void
+    public function test_assurance_shows_default_text_after_the_access_code_until_a_document_is_configured(): void
     {
-        $response = $this->get('/wbs');
+        $kode = $this->aturKodeAkses();
 
-        $response->assertOk();
-        $response->assertInertia(fn (Assert $page) => $page
-            ->component('Wbs/Jaminan')
-            ->where('berkasJaminan', null)
-            ->where('saluran', ['surel' => null, 'telepon' => null, 'surat' => null]));
+        $response = $this->periksaKode($kode);
+
+        $response->assertOk()
+            ->assertJsonPath('jaminan.berkasJaminan', null)
+            ->assertJsonPath('jaminan.saluran', ['surel' => null, 'telepon' => null, 'surat' => null]);
+        $this->assertTrue(KodeAksesWbs::tokenSah($response->json('tokenAkses')));
         $this->assertSame([], $response->headers->getCookies());
     }
 
-    public function test_assurance_page_reads_the_document_and_alternative_channels_from_settings(): void
+    public function test_assurance_reads_the_document_and_alternative_channels_from_settings(): void
     {
         Storage::fake('local');
         Storage::disk('local')->put('pengaturan/jaminan.pdf', file_get_contents($this->pdfUji()));
         Pengaturan::factory()->create(['kunci' => Pengaturan::WBS_BERKAS_JAMINAN, 'nilai' => 'pengaturan/jaminan.pdf']);
         Pengaturan::factory()->create(['kunci' => Pengaturan::WBS_SALURAN_SUREL, 'nilai' => 'wbs@vidatra.sch.id']);
         Pengaturan::factory()->create(['kunci' => Pengaturan::WBS_SALURAN_TELEPON, 'nilai' => '0811-0000-0000']);
+        $kode = $this->aturKodeAkses();
 
-        $this->get('/wbs')->assertInertia(fn (Assert $page) => $page
-            ->where('berkasJaminan', route('wbs.jaminan.berkas'))
-            ->where('saluran.surel', 'wbs@vidatra.sch.id')
-            ->where('saluran.telepon', '0811-0000-0000')
-            ->where('saluran.surat', null));
+        $this->periksaKode($kode)
+            ->assertJsonPath('jaminan.berkasJaminan', route('wbs.jaminan.berkas'))
+            ->assertJsonPath('jaminan.saluran.surel', 'wbs@vidatra.sch.id')
+            ->assertJsonPath('jaminan.saluran.telepon', '0811-0000-0000')
+            ->assertJsonPath('jaminan.saluran.surat', null);
 
         $berkas = $this->get('/wbs/jaminan-kerahasiaan');
         $berkas->assertOk();
@@ -78,39 +83,50 @@ class WbsControllerTest extends TestCase
         Storage::fake('local');
         Pengaturan::factory()->create(['kunci' => Pengaturan::WBS_BERKAS_JAMINAN, 'nilai' => 'pengaturan/hilang.pdf']);
 
-        $this->get('/wbs')->assertInertia(fn (Assert $page) => $page->where('berkasJaminan', null));
+        $this->periksaKode($this->aturKodeAkses())->assertJsonPath('jaminan.berkasJaminan', null);
         $this->get('/wbs/jaminan-kerahasiaan')->assertNotFound();
     }
 
-    public function test_form_opens_only_after_the_assurance_button(): void
+    public function test_old_form_address_returns_to_the_access_code(): void
     {
         $this->get('/wbs/lapor')->assertRedirect(route('wbs'));
+        $this->get('/wbs/lapor?mengerti=1')->assertRedirect(route('wbs'));
     }
 
-    public function test_form_offers_wbs_categories_active_units_and_every_matrix_position(): void
+    public function test_form_data_needs_a_valid_access_token(): void
+    {
+        $this->postJson('/wbs/lapor/buka', [])->assertStatus(419);
+        $this->postJson('/wbs/lapor/buka', ['token_akses' => 'palsu.palsu'])->assertStatus(419);
+        $this->postJson('/wbs/lapor/buka', ['token_akses' => TokenFormulirWbs::terbitkan()])->assertStatus(419);
+    }
+
+    public function test_form_offers_wbs_categories_active_units_and_positions_without_tidak_tahu(): void
     {
         $unit = Unit::factory()->create(['nama' => 'SMA YPVDP', 'kontak_darurat' => '0812-1111-2222']);
+        $ptVjm = Unit::factory()->create(['nama' => 'PT Vidatra Jaya Makmur', 'khusus_wbs' => true]);
         Unit::factory()->nonaktif()->create();
         $kategori = Kategori::factory()->wbs()->create(['nama' => 'Suap atau gratifikasi']);
         Kategori::factory()->create();
 
-        $response = $this->get('/wbs/lapor?mengerti=1');
+        $response = $this->postJson('/wbs/lapor/buka', ['token_akses' => $this->tokenAkses()]);
 
-        $response->assertOk();
-        $response->assertInertia(fn (Assert $page) => $page
-            ->component('Wbs/Formulir')
-            ->where('unit', [['id' => $unit->id, 'nama' => 'SMA YPVDP']])
-            ->where('kategori', [['id' => $kategori->id, 'nama' => 'Suap atau gratifikasi']])
-            ->has('kedudukan', count(KedudukanTerlapor::cases()))
-            ->where('kedudukan.5', ['value' => 'tidak_tahu', 'label' => 'Tidak tahu'])
-            ->where('kontakDarurat', [['unit' => 'SMA YPVDP', 'kontak' => '0812-1111-2222']])
-            ->where('kontakDaruratCadangan', 'Segera hubungi wali kelas atau kantor sekolah.')
-            ->where('targetTelaah', (int) config('sigap.wbs.telaah_hari_kerja'))
-            ->where('token', fn (string $token): bool => TokenFormulirWbs::nonce($token) !== null));
+        $response->assertOk()
+            ->assertJsonPath('unit', [['id' => $unit->id, 'nama' => 'SMA YPVDP'], ['id' => $ptVjm->id, 'nama' => 'PT Vidatra Jaya Makmur']])
+            ->assertJsonPath('kategori', [['id' => $kategori->id, 'nama' => 'Suap atau gratifikasi']])
+            ->assertJsonCount(count(KedudukanTerlapor::cases()) - 1, 'kedudukan')
+            ->assertJsonPath('kedudukan.5', ['value' => 'lain_lain', 'label' => 'Lain-lain'])
+            ->assertJsonPath('kontakDarurat', [['unit' => 'SMA YPVDP', 'kontak' => '0812-1111-2222']])
+            ->assertJsonPath('jumlahUnitSekolah', 1)
+            ->assertJsonPath('kontakDaruratCadangan', 'Segera hubungi wali kelas atau kantor sekolah.')
+            ->assertJsonPath('targetTelaah', (int) config('sigap.wbs.telaah_hari_kerja'))
+            ->assertJsonPath('maksTautan', 5);
+        $this->assertNotContains('tidak_tahu', array_column($response->json('kedudukan'), 'value'));
+        $this->assertNotNull(TokenFormulirWbs::nonce($response->json('token')));
+        $this->assertTrue(KodeAksesWbs::tokenSah($response->json('tokenAkses')));
         $this->assertSame([], $response->headers->getCookies());
     }
 
-    public function test_anonymous_report_is_stored_encrypted_without_identity(): void
+    public function test_report_is_stored_encrypted_with_the_required_identity(): void
     {
         Mail::fake();
         $isian = $this->isianSah();
@@ -125,7 +141,7 @@ class WbsControllerTest extends TestCase
         $this->assertSame(SumberLaporan::Laman, $laporan->sumber);
         $this->assertSame(StatusLaporan::Diterima, $laporan->status);
         $this->assertSame(KedudukanTerlapor::Pengurus, $laporan->kedudukan_terlapor);
-        $this->assertNull($laporan->identitasPelapor);
+        $this->assertSame('Andi Pratama', $laporan->identitasPelapor->nama);
         $this->assertSame(StatusLaporan::Diterima, $laporan->riwayatStatus()->sole()->status_baru);
 
         $mentah = DB::table('laporan')->where('id', $laporan->id)->first();
@@ -140,6 +156,7 @@ class WbsControllerTest extends TestCase
         $this->assertSame('Bendahara', Crypt::decryptString($terlapor[0]->jabatan));
         $this->assertSame('Orang tidak dikenal', Crypt::decryptString($terlapor[1]->nama));
         $this->assertNull($terlapor[1]->jabatan);
+        $this->assertNull($terlapor[0]->kedudukan_lain);
 
         Mail::assertNothingOutgoing();
     }
@@ -154,29 +171,60 @@ class WbsControllerTest extends TestCase
         $this->assertTrue(Hash::check('582904', $pinHash));
     }
 
-    public function test_named_report_stores_identity_encrypted_without_parent_contact(): void
+    public function test_identity_is_stored_encrypted_with_optional_social_media_and_without_parent_contact(): void
     {
-        $this->kirim([
-            ...$this->isianSah(),
-            'mode' => 'bernama',
-            'nama' => 'Andi Pratama',
-            'email' => 'andi@example.com',
-            'no_hp' => '0812-3456-7890',
-        ])->assertCreated();
+        $this->kirim([...$this->isianSah(), 'media_sosial' => 'IG @andi.pratama'])->assertCreated();
 
         $identitas = DB::table('identitas_pelapor')->sole();
         $this->assertSame('Andi Pratama', Crypt::decryptString($identitas->nama));
         $this->assertSame('andi@example.com', Crypt::decryptString($identitas->email));
         $this->assertSame('0812-3456-7890', Crypt::decryptString($identitas->no_hp));
+        $this->assertSame('IG @andi.pratama', Crypt::decryptString($identitas->media_sosial));
+        $this->assertStringNotContainsString('andi.pratama', $identitas->media_sosial);
         $this->assertNull($identitas->kontak_orang_tua);
         $this->assertStringNotContainsString('Andi', $identitas->nama);
     }
 
-    public function test_identity_fields_are_ignored_in_anonymous_mode(): void
+    public function test_name_email_and_phone_are_required_and_anonymous_mode_is_gone(): void
     {
-        $this->kirim([...$this->isianSah(), 'nama' => 'Andi Pratama', 'email' => 'andi@example.com'])->assertCreated();
+        $isian = $this->isianSah();
 
-        $this->assertSame(0, DB::table('identitas_pelapor')->count());
+        $this->kirim([...$isian, 'nama' => '', 'email' => '', 'no_hp' => ''])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['nama', 'email', 'no_hp']);
+        $this->kirim([...$isian, 'mode' => 'anonim', 'nama' => ''])->assertJsonValidationErrors('nama');
+        $this->kirim([...$isian, 'email' => 'bukan-surel'])->assertJsonValidationErrors('email');
+        $this->kirim([...$isian, 'media_sosial' => str_repeat('a', 151)])->assertJsonValidationErrors('media_sosial');
+
+        $pesan = $this->kirim([...$isian, 'nama' => ''])->json('errors.nama.0');
+        $this->assertStringContainsString('dirahasiakan dan hanya dibuka oleh penelaah yang berwenang', $pesan);
+        $this->assertSame(0, Laporan::query()->count());
+    }
+
+    public function test_lain_lain_needs_a_short_position_and_tidak_tahu_can_no_longer_be_chosen(): void
+    {
+        $isian = [...$this->isianSah(), 'kedudukan_terlapor' => KedudukanTerlapor::LainLain->value];
+
+        $this->kirim($isian)->assertJsonValidationErrors('kedudukan_lain');
+        $this->kirim([...$isian, 'kedudukan_lain' => str_repeat('a', 101)])->assertJsonValidationErrors('kedudukan_lain');
+        $this->kirim([...$this->isianSah(), 'kedudukan_terlapor' => KedudukanTerlapor::TidakTahu->value])->assertJsonValidationErrors('kedudukan_terlapor');
+        $this->assertSame(0, Laporan::query()->count());
+
+        $this->kirim([...$isian, 'kedudukan_lain' => 'Rekanan pengadaan seragam'])->assertCreated();
+
+        $laporan = Laporan::query()->sole();
+        $this->assertSame(KedudukanTerlapor::LainLain, $laporan->kedudukan_terlapor);
+        $mentah = DB::table('terlapor_wbs')->where('laporan_id', $laporan->id)->orderBy('id')->first();
+        $this->assertSame('Rekanan pengadaan seragam', Crypt::decryptString($mentah->kedudukan_lain));
+        $this->assertNull(DB::table('terlapor_wbs')->where('laporan_id', $laporan->id)->orderByDesc('id')->value('kedudukan_lain'));
+    }
+
+    public function test_report_without_access_token_is_refused(): void
+    {
+        $this->kirim($this->isianSah(), tokenAkses: '')->assertJsonValidationErrors('token_akses');
+        $this->kirim($this->isianSah(), tokenAkses: 'palsu.palsu')->assertJsonValidationErrors('token_akses');
+
+        $this->assertSame(0, Laporan::query()->count());
     }
 
     public function test_attachments_are_stored_encrypted_and_listed_on_the_receipt(): void
@@ -214,7 +262,6 @@ class WbsControllerTest extends TestCase
         $this->kirim([...$this->isianSah(), 'pin_confirmation' => '582905'])->assertJsonValidationErrors('pin');
         $this->kirim([...$this->isianSah(), 'pin' => '123456', 'pin_confirmation' => '123456'])->assertJsonValidationErrors('pin');
         $this->kirim([...$this->isianSah(), 'pin' => '777777', 'pin_confirmation' => '777777'])->assertJsonValidationErrors('pin');
-        $this->kirim([...$this->isianSah(), 'mode' => 'bernama'])->assertJsonValidationErrors('nama');
         $this->kirim([...$this->isianSah(), 'terlapor' => [['nama' => '', 'jabatan' => 'Kepala TU']]])->assertJsonValidationErrors('terlapor.0.nama');
         $this->kirim([...$this->isianSah(), 'kategori_id' => Kategori::factory()->create()->id])->assertJsonValidationErrors('kategori_id');
 
@@ -258,12 +305,15 @@ class WbsControllerTest extends TestCase
         $this->kirim($this->isianSah(), $token)->assertCreated();
     }
 
-    public function test_form_token_can_be_refreshed_without_cookies(): void
+    public function test_form_token_is_refreshed_without_cookies_only_with_an_access_token(): void
     {
-        $response = $this->getJson('/wbs/lapor/token');
+        $this->getJson('/wbs/lapor/token')->assertStatus(419);
+
+        $response = $this->getJson('/wbs/lapor/token', ['X-Token-Akses' => $this->tokenAkses()]);
 
         $response->assertOk();
         $this->assertNotNull(TokenFormulirWbs::nonce($response->json('token')));
+        $this->assertTrue(KodeAksesWbs::tokenSah($response->json('tokenAkses')));
         $this->assertSame([], $response->headers->getCookies());
     }
 
@@ -284,6 +334,7 @@ class WbsControllerTest extends TestCase
         $teks = $this->teksPdf($pdf->getContent());
         $this->assertStringContainsString($kode, $teks);
         $this->assertStringContainsString('PIN tidak tercantum', $teks);
+        $this->assertStringContainsString('/wbs/lacak', $teks);
         $this->assertStringNotContainsString('582904', $teks);
         $this->assertStringNotContainsString('Bendahara', $teks);
 
@@ -310,10 +361,13 @@ class WbsControllerTest extends TestCase
         });
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.77'])->withHeader('User-Agent', 'AgenUjiWbs/9.9');
 
+        $kode = $this->aturKodeAkses();
+        $akses = $this->periksaKode($kode);
         $respons = [
             $this->get('/wbs'),
-            $this->get('/wbs/lapor?mengerti=1'),
-            $this->getJson('/wbs/lapor/token'),
+            $akses,
+            $this->postJson('/wbs/lapor/buka', ['token_akses' => $akses->json('tokenAkses')]),
+            $this->getJson('/wbs/lapor/token', ['X-Token-Akses' => $akses->json('tokenAkses')]),
             $this->unggahBertahap($this->pdfUji(), 'bukti.pdf', 'wbs'),
         ];
         $kirim = $this->kirim($this->isianSah());
@@ -323,6 +377,7 @@ class WbsControllerTest extends TestCase
         foreach ($respons as $response) {
             $this->assertSame([], $response->headers->getCookies());
             $response->assertHeader('Referrer-Policy', 'no-referrer');
+            $response->assertHeader('X-Robots-Tag', 'noindex, nofollow');
         }
 
         $this->assertSame(0, DB::table('sessions')->count());
@@ -334,13 +389,19 @@ class WbsControllerTest extends TestCase
         }
     }
 
+    private function periksaKode(string $kode): TestResponse
+    {
+        return $this->postJson('/wbs/akses', ['kode' => $kode, 'altcha' => $this->solusiAltcha()]);
+    }
+
     /**
      * @param  array<string, mixed>  $isian
      */
-    private function kirim(array $isian, ?string $token = null): TestResponse
+    private function kirim(array $isian, ?string $token = null, ?string $tokenAkses = null): TestResponse
     {
         return $this->postJson('/wbs/lapor', [
             ...$isian,
+            'token_akses' => $tokenAkses ?? $this->tokenAkses(),
             'token' => $token ?? TokenFormulirWbs::terbitkan(),
             'altcha' => array_key_exists('altcha', $isian) ? $isian['altcha'] : $this->solusiAltcha(),
         ]);
@@ -352,7 +413,9 @@ class WbsControllerTest extends TestCase
     private function isianSah(): array
     {
         return [
-            'mode' => 'anonim',
+            'nama' => 'Andi Pratama',
+            'email' => 'andi@example.com',
+            'no_hp' => '0812-3456-7890',
             'kategori_id' => Kategori::factory()->wbs()->create()->id,
             'unit_id' => Unit::factory()->create()->id,
             'terlapor' => [

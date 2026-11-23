@@ -1,9 +1,10 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import TautanDrive from '../../components/TautanDrive';
 import UnggahLampiran from '../../components/UnggahLampiran';
 import PublicLayout, { Kartu, Tombol, gayaIsian } from '../../layouts/PublicLayout';
 
-function Galat({ id, pesan }) {
+export function Galat({ id, pesan }) {
     return pesan ? (
         <p id={id} className="text-sm font-medium text-rose-700">
             {pesan}
@@ -11,7 +12,7 @@ function Galat({ id, pesan }) {
     ) : null;
 }
 
-function JudulKartu({ id, children }) {
+export function JudulKartu({ id, children }) {
     return (
         <h2 id={id} className="text-[19px] font-extrabold">
             {children}
@@ -47,7 +48,7 @@ const WARNA_TAHAP = {
     menunggu: 'border-slate-200',
 };
 
-function Tahapan({ tahapan }) {
+export function Tahapan({ tahapan }) {
     return (
         <ol className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,150px),1fr))] gap-3">
             {tahapan.map((tahap) => (
@@ -177,13 +178,85 @@ function Penilaian() {
     );
 }
 
-function Pesan({ pesan, bolehKirimPesan, aturanLampiran, wbs, tokenUnggahWbs }) {
-    const form = useForm({ isi: '', lampiran: [] });
+/** Daftar pesan dengan petugas (dipakai Lacak Pengaduan dan Lacak WBS). */
+export function DaftarPesan({ pesan, warnaPelapor = 'bg-pengaduan-700', warnaLampiran = 'text-pengaduan-50' }) {
+    if (pesan.length === 0) {
+        return <p className="text-slate-600">Belum ada pesan.</p>;
+    }
+
+    return (
+        <ol className="flex flex-col gap-3.5">
+            {pesan.map((item) => (
+                <li key={item.id} className={`flex max-w-[85%] flex-col gap-1 sm:max-w-[78%] ${item.milikPelapor ? 'items-end self-end' : 'self-start'}`}>
+                    <div
+                        className={`px-4 py-3 text-[15px] leading-normal ${
+                            item.milikPelapor ? `rounded-2xl rounded-br-sm ${warnaPelapor} text-white` : 'rounded-2xl rounded-bl-sm bg-slate-100 text-slate-900'
+                        }`}
+                    >
+                        <p className="break-words whitespace-pre-line">{item.isi}</p>
+                        {(item.lampiran.length > 0 || item.jumlahTautan > 0) && (
+                            <ul className={`mt-2 text-sm ${item.milikPelapor ? warnaLampiran : 'text-slate-700'}`}>
+                                {item.lampiran.map((nama) => (
+                                    <li key={nama} className="break-all">
+                                        📎 {nama}
+                                    </li>
+                                ))}
+                                {item.jumlahTautan > 0 && <li>🔗 {item.jumlahTautan} tautan Google Drive</li>}
+                            </ul>
+                        )}
+                    </div>
+                    <span className="text-xs text-slate-600">
+                        {item.dari} · {item.waktu}
+                    </span>
+                </li>
+            ))}
+        </ol>
+    );
+}
+
+/** Status, tahapan, dan catatan untuk pelapor (dipakai Lacak Pengaduan dan Lacak WBS). */
+export function KartuStatus({ status, targetSelesai = null, tahapan = [], riwayat, warnaGaris = 'border-pengaduan-700' }) {
+    const catatan = riwayat.filter((item) => item.catatan);
+
+    return (
+        <Kartu aria-labelledby="status">
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+                <h1 id="status" className="text-[22px] font-extrabold">
+                    {status.label}
+                </h1>
+                {targetSelesai && (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-1.5 text-[13px] font-bold text-amber-900">Target selesai {targetSelesai}</span>
+                )}
+            </div>
+            <p className="mb-5 text-slate-700">{status.penjelasan}</p>
+            {tahapan.length > 0 && <Tahapan tahapan={tahapan} />}
+            {catatan.length > 0 && (
+                <div className="mt-6 flex flex-col gap-3 border-t border-garis pt-5">
+                    <h2 className="font-bold">Catatan untuk Anda</h2>
+                    <ol className="flex flex-col gap-3">
+                        {catatan.map((item) => (
+                            <li key={item.id} className={`flex flex-col gap-0.5 border-l-2 pl-3 ${warnaGaris}`}>
+                                <span className="text-sm text-slate-600">
+                                    {item.status} · {item.waktu}
+                                </span>
+                                <p className="text-slate-800">{item.catatan}</p>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            )}
+        </Kartu>
+    );
+}
+
+function Pesan({ pesan, bolehKirimPesan, aturanLampiran, maksTautan }) {
+    const form = useForm({ isi: '', lampiran: [], tautan: [], setuju_tautan: false });
     const [sedangMengunggah, setSedangMengunggah] = useState(false);
     const [kunciUnggah, setKunciUnggah] = useState(0);
 
     function kirim(e) {
         e.preventDefault();
+        form.transform((isian) => ({ ...isian, tautan: isian.tautan.filter((url) => url.trim() !== '') }));
         form.post('/lacak/laporan/pesan', {
             preserveScroll: true,
             onSuccess: () => {
@@ -195,44 +268,12 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran, wbs, tokenUnggahWbs }) 
 
     return (
         <Kartu aria-labelledby="judul-pesan" className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
-            <JudulKartu id="judul-pesan">{wbs ? 'Pesan dengan Tim WBS' : 'Pesan dengan petugas'}</JudulKartu>
-            {pesan.length === 0 ? (
-                <p className="text-slate-600">Belum ada pesan.</p>
-            ) : (
-                <ol className="flex flex-col gap-3.5">
-                    {pesan.map((item) => (
-                        <li key={item.id} className={`flex max-w-[85%] flex-col gap-1 sm:max-w-[78%] ${item.milikPelapor ? 'items-end self-end' : 'self-start'}`}>
-                            <div
-                                className={`px-4 py-3 text-[15px] leading-normal ${
-                                    item.milikPelapor
-                                        ? 'rounded-2xl rounded-br-sm bg-pengaduan-700 text-white'
-                                        : 'rounded-2xl rounded-bl-sm bg-slate-100 text-slate-900'
-                                }`}
-                            >
-                                <p className="break-words whitespace-pre-line">{item.isi}</p>
-                                {item.lampiran.length > 0 && (
-                                    <ul className={`mt-2 text-sm ${item.milikPelapor ? 'text-pengaduan-50' : 'text-slate-700'}`}>
-                                        {item.lampiran.map((nama) => (
-                                            <li key={nama} className="break-all">
-                                                📎 {nama}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                            <span className="text-xs text-slate-600">
-                                {item.dari} · {item.waktu}
-                            </span>
-                        </li>
-                    ))}
-                </ol>
-            )}
+            <JudulKartu id="judul-pesan">Pesan dengan petugas</JudulKartu>
+            <DaftarPesan pesan={pesan} />
 
             {!bolehKirimPesan ? (
                 <p className="rounded-xl border border-garis bg-latar px-4 py-3 text-slate-700">
-                    {wbs
-                        ? 'Laporan sudah ditutup. Bila ada pelanggaran lain, silakan buat laporan baru.'
-                        : 'Laporan sudah ditutup. Bila ada masalah baru, silakan buat pengaduan baru.'}
+                    Laporan sudah ditutup. Bila ada masalah baru, silakan buat pengaduan baru.
                 </p>
             ) : (
                 <form onSubmit={kirim} noValidate className="flex flex-col gap-2.5 border-t border-garis pt-5">
@@ -251,8 +292,7 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran, wbs, tokenUnggahWbs }) 
                     <Galat pesan={form.errors.isi} />
                     <UnggahLampiran
                         key={kunciUnggah}
-                        kanal={wbs ? 'wbs' : 'pengaduan'}
-                        ambilToken={wbs ? () => tokenUnggahWbs : null}
+                        kanal="pengaduan"
                         aturan={aturanLampiran}
                         onChange={(id, berjalan) => {
                             form.setData('lampiran', id);
@@ -260,7 +300,15 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran, wbs, tokenUnggahWbs }) 
                         }}
                         galat={form.errors.lampiran}
                     />
-                    <Tombol type="submit" varian={wbs ? 'wbs' : 'utama'} disabled={form.processing || sedangMengunggah} className="self-end max-sm:w-full">
+                    <TautanDrive
+                        key={`tautan-${kunciUnggah}`}
+                        tautan={form.data.tautan}
+                        setuju={form.data.setuju_tautan}
+                        maks={maksTautan}
+                        galat={form.errors}
+                        onChange={(tautan, setuju) => form.setData((isian) => ({ ...isian, tautan, setuju_tautan: setuju }))}
+                    />
+                    <Tombol type="submit" disabled={form.processing || sedangMengunggah} className="self-end max-sm:w-full">
                         {form.processing ? 'Mengirim…' : sedangMengunggah ? 'Menunggu unggahan selesai…' : 'Kirim pesan'}
                     </Tombol>
                 </form>
@@ -269,7 +317,7 @@ function Pesan({ pesan, bolehKirimPesan, aturanLampiran, wbs, tokenUnggahWbs }) 
     );
 }
 
-function Info({ label, children }) {
+export function Info({ label, children }) {
     return (
         <div>
             <div>{label}</div>
@@ -279,13 +327,13 @@ function Info({ label, children }) {
 }
 
 /*
- * H-07 Detail Laporan. Hanya terbuka dengan izin di sesi; data yang dikirim server sudah tanpa identitas,
- * nama petugas, catatan internal, dan isi tindak lanjut unit. Kode lacak tidak pernah ada di URL.
+ * H-07 Detail Laporan pengaduan. Hanya terbuka dengan izin di sesi; data yang dikirim server sudah tanpa identitas,
+ * nama petugas, catatan internal, dan isi tindak lanjut unit. Kode lacak tidak pernah ada di URL. Laporan WBS
+ * dilacak di /wbs/lacak (halaman Wbs/Lacak) yang memakai komponen di atas.
  */
 export default function Detail(props) {
     const { kodeLacak, judul, unit, kategori, dibuatPada, status, riwayat, tahapan = [], targetSelesai, pesan, bolehMenanggapi } = props;
-    const { batasTanggapan, bolehMenilai, penilaian, masaSesiMenit, berhasil, aturanLampiran, bolehKirimPesan, wbs, tokenUnggahWbs } = props;
-    const catatan = riwayat.filter((item) => item.catatan);
+    const { batasTanggapan, bolehMenilai, penilaian, masaSesiMenit, berhasil, aturanLampiran, bolehKirimPesan, maksTautan } = props;
 
     useKeluarOtomatis(masaSesiMenit);
 
@@ -302,7 +350,7 @@ export default function Detail(props) {
                     </div>
                     <div className="flex flex-wrap gap-x-7 gap-y-2 text-sm text-slate-600">
                         {unit && <Info label="Unit">{unit}</Info>}
-                        {kategori && <Info label={wbs ? 'Jenis pelanggaran' : 'Kategori'}>{kategori}</Info>}
+                        {kategori && <Info label="Kategori">{kategori}</Info>}
                         <Info label="Dikirim">{dibuatPada}</Info>
                     </div>
                     <Tombol varian="garis" onClick={() => router.post('/lacak/keluar')}>
@@ -316,33 +364,7 @@ export default function Detail(props) {
                     </p>
                 )}
 
-                <Kartu aria-labelledby="status">
-                    <div className="mb-5 flex flex-wrap items-center gap-3">
-                        <h1 id="status" className="text-[22px] font-extrabold">
-                            {status.label}
-                        </h1>
-                        {targetSelesai && (
-                            <span className="rounded-full bg-amber-100 px-2.5 py-1.5 text-[13px] font-bold text-amber-900">Target selesai {targetSelesai}</span>
-                        )}
-                    </div>
-                    <p className="mb-5 text-slate-700">{status.penjelasan}</p>
-                    {tahapan.length > 0 && <Tahapan tahapan={tahapan} />}
-                    {catatan.length > 0 && (
-                        <div className="mt-6 flex flex-col gap-3 border-t border-garis pt-5">
-                            <h2 className="font-bold">Catatan untuk Anda</h2>
-                            <ol className="flex flex-col gap-3">
-                                {catatan.map((item) => (
-                                    <li key={item.id} className="flex flex-col gap-0.5 border-l-2 border-pengaduan-700 pl-3">
-                                        <span className="text-sm text-slate-600">
-                                            {item.status} · {item.waktu}
-                                        </span>
-                                        <p className="text-slate-800">{item.catatan}</p>
-                                    </li>
-                                ))}
-                            </ol>
-                        </div>
-                    )}
-                </Kartu>
+                <KartuStatus status={status} targetSelesai={targetSelesai} tahapan={tahapan} riwayat={riwayat} />
 
                 {bolehMenanggapi && <Tanggapan batasTanggapan={batasTanggapan} />}
                 {bolehMenilai && <Penilaian />}
@@ -353,26 +375,32 @@ export default function Detail(props) {
                 )}
 
                 <div className="flex flex-wrap items-start gap-6">
-                    <Pesan pesan={pesan} bolehKirimPesan={bolehKirimPesan} aturanLampiran={aturanLampiran} wbs={wbs} tokenUnggahWbs={tokenUnggahWbs} />
+                    <Pesan pesan={pesan} bolehKirimPesan={bolehKirimPesan} aturanLampiran={aturanLampiran} maksTautan={maksTautan} />
 
                     <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
                         <Kartu as="div" className="flex flex-col gap-2 sm:p-6">
-                            <h2 className="text-[17px] font-extrabold">{wbs ? 'Laporan Anda' : 'Pengaduan Anda'}</h2>
+                            <h2 className="text-[17px] font-extrabold">Pengaduan Anda</h2>
                             <p className="text-[15px] font-semibold break-words">{judul}</p>
                         </Kartu>
-                        <div className="flex gap-3 rounded-[18px] bg-pengaduan-50 p-5 text-sm leading-relaxed text-pengaduan-900">
-                            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E3A9E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M12 6v6l4 2" />
-                            </svg>
-                            <span>
-                                Demi keamanan, halaman ini keluar otomatis setelah {masaSesiMenit} menit tidak aktif. Kode lacak tidak pernah
-                                ditaruh di alamat halaman.
-                            </span>
-                        </div>
+                        <PengingatKeluar masaSesiMenit={masaSesiMenit} />
                     </aside>
                 </div>
             </div>
         </PublicLayout>
+    );
+}
+
+export function PengingatKeluar({ masaSesiMenit }) {
+    return (
+        <div className="flex gap-3 rounded-[18px] bg-pengaduan-50 p-5 text-sm leading-relaxed text-pengaduan-900">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E3A9E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+            </svg>
+            <span>
+                Demi keamanan, halaman ini keluar otomatis setelah {masaSesiMenit} menit tidak aktif. Kode lacak tidak pernah ditaruh di
+                alamat halaman.
+            </span>
+        </div>
     );
 }

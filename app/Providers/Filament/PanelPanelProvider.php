@@ -10,6 +10,7 @@ use App\Filament\Pages\Dasbor;
 use App\Filament\Support\AvatarInisial;
 use App\Filament\Support\WarnaPanel;
 use App\Http\Controllers\Auth\LoginGoogleController;
+use App\Http\Controllers\BukaTautanBuktiController;
 use App\Http\Controllers\UnduhLampiranController;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsEnabled;
@@ -58,6 +59,10 @@ class PanelPanelProvider extends PanelProvider
                 Route::get('lampiran/{lampiran}/unduh', UnduhLampiranController::class)
                     ->middleware(['signed', EnsureMultiFactorAuthenticationIsEnabled::class])
                     ->name('lampiran.unduh');
+                // Tautan Google Drive dari pelapor (revisi 20-11): diperiksa dan dicatat seperti lampiran.
+                Route::get('tautan-bukti/{tautanBukti}/buka', BukaTautanBuktiController::class)
+                    ->middleware(['signed', EnsureMultiFactorAuthenticationIsEnabled::class])
+                    ->name('tautan-bukti.buka');
             })
             // Tampilan sesuai prototipe yang disetujui (prd/mockup/panel-*.html): menu atas, biru #1E3A9E, biru tua
             // #0B1B4D untuk area WBS, dan Plus Jakarta Sans dari resources/fonts lewat tema Vite (tanpa domain luar).

@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\JenisLaporan;
 use App\Enums\JenisPelapor;
 use App\Rules\AltchaSah;
+use App\Services\Lampiran\PenyimpanTautanBukti;
 use App\Services\Lampiran\UnggahanBertahap;
 use App\Services\WaktuLokal;
 use Closure;
@@ -38,7 +39,7 @@ class StorePengaduanRequest extends FormRequest
         $siswa = JenisPelapor::Siswa->value;
 
         return [
-            'unit_id' => ['required', 'integer', Rule::exists('units', 'id')->where('aktif', true)],
+            'unit_id' => ['required', 'integer', Rule::exists('units', 'id')->where('aktif', true)->where('khusus_wbs', false)],
             'kategori_id' => ['required', 'integer', Rule::exists('kategori', 'id')->where('jenis', JenisLaporan::Pengaduan->value)],
             'jenis_pelapor' => ['required', Rule::enum(JenisPelapor::class)],
             'nama' => ['required', 'string', 'max:150'],
@@ -56,6 +57,7 @@ class StorePengaduanRequest extends FormRequest
             'situs_web' => ['prohibited'],
             'lampiran' => ['nullable', 'array', 'max:'.config('sigap.lampiran.maks_berkas')],
             'lampiran.*' => ['string', 'distinct'],
+            ...PenyimpanTautanBukti::aturan($this),
             'altcha' => ['bail', 'required', 'string', new AltchaSah],
         ];
     }

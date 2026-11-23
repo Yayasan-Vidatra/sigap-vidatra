@@ -137,14 +137,13 @@ class BerandaControllerTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page->component($komponen));
     }
 
-    public function test_beranda_takes_the_wbs_review_target_from_config_and_four_questions_from_settings(): void
+    public function test_beranda_takes_four_questions_from_settings_and_no_wbs_target(): void
     {
-        config(['sigap.wbs.telaah_hari_kerja' => 7]);
         $faq = collect(range(1, 6))->map(fn (int $i): array => ['pertanyaan' => "Pertanyaan {$i}?", 'jawaban' => "Jawaban {$i}."])->all();
         Pengaturan::factory()->create(['kunci' => Pengaturan::PUBLIK_FAQ, 'nilai' => json_encode($faq)]);
 
         $this->get('/')->assertInertia(fn (Assert $page) => $page
-            ->where('targetWbs', ['telaah' => 7])
+            ->missing('targetWbs')
             ->has('tanyaJawab', 4)
             ->where('tanyaJawab.0.pertanyaan', 'Pertanyaan 1?'));
     }

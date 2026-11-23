@@ -16,10 +16,14 @@ use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\MembukaKanalWbs;
+use Tests\Concerns\MemecahkanAltcha;
 use Tests\TestCase;
 
 class KontenPublikTest extends TestCase
 {
+    use MembukaKanalWbs;
+    use MemecahkanAltcha;
     use RefreshDatabase;
 
     private User $superAdmin;
@@ -56,7 +60,10 @@ class KontenPublikTest extends TestCase
         $berkas = $this->get('/wbs/jaminan-kerahasiaan');
         $berkas->assertOk();
         $this->assertStringContainsString('berkas baru', $berkas->streamedContent());
-        $this->get('/wbs')->assertOk()->assertInertia(fn ($page) => $page->where('berkasJaminan', route('wbs.jaminan.berkas')));
+        $kode = $this->aturKodeAkses();
+        $this->postJson('/wbs/akses', ['kode' => $kode, 'altcha' => $this->solusiAltcha()])
+            ->assertOk()
+            ->assertJsonPath('jaminan.berkasJaminan', route('wbs.jaminan.berkas'));
 
         $log = LogAudit::query()->where('objek', 'pengaturan:'.Pengaturan::WBS_BERKAS_JAMINAN)->sole();
         $this->assertSame(AksiAudit::MengubahPengaturan->value, $log->aksi);

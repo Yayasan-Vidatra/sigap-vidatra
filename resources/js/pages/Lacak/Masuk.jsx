@@ -7,13 +7,12 @@ const gayaIsian =
     'w-full min-h-12 rounded-xl border-[1.5px] border-slate-300 bg-white px-3.5 py-3 text-base text-slate-900 focus:border-pengaduan-600 focus:outline-none focus:ring-2 focus:ring-pengaduan-600/30 aria-invalid:border-rose-500';
 
 /*
- * H-06 Lacak Laporan. Kode tidak ada dan kode salah mendapat pesan yang sama dari server. Setelah 5 kali
- * gagal, server meminta CAPTCHA dan jeda. Kode WBS dibuka bersama PIN.
+ * H-06 Lacak Laporan untuk pengaduan. Kode tidak ada dan kode salah mendapat pesan yang sama dari server. Setelah 5
+ * kali gagal, server meminta CAPTCHA dan jeda.
  */
 export default function Masuk({ perluCaptcha, sisaJeda, pesan }) {
-    const { data, setData, post, processing, errors } = useForm({ kode: '', pin: '', altcha: '' });
+    const { data, setData, post, processing, errors } = useForm({ kode: '', altcha: '' });
     const [jeda, setJeda] = useState(sisaJeda);
-    const wbs = data.kode.trim().toUpperCase().startsWith('WBS-');
 
     useEffect(() => setJeda(sisaJeda), [sisaJeda]);
 
@@ -74,26 +73,6 @@ export default function Masuk({ perluCaptcha, sisaJeda, pesan }) {
                         </p>
                     )}
                 </div>
-
-                {wbs && (
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="pin" className="font-medium text-slate-800">
-                            PIN
-                        </label>
-                        <input
-                            id="pin"
-                            name="pin"
-                            type="password"
-                            inputMode="numeric"
-                            maxLength={6}
-                            autoComplete="off"
-                            value={data.pin}
-                            onChange={(e) => setData('pin', e.target.value)}
-                            className={gayaIsian}
-                        />
-                        <p className="text-sm text-slate-600">PIN 6 angka yang Anda buat saat mengirim laporan WBS.</p>
-                    </div>
-                )}
 
                 {perluCaptcha && (
                     <div className="flex flex-col gap-2">

@@ -11,15 +11,17 @@ class UnitSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_seeds_the_four_yayasan_units_once(): void
+    public function test_seeds_the_four_yayasan_units_and_pt_vjm_below_pelaksana_harian_once(): void
     {
         $this->seed(UnitSeeder::class);
         $this->seed(UnitSeeder::class);
 
         $this->assertSame(
-            ['Pelaksana Harian', 'SD YPVDP', 'SMA YPVDP', 'SMP YPVDP'],
-            Unit::query()->orderBy('nama')->pluck('nama')->all(),
+            ['SD YPVDP', 'SMP YPVDP', 'SMA YPVDP', 'Pelaksana Harian', 'PT Vidatra Jaya Makmur'],
+            Unit::query()->orderBy('id')->pluck('nama')->all(),
         );
-        $this->assertSame(4, Unit::query()->where('aktif', true)->count());
+        $this->assertSame(5, Unit::query()->where('aktif', true)->count());
+        $this->assertSame(['PT Vidatra Jaya Makmur'], Unit::query()->where('khusus_wbs', true)->pluck('nama')->all());
+        $this->assertNull(Unit::query()->where('khusus_wbs', true)->value('nama_pimpinan'));
     }
 }

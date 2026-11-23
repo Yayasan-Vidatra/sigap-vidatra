@@ -5,7 +5,9 @@ namespace App\Enums;
 use Filament\Support\Contracts\HasLabel;
 
 /**
- * Pilihan "kedudukan terlapor" pada formulir WBS (Rancangan r1 Bagian 3.1).
+ * Pilihan "kedudukan terlapor" pada formulir WBS (Rancangan r1 Bagian 3.1). Sejak revisi 20-11 pelapor memilih
+ * "Lain-lain" dan menuliskan kedudukannya (terlapor_wbs.kedudukan_lain); "Tidak tahu" hanya untuk data lama dan
+ * tidak bisa dipilih lagi. Keduanya diperlakukan sama dalam matriks penerima.
  */
 enum KedudukanTerlapor: string implements HasLabel
 {
@@ -15,6 +17,7 @@ enum KedudukanTerlapor: string implements HasLabel
     case Pengawas = 'pengawas';
     case Pembina = 'pembina';
     case TidakTahu = 'tidak_tahu';
+    case LainLain = 'lain_lain';
 
     public function getLabel(): string
     {
@@ -25,7 +28,18 @@ enum KedudukanTerlapor: string implements HasLabel
             self::Pengawas => 'Pengawas',
             self::Pembina => 'Pembina',
             self::TidakTahu => 'Tidak tahu',
+            self::LainLain => 'Lain-lain',
         };
+    }
+
+    /**
+     * Pilihan di Formulir WBS: semua kecuali "Tidak tahu" (data lama).
+     *
+     * @return list<self>
+     */
+    public static function pilihanFormulir(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $kedudukan): bool => $kedudukan !== self::TidakTahu));
     }
 
     /**
@@ -39,7 +53,7 @@ enum KedudukanTerlapor: string implements HasLabel
     public function peranPenelaah(): array
     {
         return match ($this) {
-            self::GuruPegawai, self::Pengurus, self::TidakTahu => [Peran::KetuaTimWbs, Peran::AnggotaTimWbs],
+            self::GuruPegawai, self::Pengurus, self::TidakTahu, self::LainLain => [Peran::KetuaTimWbs, Peran::AnggotaTimWbs],
             self::SpiTimWbs => [Peran::DewanPengawas],
             self::Pengawas, self::Pembina => [Peran::KetuaPembina, Peran::Pembina],
         };
@@ -63,7 +77,7 @@ enum KedudukanTerlapor: string implements HasLabel
     public function tingkat(): int
     {
         return match ($this) {
-            self::TidakTahu => 0,
+            self::TidakTahu, self::LainLain => 0,
             self::GuruPegawai => 1,
             self::Pengurus => 2,
             self::SpiTimWbs => 3,
@@ -98,7 +112,7 @@ enum KedudukanTerlapor: string implements HasLabel
     public function peranPenerimaHasil(): array
     {
         return match ($this) {
-            self::GuruPegawai, self::TidakTahu => [Peran::DewanPengawas],
+            self::GuruPegawai, self::TidakTahu, self::LainLain => [Peran::DewanPengawas],
             self::Pengurus => [Peran::KetuaPembina],
             self::SpiTimWbs, self::Pengawas, self::Pembina => [Peran::KetuaPembina, Peran::Pembina],
         };
@@ -124,7 +138,7 @@ enum KedudukanTerlapor: string implements HasLabel
             self::Pengurus => 'Ketua Pembina, tanpa tembusan kepada Pengurus',
             self::SpiTimWbs => 'Pembina',
             self::Pengawas, self::Pembina => 'Rapat Pembina',
-            self::TidakTahu => 'Ditetapkan setelah terlapor teridentifikasi',
+            self::TidakTahu, self::LainLain => 'Ditetapkan setelah terlapor teridentifikasi',
         };
     }
 

@@ -143,7 +143,7 @@ export function Logo({ ukuran = 44, putih = false }) {
 
 const tautanMenu = 'inline-flex min-h-11 items-center text-[15px] font-semibold text-slate-700 hover:text-pengaduan-700';
 
-function Header() {
+function Header({ wbs }) {
     return (
         <header className="border-b border-garis bg-white">
             {/* HP: logo dan tombol di baris pertama, menu di baris kedua. Layar lebar: satu baris. */}
@@ -155,26 +155,41 @@ function Header() {
                         <span className="text-xs text-slate-600 max-sm:hidden">Yayasan Vidatra Bontang</span>
                     </span>
                 </Link>
-                <Tombol href="/pengaduan" className="px-3.5 py-2.5 text-sm sm:order-3 sm:px-4 sm:text-[15px]">
-                    Kirim pengaduan
-                </Tombol>
-                <nav aria-label="Menu utama" className="flex w-full flex-wrap items-center gap-x-5 sm:order-2 sm:ml-auto sm:w-auto">
-                    <a href="/#cara" className={tautanMenu}>
-                        Cara kerja
-                    </a>
-                    <Link href="/lacak" className={tautanMenu}>
-                        Lacak laporan
-                    </Link>
-                    <Link href="/faq" className={tautanMenu}>
-                        Tanya jawab
-                    </Link>
-                </nav>
+                {wbs ? (
+                    <>
+                        <Tombol href="/wbs" varian="wbs" className="px-3.5 py-2.5 text-sm sm:order-3 sm:px-4 sm:text-[15px]">
+                            Buat laporan
+                        </Tombol>
+                        <nav aria-label="Menu utama" className="flex w-full flex-wrap items-center gap-x-5 sm:order-2 sm:ml-auto sm:w-auto">
+                            <Link href="/wbs/lacak" className={tautanMenu}>
+                                Lacak laporan
+                            </Link>
+                        </nav>
+                    </>
+                ) : (
+                    <>
+                        <Tombol href="/pengaduan" className="px-3.5 py-2.5 text-sm sm:order-3 sm:px-4 sm:text-[15px]">
+                            Kirim pengaduan
+                        </Tombol>
+                        <nav aria-label="Menu utama" className="flex w-full flex-wrap items-center gap-x-5 sm:order-2 sm:ml-auto sm:w-auto">
+                            <a href="/#cara" className={tautanMenu}>
+                                Cara kerja
+                            </a>
+                            <Link href="/lacak" className={tautanMenu}>
+                                Lacak laporan
+                            </Link>
+                            <Link href="/faq" className={tautanMenu}>
+                                Tanya jawab
+                            </Link>
+                        </nav>
+                    </>
+                )}
             </div>
         </header>
     );
 }
 
-function Footer() {
+function Footer({ wbs }) {
     return (
         <footer className="bg-wbs-700 text-wbs-200">
             <div className="mx-auto flex max-w-[1200px] flex-wrap justify-between gap-6 px-4 py-10 text-sm sm:px-6">
@@ -186,7 +201,7 @@ function Footer() {
                     </div>
                 </div>
                 <nav aria-label="Tautan bawah" className="flex flex-wrap items-center gap-x-6 gap-y-1">
-                    <Link href="/lacak" className="inline-flex min-h-11 items-center text-white hover:underline">
+                    <Link href={wbs ? '/wbs/lacak' : '/lacak'} className="inline-flex min-h-11 items-center text-white hover:underline">
                         Lacak laporan
                     </Link>
                     <Link href="/faq" className="inline-flex min-h-11 items-center text-white hover:underline">
@@ -203,9 +218,9 @@ function Footer() {
 
 /**
  * polos: halaman mengatur sendiri lebar dan latar setiap bagian (Beranda). Selain itu isi dibungkus wadah
- * dengan lebar penuh (1200 px), sedang, atau sempit.
+ * dengan lebar penuh (1200 px), sedang, atau sempit. wbs: menu untuk kanal WBS internal (Lacak WBS di /wbs/lacak).
  */
-export default function PublicLayout({ children, polos = false, lebar = 'penuh' }) {
+export default function PublicLayout({ children, polos = false, lebar = 'penuh', wbs = false }) {
     return (
         <div className="flex min-h-screen flex-col overflow-x-clip bg-latar font-sans text-slate-900">
             <a
@@ -214,7 +229,7 @@ export default function PublicLayout({ children, polos = false, lebar = 'penuh' 
             >
                 Lewati ke isi
             </a>
-            <Header />
+            <Header wbs={wbs} />
             {polos ? (
                 <main id="isi" className="flex-1">
                     {children}
@@ -224,7 +239,7 @@ export default function PublicLayout({ children, polos = false, lebar = 'penuh' 
                     {children}
                 </main>
             )}
-            <Footer />
+            <Footer wbs={wbs} />
         </div>
     );
 }
